@@ -69,14 +69,13 @@ const NTFS_PROFILE = `
         "name_offset": [10, ["unsigned short"]],
         "flags": [12, ["Flags", {
             "target": "unsigned short",
-            "maskmap": {
-                "COMPRESSED" : 1,
-                "ENCRYPTED": 16384,
-                "SPARSE": 32768
+            "bitmap": {
+                "COMPRESSED" : 0,
+                "ENCRYPTED": 14,
+                "SPARSE": 15
             }
         }]],
         "attribute_id": [14, ["unsigned short"]],
-
         "content_size": [16, ["unsigned int"]],
         "content_offset": [20, ["unsigned short"]],
         "runlist_vcn_start": [16, ["unsigned long long"]],
@@ -204,7 +203,7 @@ const NTFS_PROFILE = `
 
     "ATTRIBUTE_LIST_ENTRY": [0, {
         "type": [0, ["unsigned int"]],
-        "length": [4, ["unsigned short int"]],
+        "length": [4, ["short int"]],
         "name_length": [6, ["byte"]],
         "offset_to_name": [7, ["byte"]],
         "starting_vcn": [8, ["unsigned long long"]],

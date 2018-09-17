@@ -63,42 +63,6 @@ func _NewMFTEntry(boot *NTFS_BOOT_SECTOR, reader io.ReaderAt, offset int64) (*MF
 	return &MFT_ENTRY{fixed_up_mft, mft, boot}, nil
 }
 
-// NTFS Parsing starts with the boot record.
-func NewBootRecord(profile *vtypes.Profile, reader io.ReaderAt, offset int64) (
-	*NTFS_BOOT_SECTOR, error) {
-
-	record_obj, err := profile.Create("NTFS_BOOT_SECTOR", offset, reader, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	self := &NTFS_BOOT_SECTOR{record_obj}
-	if self.Get("magic").AsInteger() != 0xaa55 {
-		return self, errors.New("Invalid magic")
-	}
-
-	switch self.ClusterSize() {
-	case 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40,
-		0x80, 0x100, 0x200, 0x400, 0x800, 0x1000:
-		break
-	default:
-		return self, errors.New(
-			fmt.Sprintf("Invalid cluster size %x",
-				self.ClusterSize()))
-	}
-
-	sector_size := self.Get("sector_size").AsInteger()
-	if sector_size == 0 || (sector_size%512 != 0) {
-		return self, errors.New("Invalid sector_size")
-	}
-
-	if self.BlockCount() == 0 {
-		return self, errors.New("Volume size is 0")
-	}
-
-	return self, nil
-}
-
 // Represents a single MFT entry. This can only be created using
 // NTFS_BOOT_SECTOR.MTF().
 type MFT_ENTRY struct {
@@ -155,10 +119,22 @@ func (self *MFT_ENTRY) Attributes() []*NTFS_ATTRIBUTE {
 			break
 		}
 
-		result = append(result, &NTFS_ATTRIBUTE{
+		attribute := &NTFS_ATTRIBUTE{
 			Object: item,
 			mft:    self,
-		})
+		}
+
+		// $ATTRIBUTE_LIST
+		if attribute.Get("type").AsInteger() == 32 {
+			attr_list, err := attribute.Decode()
+			if err == nil {
+				result = append(
+					result, attr_list.(*ATTRIBUTE_LIST_ENTRY).Attributes()...)
+			}
+		}
+
+		result = append(result, attribute)
+
 		offset += item.Get("length").AsInteger()
 	}
 
@@ -193,7 +169,7 @@ func (self *MFT_ENTRY) DebugString() string {
 		result = append(result, attr.DebugString())
 
 		decoded, err := attr.Decode()
-		if err == nil {
+		if err == nil && decoded != nil {
 			result = append(result, decoded.DebugString())
 		}
 	}
@@ -227,6 +203,18 @@ func (self *MFT_ENTRY) FileName() []*FILE_NAME {
 			}
 
 			result = append(result, &FILE_NAME{res})
+		}
+	}
+
+	return result
+}
+
+func (self *MFT_ENTRY) Data() []*DATA {
+	result := []*DATA{}
+
+	for _, attr := range self.Attributes() {
+		if attr.Get("type").AsInteger() == 128 {
+			result = append(result, &DATA{attr})
 		}
 	}
 
