@@ -15,7 +15,7 @@ var (
 
 	fls_command_file_arg = fls_command.Arg(
 		"file", "The image file to inspect",
-	).Required().File()
+	).Required().OpenFile(os.O_RDONLY, os.FileMode(0666))
 
 	fls_command_arg = fls_command.Arg(
 		"MFT", "The MFT ID to list (5 is the root).",

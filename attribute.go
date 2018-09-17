@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"www.velocidex.com/golang/vtypes"
 )
@@ -28,6 +29,12 @@ func (self *NTFS_ATTRIBUTE) Decode() (vtypes.Object, error) {
 			self.Data(), nil)
 		return &STANDARD_INFORMATION{res}, err
 
+	case 32:
+		res, err := self.Profile().Create(
+			"ATTRIBUTE_LIST_ENTRY", 0,
+			self.Data(), nil)
+		return &ATTRIBUTE_LIST_ENTRY{res, self}, err
+
 	case 48:
 		res, err := self.Profile().Create(
 			"FILE_NAME", 0,
@@ -35,7 +42,7 @@ func (self *NTFS_ATTRIBUTE) Decode() (vtypes.Object, error) {
 		return &FILE_NAME{res}, err
 
 	default:
-		return self, nil
+		return nil, nil
 	}
 }
 
@@ -75,20 +82,24 @@ func (self *NTFS_ATTRIBUTE) DebugString() string {
 	n, _ := self.Data().ReadAt(b, 0)
 	b = b[:n]
 
-	result := fmt.Sprintf(
-		"%s\n ... Attr Name: '%s'\n ... Runlist: "+
-			"%v\n ... Data: \n%s\n",
-		self.Object.DebugString(),
-		self.Name(),
-		self.RunList(), hex.Dump(b))
+	result := []string{self.Object.DebugString()}
+	name := self.Name()
+	if name != "" {
+		result = append(result, "Name: "+name)
+	}
 
-	return result
+	if self.Get("resident").AsInteger() != 0 {
+		result = append(result, fmt.Sprintf(
+			"Runlist: %v", self.RunList()))
+	}
+
+	result = append(result, fmt.Sprintf("Data: \n%s", hex.Dump(b)))
+	return strings.Join(result, "\n")
 }
 
 type Run struct {
-	FileOffset   int64
-	TargetOffset int64
-	Length       int64
+	RelativeUrnOffset int64
+	Length            int64
 }
 
 func (self *NTFS_ATTRIBUTE) Data() io.ReaderAt {
@@ -104,11 +115,13 @@ func (self *NTFS_ATTRIBUTE) Data() io.ReaderAt {
 		buf = buf[:n]
 
 		self.data = bytes.NewReader(buf)
+
+		// Stream is compressed
+	} else if self.Get("flags").Get("COMPRESSED").AsInteger() != 0 {
+		compression_unit_size := int64(1 << uint64(self.Get("compression_unit_size").AsInteger()))
+		self.data = NewCompressedRunReader(self.RunList(), self, compression_unit_size)
 	} else {
-		self.data = &RunReader{
-			runs:      self.RunList(),
-			attribute: self,
-		}
+		self.data = NewRunReader(self.RunList(), self)
 	}
 
 	return self.data
@@ -129,8 +142,6 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 
 	length_buffer := make([]byte, 8)
 	offset_buffer := make([]byte, 8)
-	run_offset := int64(0)
-	file_offset := int64(0)
 
 	for offset := 0; offset < len(buffer); {
 		// Consume the first byte off the stream.
@@ -173,26 +184,136 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 			binary.LittleEndian.Uint64(offset_buffer))
 		run_length := int64(binary.LittleEndian.Uint64(
 			length_buffer))
-		run_offset += relative_run_offset
 
 		result = append(result, Run{
-			FileOffset:   file_offset,
-			TargetOffset: run_offset,
-			Length:       run_length,
+			RelativeUrnOffset: relative_run_offset,
+			Length:            run_length,
 		})
-
-		file_offset += run_length
 	}
 
 	return result
 }
 
+type ReaderRun struct {
+	FileOffset       int64
+	TargetOffset     int64
+	Length           int64
+	CompressedLength int64
+}
+
+func (self *ReaderRun) Decompress(reader io.ReaderAt, cluster_size int64) ([]byte, error) {
+	Printf("Decompress %v\n", self)
+	compressed := make([]byte, self.CompressedLength*cluster_size)
+	n, err := reader.ReadAt(compressed, self.TargetOffset*cluster_size)
+	if err != nil {
+		return compressed, err
+	}
+	compressed = compressed[:n]
+
+	decompressed, err := LZNT1Decompress(compressed)
+	return decompressed, err
+}
+
 // An io.ReaderAt which works off runs.
 type RunReader struct {
-	runs []Run
+	runs []ReaderRun
 
 	// The attribute that owns us.
 	attribute *NTFS_ATTRIBUTE
+}
+
+// Convert the NTFS relative runlist into an absolute run list.
+func MakeReaderRuns(runs []Run) []ReaderRun {
+	reader_runs := []ReaderRun{}
+	file_offset := int64(0)
+	target_offset := int64(0)
+
+	for _, run := range runs {
+		target_offset += run.RelativeUrnOffset
+
+		// Sparse run.
+		if run.RelativeUrnOffset == 0 {
+			reader_runs = append(reader_runs, ReaderRun{
+				FileOffset:   file_offset,
+				TargetOffset: 0,
+				Length:       run.Length,
+			})
+
+		} else {
+			reader_runs = append(reader_runs, ReaderRun{
+				FileOffset:   file_offset,
+				TargetOffset: target_offset,
+				Length:       run.Length,
+			})
+		}
+
+		file_offset += run.Length
+	}
+	return reader_runs
+}
+
+func NewCompressedRunReader(runs []Run,
+	attr *NTFS_ATTRIBUTE, compression_unit_size int64) *RunReader {
+	reader_runs := MakeReaderRuns(runs)
+
+	normalized_reader_runs := []ReaderRun{}
+
+	// Break runs up into compression units.
+	for i := 0; i < len(reader_runs); i++ {
+		run := reader_runs[i]
+
+		if run.Length >= compression_unit_size {
+			reader_run := ReaderRun{
+				FileOffset:   run.FileOffset,
+				TargetOffset: run.TargetOffset,
+				Length:       run.Length - run.Length%compression_unit_size,
+			}
+
+			normalized_reader_runs = append(normalized_reader_runs, reader_run)
+			run = ReaderRun{
+				FileOffset:   reader_run.FileOffset + reader_run.Length,
+				TargetOffset: reader_run.TargetOffset + reader_run.Length,
+				Length:       run.Length - reader_run.Length,
+			}
+		}
+
+		if run.Length == 0 {
+			continue
+		}
+
+		// This is a compressed run which is part of the
+		// compression_unit_size. It is followed by a sparse
+		// run. We convert this run to a single compressed run
+		// and swallow the sparse run that follows it. eg:
+		// [{0 474540 47 0} {47 0 1 0} {48 474588 1213 0} {1261 0 3 0}] Normalizes to:
+		// [{0 474540 32 0} {32 474572 16 15} {48 474588 1200 0} {1248 475788 16 13}]
+		if i+1 < len(runs) &&
+			reader_runs[i+1].Length+run.Length == compression_unit_size &&
+			reader_runs[i+1].TargetOffset == 0 {
+
+			normalized_reader_runs = append(normalized_reader_runs, ReaderRun{
+				FileOffset:   run.FileOffset,
+				TargetOffset: run.TargetOffset,
+
+				// Take up the entire compression unit
+				Length:           compression_unit_size,
+				CompressedLength: run.Length,
+			})
+			i++ // Swallow to empty sparse run.
+		}
+
+	}
+
+	Printf("Normalized runlist %v to:\n Normal runlist %v\n",
+		reader_runs, normalized_reader_runs)
+	return &RunReader{runs: normalized_reader_runs, attribute: attr}
+}
+
+func NewRunReader(runs []Run, attr *NTFS_ATTRIBUTE) *RunReader {
+	return &RunReader{
+		runs:      MakeReaderRuns(runs),
+		attribute: attr,
+	}
 }
 
 // Returns the boot sector.
@@ -200,7 +321,56 @@ func (self *RunReader) Boot() *NTFS_BOOT_SECTOR {
 	return self.attribute.mft.boot
 }
 
-func (self *RunReader) ReadAt(buf []byte, offset int64) (int, error) {
+func (self *RunReader) readFromARun(
+	run_idx int, buf []byte, run_offset int) (int, error) {
+
+	Printf("readFromARun %v\n", self.runs[run_idx])
+
+	cluster_size := self.Boot().ClusterSize()
+	target_offset := self.runs[run_idx].TargetOffset * cluster_size
+	is_compressed := self.runs[run_idx].CompressedLength > 0
+
+	if is_compressed {
+		decompressed, err := self.runs[run_idx].Decompress(
+			self.Boot().Reader(), cluster_size)
+		if err != nil {
+			return 0, err
+		}
+		Printf("Decompressed %d from %v\n", len(decompressed), self.runs[run_idx])
+
+		i := 0
+		for {
+			if run_offset >= len(decompressed) ||
+				i >= len(buf) {
+				return i, nil
+			}
+
+			buf[i] = decompressed[run_offset]
+			run_offset++
+			i++
+		}
+
+	} else {
+		to_read := int(self.runs[run_idx].Length*cluster_size) - run_offset
+		if len(buf) < to_read {
+			to_read = len(buf)
+		}
+
+		// The run is sparse - just skip the buffer.
+		if target_offset == 0 {
+			return to_read, nil
+
+		} else {
+			// Run contains data - read it
+			// into the buffer.
+			n, err := self.Boot().Reader().ReadAt(
+				buf[:to_read], target_offset+int64(run_offset))
+			return n, err
+		}
+	}
+}
+
+func (self *RunReader) ReadAt(buf []byte, file_offset int64) (int, error) {
 	buf_idx := 0
 
 	cluster_size := self.Boot().ClusterSize()
@@ -210,28 +380,35 @@ func (self *RunReader) ReadAt(buf []byte, offset int64) (int, error) {
 		run_file_offset := self.runs[j].FileOffset * cluster_size
 		run_length := self.runs[j].Length * cluster_size
 		run_end_file_offset := run_file_offset + run_length
-		target_offset := self.runs[j].TargetOffset * cluster_size
 
-		if run_file_offset <= offset &&
-			offset < run_end_file_offset {
+		// This run can provide us with some data.
+		if run_file_offset <= file_offset &&
+			file_offset < run_end_file_offset {
 
-			// Read as much as possible from this run.
-			to_read := run_end_file_offset - offset
-			if to_read > int64(len(buf))-int64(buf_idx) {
-				to_read = int64(len(buf)) - int64(buf_idx)
+			// The relative offset within the run.
+			run_offset := int(file_offset - run_file_offset)
+
+			n, err := self.readFromARun(
+				j, buf[buf_idx:], run_offset)
+			if err != nil {
+				Printf("Reading run %v returned error %v\n", self.runs[j], err)
+				return buf_idx, err
 			}
 
-			n, _ := self.Boot().Reader().ReadAt(
-				buf[buf_idx:to_read],
-				target_offset+offset-run_file_offset)
-
 			if n == 0 {
-				return buf_idx, nil
+				Printf("Reading run %v returned no data\n", self.runs[j])
+				return buf_idx, io.EOF
 			}
 
 			buf_idx += n
-			offset += int64(n)
+			file_offset += int64(n)
 		}
+	}
+
+	if buf_idx == 0 {
+		Printf("Could not find runs for offset %d: %v. Clusted size %d\n",
+			file_offset, self.runs, cluster_size)
+		return buf_idx, io.EOF
 	}
 
 	return buf_idx, nil
@@ -268,6 +445,68 @@ type INDEX_RECORD_ENTRY struct {
 type STANDARD_INDEX_HEADER struct {
 	vtypes.Object
 	attr *NTFS_ATTRIBUTE
+}
+
+type ATTRIBUTE_LIST_ENTRY struct {
+	vtypes.Object
+	attr *NTFS_ATTRIBUTE
+}
+
+func (self *ATTRIBUTE_LIST_ENTRY) Attributes() []*NTFS_ATTRIBUTE {
+	result := []*NTFS_ATTRIBUTE{}
+
+	attribute_size := self.attr.Size()
+	offset := int64(0)
+	for {
+		item, err := self.Profile().Create(
+			"ATTRIBUTE_LIST_ENTRY",
+			self.Offset()+offset, self.Reader(), nil)
+		if err != nil {
+			break
+		}
+
+		attr_list_entry := &ATTRIBUTE_LIST_ENTRY{item, self.attr}
+
+		if attr_list_entry.Get("mftReference").AsInteger() !=
+			self.attr.mft.Get("record_number").AsInteger() {
+			attr, err := attr_list_entry.GetAttribute()
+			if err != nil {
+				break
+			}
+			result = append(result, attr)
+		}
+		length := item.Get("length").AsInteger()
+		if length <= 0 {
+			break
+		}
+
+		offset += length
+
+		if offset >= attribute_size {
+			break
+		}
+
+	}
+
+	return result
+}
+
+func (self *ATTRIBUTE_LIST_ENTRY) GetAttribute() (*NTFS_ATTRIBUTE, error) {
+	mytype := self.Get("type").AsInteger()
+	myid := self.Get("attribute_id").AsInteger()
+
+	mft, err := self.attr.mft.MFTEntry(self.Get("mftReference").AsInteger())
+	if err != nil {
+		return nil, err
+	}
+	for _, attr := range mft.Attributes() {
+		if attr.Get("type").AsInteger() == mytype &&
+			attr.Get("attribute_id").AsInteger() == myid {
+			return attr, nil
+		}
+	}
+
+	return nil, errors.New("No attribute found.")
 }
 
 // The STANDARD_INDEX_HEADER has a second layer of fixups.
@@ -327,4 +566,8 @@ func NewSTANDARD_INDEX_HEADER(attr *NTFS_ATTRIBUTE, offset int64, length int64) 
 	// Produce a new STANDARD_INDEX_HEADER record with a fixed up
 	// page.
 	return &STANDARD_INDEX_HEADER{fixed_up_index, attr}, err
+}
+
+type DATA struct {
+	*NTFS_ATTRIBUTE
 }

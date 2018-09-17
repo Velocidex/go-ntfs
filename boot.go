@@ -2,6 +2,8 @@ package ntfs
 
 import (
 	"errors"
+	"fmt"
+	"io"
 
 	"www.velocidex.com/golang/vtypes"
 )
@@ -54,6 +56,47 @@ func (self *NTFS_BOOT_SECTOR) MFT() (*MFT_ENTRY, error) {
 	}
 
 	return nil, errors.New("$DATA attribute not found for $MFT")
+}
+
+// NTFS Parsing starts with the boot record.
+func NewBootRecord(profile *vtypes.Profile, reader io.ReaderAt, offset int64) (
+	*NTFS_BOOT_SECTOR, error) {
+
+	wrapped_reader, err := NewPagedReader(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	record_obj, err := profile.Create("NTFS_BOOT_SECTOR", offset, wrapped_reader, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	self := &NTFS_BOOT_SECTOR{record_obj}
+	if self.Get("magic").AsInteger() != 0xaa55 {
+		return self, errors.New("Invalid magic")
+	}
+
+	switch self.ClusterSize() {
+	case 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40,
+		0x80, 0x100, 0x200, 0x400, 0x800, 0x1000:
+		break
+	default:
+		return self, errors.New(
+			fmt.Sprintf("Invalid cluster size %x",
+				self.ClusterSize()))
+	}
+
+	sector_size := self.Get("sector_size").AsInteger()
+	if sector_size == 0 || (sector_size%512 != 0) {
+		return self, errors.New("Invalid sector_size")
+	}
+
+	if self.BlockCount() == 0 {
+		return self, errors.New("Volume size is 0")
+	}
+
+	return self, nil
 }
 
 func GetProfile() (*vtypes.Profile, error) {
