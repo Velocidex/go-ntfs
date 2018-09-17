@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strings"
 
@@ -89,6 +90,41 @@ func (self *MFT_ENTRY) MFTEntry(id int64) (*MFT_ENTRY, error) {
 	}
 
 	return result, nil
+}
+
+func (self *MFT_ENTRY) Open(filename string) (*MFT_ENTRY, error) {
+	filename = strings.Replace(filename, "\\", "/", -1)
+	components := strings.Split(path.Clean(filename), "/")
+
+	get_path_in_dir := func(component string, dir *MFT_ENTRY) (
+		*MFT_ENTRY, error) {
+		component = strings.ToLower(component)
+		for _, idx_record := range dir.Dir() {
+			item_name := strings.ToLower(
+				(&FILE_NAME{idx_record.Get("file")}).Name())
+			if item_name == component {
+				return self.MFTEntry(
+					idx_record.Get("mftReference").
+						AsInteger())
+			}
+		}
+
+		return nil, errors.New("Not found")
+	}
+
+	directory := self
+	for _, component := range components {
+		if component == "" {
+			continue
+		}
+		next, err := get_path_in_dir(component, directory)
+		if err != nil {
+			return nil, err
+		}
+		directory = next
+	}
+
+	return directory, nil
 }
 
 func (self *MFT_ENTRY) Offset() int64 {

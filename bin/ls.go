@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"regexp"
+	"strconv"
 
 	"github.com/olekukonko/tablewriter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -10,30 +13,47 @@ import (
 )
 
 var (
-	fls_command = app.Command(
-		"fls", "List files.")
+	ls_command = app.Command(
+		"ls", "List files.")
 
-	fls_command_file_arg = fls_command.Arg(
+	ls_command_file_arg = ls_command.Arg(
 		"file", "The image file to inspect",
 	).Required().OpenFile(os.O_RDONLY, os.FileMode(0666))
 
-	fls_command_arg = fls_command.Arg(
-		"MFT", "The MFT ID to list (5 is the root).",
-	).Default("5").Int64()
+	ls_command_arg = ls_command.Arg(
+		"path", "The path to list or an MFT entry.",
+	).Default("/").String()
+
+	mft_regex = regexp.MustCompile("\\d+")
 )
 
-func doFLS() {
+func getMFTEntry(path_or_entry string, image io.ReaderAt) (
+	*ntfs.MFT_ENTRY, error) {
 	profile, err := ntfs.GetProfile()
 	kingpin.FatalIfError(err, "Profile")
 
-	boot, err := ntfs.NewBootRecord(profile, *fls_command_file_arg, 0)
+	boot, err := ntfs.NewBootRecord(profile, image, 0)
 	kingpin.FatalIfError(err, "Boot record")
 
 	mft, err := boot.MFT()
 	kingpin.FatalIfError(err, "MFT")
 
-	dir, err := mft.MFTEntry(*fls_command_arg)
-	kingpin.FatalIfError(err, "Root")
+	if mft_regex.MatchString(path_or_entry) {
+		mft_entry, err := strconv.Atoi(path_or_entry)
+		kingpin.FatalIfError(err, "MFT entry not valid")
+
+		return mft.MFTEntry(int64(mft_entry))
+	} else {
+		root, err := mft.MFTEntry(5)
+		kingpin.FatalIfError(err, "MFT")
+
+		return root.Open(path_or_entry)
+	}
+}
+
+func doLS() {
+	dir, err := getMFTEntry(*ls_command_arg, *ls_command_file_arg)
+	kingpin.FatalIfError(err, "Can not open directory MFT entry.")
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{
@@ -44,7 +64,7 @@ func doFLS() {
 		"Filename",
 	})
 	table.SetCaption(true, fmt.Sprintf(
-		"Directory listing for MFT %d", *fls_command_arg))
+		"Directory listing for MFT %v", *ls_command_arg))
 	defer table.Render()
 
 	for _, node := range dir.Dir() {
@@ -69,8 +89,8 @@ func doFLS() {
 func init() {
 	command_handlers = append(command_handlers, func(command string) bool {
 		switch command {
-		case "fls":
-			doFLS()
+		case "ls":
+			doLS()
 		default:
 			return false
 		}

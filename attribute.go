@@ -48,8 +48,11 @@ func (self *NTFS_ATTRIBUTE) Decode() (vtypes.Object, error) {
 
 func (self *NTFS_ATTRIBUTE) Name() string {
 	length := self.Get("name_length").AsInteger() * 2
-	if length > 1000000 {
+	if length > 10000 {
 		return "name length too long"
+	}
+	if length < 0 {
+		length = 0
 	}
 
 	result, err := self.Profile().Create("String",
@@ -78,6 +81,10 @@ func (self *NTFS_ATTRIBUTE) DebugString() string {
 	if length > 100 {
 		length = 100
 	}
+	if length < 0 {
+		length = 0
+	}
+
 	b := make([]byte, length)
 	n, _ := self.Data().ReadAt(b, 0)
 	b = b[:n]
