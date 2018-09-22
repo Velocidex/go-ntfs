@@ -47,12 +47,12 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 		block_offset := i
 
 		block_header := binary.LittleEndian.Uint16(in[i:])
-		Printf("Header %#x @ %#x %d\n", block_header, i, i)
+		LZNT1Printf("Header %#x @ %#x %d\n", block_header, i, i)
 		i += 2
 
 		size := int(block_header & SIZE_MASK)
 		block_end := block_offset + size + 3
-		Printf("%d Block Size: %d ends at %d\n", len(out), size+3, block_end)
+		LZNT1Printf("%d Block Size: %d ends at %d\n", len(out), size+3, block_end)
 		if size == 0 {
 			break
 		}
@@ -64,7 +64,7 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 		if block_header&COMPRESSED_MASK != 0 {
 			for i < block_end {
 				header := in[i]
-				Printf("%d Tag %x\n", len(out), header)
+				LZNT1Printf("%d Tag %x\n", len(out), header)
 				i++
 
 				for mask_idx := uint8(0); mask_idx < 8 && i < block_end; mask_idx++ {
@@ -77,7 +77,7 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 							len(out) - uncompressed_chunk_offset - 1)
 						symbol_offset := int(pointer>>(12-displacement)) + 1
 						symbol_length := int(pointer&(0xFFF>>displacement)) + 2
-						Printf("Wrote %d @ %d/%d: Phrase %d %d %x\n",
+						LZNT1Printf("Wrote %d @ %d/%d: Phrase %d %d %x\n",
 							symbol_length, i, len(out),
 							symbol_length, symbol_offset, pointer)
 						start_offset := len(out) - symbol_offset
@@ -85,7 +85,7 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 							out = append(out, out[start_offset+j])
 						}
 					} else {
-						Printf("%d: Symbol %#x (%d)\n", i, in[i], len(out))
+						LZNT1Printf("%d: Symbol %#x (%d)\n", i, in[i], len(out))
 						out = append(out, in[i])
 						i++
 					}

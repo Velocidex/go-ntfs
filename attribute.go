@@ -68,8 +68,12 @@ func (self *NTFS_ATTRIBUTE) Name() string {
 	return result.AsString()
 }
 
+func (self *NTFS_ATTRIBUTE) IsResident() bool {
+	return self.Get("resident").AsInteger() == 0
+}
+
 func (self *NTFS_ATTRIBUTE) Size() int64 {
-	if self.Get("resident").AsInteger() == 0 {
+	if self.IsResident() {
 		return self.Get("content_size").AsInteger()
 	}
 
@@ -77,6 +81,18 @@ func (self *NTFS_ATTRIBUTE) Size() int64 {
 }
 
 func (self *NTFS_ATTRIBUTE) DebugString() string {
+	result := []string{}
+
+	if self.IsResident() {
+		obj, err := self.Profile().Create("NTFS_RESIDENT_ATTRIBUTE",
+			self.Offset(), self.Reader(), nil)
+		if err == nil {
+			result = append(result, obj.DebugString())
+		}
+	} else {
+		result = append(result, self.Object.DebugString())
+	}
+
 	length := self.Get("actual_size").AsInteger()
 	if length > 100 {
 		length = 100
@@ -89,13 +105,12 @@ func (self *NTFS_ATTRIBUTE) DebugString() string {
 	n, _ := self.Data().ReadAt(b, 0)
 	b = b[:n]
 
-	result := []string{self.Object.DebugString()}
 	name := self.Name()
 	if name != "" {
 		result = append(result, "Name: "+name)
 	}
 
-	if self.Get("resident").AsInteger() != 0 {
+	if !self.IsResident() {
 		result = append(result, fmt.Sprintf(
 			"Runlist: %v", self.RunList()))
 	}
@@ -114,7 +129,7 @@ func (self *NTFS_ATTRIBUTE) Data() io.ReaderAt {
 		return self.data
 	}
 
-	if self.Get("resident").AsInteger() == 0 {
+	if self.IsResident() {
 		buf := make([]byte, self.Get("content_size").AsInteger())
 		n, _ := self.Reader().ReadAt(
 			buf,
@@ -171,10 +186,10 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 			}
 		}
 
-		// Sign extend if the last byte if larger than 0x80.
-		var sign byte
+		// Sign extend if the last byte is larger than 0x80.
+		var sign byte = 0x00
 		for i := 0; i < 8; i++ {
-			if i == run_offset_size &&
+			if i == run_offset_size-1 &&
 				buffer[offset]&0x80 != 0 {
 				sign = 0xFF
 			}
@@ -189,6 +204,7 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 
 		relative_run_offset := int64(
 			binary.LittleEndian.Uint64(offset_buffer))
+
 		run_length := int64(binary.LittleEndian.Uint64(
 			length_buffer))
 
@@ -311,7 +327,9 @@ func NewCompressedRunReader(runs []Run,
 
 	}
 
-	Printf("Normalized runlist %v to:\n Normal runlist %v\n",
+	Printf("compression_unit_size: %v\nRunlist: %v\n"+
+		"Normalized runlist %v to:\nNormal runlist %v\n",
+		compression_unit_size, runs,
 		reader_runs, normalized_reader_runs)
 	return &RunReader{runs: normalized_reader_runs, attribute: attr}
 }
@@ -377,7 +395,8 @@ func (self *RunReader) readFromARun(
 	}
 }
 
-func (self *RunReader) ReadAt(buf []byte, file_offset int64) (int, error) {
+func (self *RunReader) ReadAt(buf []byte, file_offset int64) (
+	int, error) {
 	buf_idx := 0
 
 	cluster_size := self.Boot().ClusterSize()

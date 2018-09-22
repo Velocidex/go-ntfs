@@ -92,12 +92,16 @@ func (self *MFT_ENTRY) MFTEntry(id int64) (*MFT_ENTRY, error) {
 	return result, nil
 }
 
+// Open the MFT entry specified by a path name. Walks all directory
+// indexes in the path to find the right MFT entry.
 func (self *MFT_ENTRY) Open(filename string) (*MFT_ENTRY, error) {
 	filename = strings.Replace(filename, "\\", "/", -1)
 	components := strings.Split(path.Clean(filename), "/")
 
 	get_path_in_dir := func(component string, dir *MFT_ENTRY) (
 		*MFT_ENTRY, error) {
+
+		// NTFS is usually case insensitive.
 		component = strings.ToLower(component)
 		for _, idx_record := range dir.Dir() {
 			item_name := strings.ToLower(
@@ -160,7 +164,8 @@ func (self *MFT_ENTRY) Attributes() []*NTFS_ATTRIBUTE {
 			mft:    self,
 		}
 
-		// $ATTRIBUTE_LIST
+		// This is an $ATTRIBUTE_LIST attribute - append its
+		// own attributes to this one.
 		if attribute.Get("type").AsInteger() == 32 {
 			attr_list, err := attribute.Decode()
 			if err == nil {
@@ -171,6 +176,7 @@ func (self *MFT_ENTRY) Attributes() []*NTFS_ATTRIBUTE {
 
 		result = append(result, attribute)
 
+		// Go to the next attribute.
 		offset += item.Get("length").AsInteger()
 	}
 
@@ -245,13 +251,76 @@ func (self *MFT_ENTRY) FileName() []*FILE_NAME {
 	return result
 }
 
-func (self *MFT_ENTRY) Data() []*DATA {
-	result := []*DATA{}
+// Retrieve the content of the attribute stream specified by id.
+func (self *MFT_ENTRY) Data(attr_type, id int64) io.ReaderAt {
+	result := &MapReader{}
+
+	cluster_size := self.boot.ClusterSize()
+	compression_unit_size := int64(0)
+	actual_size := int64(0)
 
 	for _, attr := range self.Attributes() {
-		if attr.Get("type").AsInteger() == 128 {
-			result = append(result, &DATA{attr})
+		if attr.Get("type").AsInteger() != attr_type {
+			continue
 		}
+
+		// id of -1 means the first non-named stream.
+		if id == -1 {
+			if attr.Name() != "" {
+				continue
+			}
+
+		} else if attr.Get("attribute_id").AsInteger() != id {
+			continue
+		}
+
+		// The attribute is resident.
+		if attr.IsResident() {
+			buf := make([]byte, attr.Get("content_size").AsInteger())
+			n, _ := attr.Reader().ReadAt(
+				buf,
+				attr.Offset()+attr.Get("content_offset").AsInteger())
+			buf = buf[:n]
+
+			return bytes.NewReader(buf)
+		}
+
+		if actual_size == 0 {
+			actual_size = attr.Get("actual_size").AsInteger()
+		}
+
+		start_vcn := attr.Get("runlist_vcn_start").AsInteger()
+		end_vcn := attr.Get("runlist_vcn_end").AsInteger()
+		var run io.ReaderAt
+
+		if attr.Get("flags").Get("COMPRESSED").AsInteger() != 0 {
+			if compression_unit_size == 0 {
+				compression_unit_size = int64(
+					1 << uint64(attr.Get(
+						"compression_unit_size").
+						AsInteger()))
+			}
+
+			run = NewCompressedRunReader(
+				attr.RunList(), attr, compression_unit_size)
+		} else {
+			run = NewRunReader(attr.RunList(), attr)
+		}
+
+		end_of_run_in_bytes := (end_vcn + 1) * cluster_size
+		if end_of_run_in_bytes > actual_size {
+			end_of_run_in_bytes = actual_size
+		}
+
+		Printf("Adding run from %v to %v\n",
+			start_vcn*cluster_size,
+			end_of_run_in_bytes)
+
+		result.Runs = append(result.Runs, &GenericRun{
+			Offset: start_vcn * cluster_size,
+			End:    end_of_run_in_bytes,
+			Reader: run,
+		})
 	}
 
 	return result
@@ -326,4 +395,59 @@ func (self *MFT_ENTRY) DirNodes() []*INDEX_NODE_HEADER {
 
 	}
 	return result
+}
+
+type GenericRun struct {
+	Offset int64
+	End    int64
+	Reader io.ReaderAt
+}
+
+// Stitch together several different readers mapped at different
+// offsets.  In NTFS, a file's data consists of multiple $DATA
+// streams, each having the same id. These different streams are
+// mapped at different runlist_vcn_start to runlist_vcn_end (VCN =
+// Virtual Cluster Number: the cluster number within the file's
+// data). This reader combines these different readers into a single
+// continuous form.
+type MapReader struct {
+	// Very simple for now.
+	Runs []*GenericRun
+}
+
+func (self *MapReader) partialRead(buf []byte, offset int64) (int, error) {
+	Printf("MapReader.partialRead %v @ %v\n", len(buf), offset)
+
+	if len(buf) > 0 {
+		for _, run := range self.Runs {
+			if run.Offset <= offset && offset < run.End {
+				available := run.End - offset
+				to_read := int64(len(buf))
+				if to_read > available {
+					to_read = available
+				}
+
+				return run.Reader.ReadAt(
+					buf[:to_read], offset-run.Offset)
+			}
+		}
+	}
+	return 0, io.EOF
+}
+
+func (self *MapReader) ReadAt(buf []byte, offset int64) (int, error) {
+	to_read := len(buf)
+	idx := int(0)
+
+	for to_read > 0 {
+		res, err := self.partialRead(buf[idx:], offset+int64(idx))
+		if err != nil {
+			return idx, err
+		}
+
+		to_read -= res
+		idx += res
+	}
+
+	return idx, io.EOF
 }

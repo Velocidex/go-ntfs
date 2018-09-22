@@ -5,6 +5,7 @@ import (
 	"os"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	ntfs "www.velocidex.com/golang/go-ntfs"
 )
 
 var (
@@ -21,36 +22,43 @@ var (
 
 	cat_command_output_file = cat_command.Flag(
 		"out", "Write to this file",
-	).String()
+	).OpenFile(os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(0666))
 )
 
 func doCAT() {
-	file, err := getMFTEntry(*cat_command_arg, *cat_command_file_arg)
-	kingpin.FatalIfError(err, "Can not open directory MFT entry.")
+	root, err := ntfs.GetRootMFTEntry(*cat_command_file_arg)
+	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	for _, data := range file.Data() {
-		if *cat_command_output_file != "" {
-			filename := *cat_command_output_file
+	var data io.ReaderAt
+	mft_idx, attr_type, attr_id, err := ntfs.ParseMFTId(*cat_command_arg)
+	if err == nil {
+		// Access by mft id (e.g. 1234-128-6)
+		mft_entry, err := root.MFTEntry(mft_idx)
+		kingpin.FatalIfError(err, "Can not open root MFT entry")
+		data = mft_entry.Data(attr_type, attr_id)
+	} else {
+		// Access by filename - retrieve the first unnamed
+		// $DATA stream.
+		data, err = ntfs.GetDataForPath(*cat_command_arg, root)
+		kingpin.FatalIfError(err, "Can not open path")
+	}
 
-			if data.Name() != "" {
-				filename += "_" + data.Name()
-			}
+	var fd io.WriteCloser = os.Stdout
 
-			fd, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.FileMode(0666))
-			kingpin.FatalIfError(err, "Open file")
-			defer fd.Close()
+	if *cat_command_output_file != nil {
+		fd = *cat_command_output_file
+		defer fd.Close()
+	}
 
-			_, err = io.Copy(
-				fd, io.NewSectionReader(
-					data.Data(), 0, data.Size()))
-			kingpin.FatalIfError(err, "Reading file")
-
-		} else {
-			_, err = io.Copy(
-				os.Stdout, io.NewSectionReader(
-					data.Data(), 0, data.Size()))
-			kingpin.FatalIfError(err, "Reading file")
+	buf := make([]byte, 1024*1024)
+	offset := int64(0)
+	for {
+		n, _ := data.ReadAt(buf, offset)
+		if n == 0 {
+			return
 		}
+		fd.Write(buf[:n])
+		offset += int64(n)
 	}
 }
 

@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	debug = false
+	debug       = false
+	LZNT1_debug = false
 )
 
 func Debug(arg interface{}) {
@@ -16,6 +17,12 @@ func Debug(arg interface{}) {
 
 func Printf(fmt_str string, args ...interface{}) {
 	if debug {
+		fmt.Printf(fmt_str, args...)
+	}
+}
+
+func LZNT1Printf(fmt_str string, args ...interface{}) {
+	if LZNT1_debug {
 		fmt.Printf(fmt_str, args...)
 	}
 }

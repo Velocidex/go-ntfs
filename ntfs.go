@@ -87,6 +87,40 @@ const NTFS_PROFILE = `
         "initialized_size": [56, ["unsigned long long"]]
     }],
 
+    "NTFS_RESIDENT_ATTRIBUTE": [0, {
+        "type": [0, ["Enumeration", {
+            "target": "unsigned int",
+            "choices": {
+                "16": "$STANDARD_INFORMATION",
+                "32": "$ATTRIBUTE_LIST",
+                "48": "$FILE_NAME",
+                "64": "$OBJECT_ID",
+                "80": "$SECURITY_DESCRIPTOR",
+                "96": "$VOLUME_NAME",
+                "112": "$VOLUME_INFORMATION",
+                "128": "$DATA",
+                "144": "$INDEX_ROOT",
+                "160": "$INDEX_ALLOCATION",
+                "176": "$BITMAP",
+                "192": "$REPARSE_POINT",
+                "256": "$LOGGED_UTILITY_STREAM"
+            }
+        }]],
+        "length": [4, ["unsigned int"]],
+        "resident": [8, ["Enumeration", {
+            "target":"unsigned char",
+            "choices": {
+                "0": "RESIDENT",
+                "1": "NON-RESIDENT"
+           }
+        }]],
+        "name_length": [9, ["unsigned char"]],
+        "name_offset": [10, ["unsigned short"]],
+        "attribute_id": [14, ["unsigned short"]],
+        "content_size": [16, ["unsigned int"]],
+        "content_offset": [20, ["unsigned short"]]
+    }],
+
     "STANDARD_INFORMATION": [0, {
         "create_time": [0, ["WinFileTime"]],
         "file_altered_time": [8, ["WinFileTime"]],

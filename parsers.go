@@ -19,7 +19,12 @@ func (self WinFileTimeParser) Copy() vtypes.Parser {
 }
 
 func (self *WinFileTimeParser) AsDate(offset int64, reader io.ReaderAt) time.Time {
-	return time.Unix(self.AsInteger(offset, reader)/10000000-11644473600, 0)
+	return time.Unix(self.AsInteger(offset, reader), 0)
+}
+
+func (self *WinFileTimeParser) AsInteger(offset int64, reader io.ReaderAt) int64 {
+	return self.IntParser.AsInteger(
+		offset, reader)/10000000 - 11644473600
 }
 
 func (self *WinFileTimeParser) AsString(offset int64, reader io.ReaderAt) string {

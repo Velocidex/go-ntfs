@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	ntfs "www.velocidex.com/golang/go-ntfs"
 )
 
 var (
@@ -20,10 +21,23 @@ var (
 )
 
 func doSTAT() {
-	root, err := getMFTEntry(*stat_command_arg, *stat_command_file_arg)
-	kingpin.FatalIfError(err, "Can not open directory STAT entry.")
+	root, err := ntfs.GetRootMFTEntry(*stat_command_file_arg)
+	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	fmt.Println(root.DebugString())
+	var mft_entry *ntfs.MFT_ENTRY
+
+	mft_idx, _, _, err := ntfs.ParseMFTId(*stat_command_arg)
+	if err == nil {
+		// Access by mft id (e.g. 1234-128-6)
+		mft_entry, err = root.MFTEntry(mft_idx)
+	} else {
+		// Access by filename - retrieve the first unnamed
+		// $DATA stream.
+		mft_entry, err = root.Open(*stat_command_arg)
+	}
+	kingpin.FatalIfError(err, "Can not open path")
+
+	fmt.Println(mft_entry.DebugString())
 }
 
 func init() {

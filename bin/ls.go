@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"regexp"
-	"strconv"
 
 	"github.com/olekukonko/tablewriter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -27,33 +25,22 @@ var (
 	mft_regex = regexp.MustCompile("\\d+")
 )
 
-func getMFTEntry(path_or_entry string, image io.ReaderAt) (
-	*ntfs.MFT_ENTRY, error) {
-	profile, err := ntfs.GetProfile()
-	kingpin.FatalIfError(err, "Profile")
-
-	boot, err := ntfs.NewBootRecord(profile, image, 0)
-	kingpin.FatalIfError(err, "Boot record")
-
-	mft, err := boot.MFT()
-	kingpin.FatalIfError(err, "MFT")
-
-	if mft_regex.MatchString(path_or_entry) {
-		mft_entry, err := strconv.Atoi(path_or_entry)
-		kingpin.FatalIfError(err, "MFT entry not valid")
-
-		return mft.MFTEntry(int64(mft_entry))
-	} else {
-		root, err := mft.MFTEntry(5)
-		kingpin.FatalIfError(err, "MFT")
-
-		return root.Open(path_or_entry)
-	}
-}
-
 func doLS() {
-	dir, err := getMFTEntry(*ls_command_arg, *ls_command_file_arg)
-	kingpin.FatalIfError(err, "Can not open directory MFT entry.")
+	root, err := ntfs.GetRootMFTEntry(*ls_command_file_arg)
+	kingpin.FatalIfError(err, "Can not open filesystem")
+
+	var dir *ntfs.MFT_ENTRY
+
+	mft_idx, _, _, err := ntfs.ParseMFTId(*ls_command_arg)
+	if err == nil {
+		// Access by mft id (e.g. 1234-128-6)
+		dir, err = root.MFTEntry(mft_idx)
+		kingpin.FatalIfError(err, "Can not open root MFT entry")
+	} else {
+		// Access by filename.
+		dir, err = root.Open(*ls_command_arg)
+		kingpin.FatalIfError(err, "Can not open path")
+	}
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{
@@ -67,23 +54,15 @@ func doLS() {
 		"Directory listing for MFT %v", *ls_command_arg))
 	defer table.Render()
 
-	for _, node := range dir.Dir() {
-		node_mft_id := node.Get("mftReference").AsInteger()
-		node_mft, err := dir.MFTEntry(node_mft_id)
-		if err != nil {
-			continue
-		}
-
+	for _, info := range ntfs.ListDir(dir) {
 		table.Append([]string{
-			fmt.Sprintf("%d",
-				node.Get("mftReference").AsInteger()),
-			node.Get("file.size").AsString(),
-			node.Get("file.file_modified").AsString(),
-			fmt.Sprintf("%v", node_mft.IsDir()),
-			(&ntfs.FILE_NAME{node.Get("file")}).Name(),
+			info.MFTId,
+			fmt.Sprintf("%v", info.Size),
+			fmt.Sprintf("%v", info.Mtime),
+			fmt.Sprintf("%v", info.IsDir),
+			info.Name,
 		})
 	}
-
 }
 
 func init() {
