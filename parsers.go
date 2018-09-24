@@ -28,7 +28,7 @@ func (self *WinFileTimeParser) AsInteger(offset int64, reader io.ReaderAt) int64
 }
 
 func (self *WinFileTimeParser) AsString(offset int64, reader io.ReaderAt) string {
-	return self.AsDate(offset, reader).String()
+	return self.AsDate(offset, reader).In(time.UTC).String()
 }
 
 func (self *WinFileTimeParser) DebugString(offset int64, reader io.ReaderAt) string {

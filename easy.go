@@ -11,13 +11,14 @@ import (
 )
 
 type FileInfo struct {
-	MFTId string
-	Mtime time.Time
-	Atime time.Time
-	Ctime time.Time
-	Name  string
-	IsDir bool
-	Size  int64
+	MFTId    string
+	Mtime    time.Time
+	Atime    time.Time
+	Ctime    time.Time
+	Name     string
+	NameType string
+	IsDir    bool
+	Size     int64
 }
 
 func GetRootMFTEntry(image io.ReaderAt) (*MFT_ENTRY, error) {
@@ -158,9 +159,10 @@ func ListDir(root *MFT_ENTRY) []*FileInfo {
 					Ctime: time.Unix(
 						filename.Get("mft_modified").
 							AsInteger(), 0),
-					Name:  filename.Name() + ads,
-					IsDir: is_dir,
-					Size:  attr.Size(),
+					Name:     filename.Name() + ads,
+					NameType: filename.Get("name_type").AsString(),
+					IsDir:    is_dir,
+					Size:     attr.Size(),
 				})
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -58,7 +59,7 @@ func doLS() {
 		table.Append([]string{
 			info.MFTId,
 			fmt.Sprintf("%v", info.Size),
-			fmt.Sprintf("%v", info.Mtime),
+			fmt.Sprintf("%v", info.Mtime.In(time.UTC)),
 			fmt.Sprintf("%v", info.IsDir),
 			info.Name,
 		})
