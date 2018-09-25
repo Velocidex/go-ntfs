@@ -8,7 +8,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sebdah/goldie"
 	"github.com/stretchr/testify/assert"
 	ntfs "www.velocidex.com/golang/go-ntfs"
@@ -74,4 +76,10 @@ func TestNTFS(t *testing.T) {
 
 	result_json, _ := json.MarshalIndent(result, "", " ")
 	goldie.Assert(t, "TestNTFS", result_json)
+}
+
+func init() {
+	time.Local = time.UTC
+	spew.Config.DisablePointerAddresses = true
+	spew.Config.SortKeys = true
 }

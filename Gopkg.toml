@@ -44,3 +44,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[metadata.heroku]
+  root-package = "www.velocidex.com/golabg/go-ntfs"
+  go-version = "1.10.3"
