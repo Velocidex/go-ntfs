@@ -449,5 +449,5 @@ func (self *MapReader) ReadAt(buf []byte, offset int64) (int, error) {
 		idx += res
 	}
 
-	return idx, io.EOF
+	return idx, nil
 }
