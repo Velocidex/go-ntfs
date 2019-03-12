@@ -10,11 +10,18 @@ import (
 
 type NTFS_BOOT_SECTOR struct {
 	vtypes.Object
+
+	cluster_size int64
 }
 
 func (self *NTFS_BOOT_SECTOR) ClusterSize() int64 {
-	return self.Get("_cluster_size").AsInteger() *
-		self.Get("sector_size").AsInteger()
+	// This is frequently used so we can cache it locally.
+	if self.cluster_size == 0 {
+		self.cluster_size = self.Get("_cluster_size").AsInteger() *
+			self.Get("sector_size").AsInteger()
+	}
+
+	return self.cluster_size
 }
 
 func (self *NTFS_BOOT_SECTOR) BlockCount() int64 {
@@ -72,7 +79,7 @@ func NewBootRecord(profile *vtypes.Profile, reader io.ReaderAt, offset int64) (
 		return nil, err
 	}
 
-	self := &NTFS_BOOT_SECTOR{record_obj}
+	self := &NTFS_BOOT_SECTOR{Object: record_obj}
 	if self.Get("magic").AsInteger() != 0xaa55 {
 		return self, errors.New("Invalid magic")
 	}

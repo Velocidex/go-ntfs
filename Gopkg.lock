@@ -29,17 +29,6 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:8ec8d88c248041a6df5f6574b87bc00e7e0b493881dad2e7ef47b11dc69093b5"
-  name = "github.com/hashicorp/golang-lru"
-  packages = [
-    ".",
-    "simplelru",
-  ]
-  pruneopts = "UT"
-  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
-  version = "v0.5.0"
-
-[[projects]]
   digest = "1:cdb899c199f907ac9fb50495ec71212c95cb5b0e0a8ee0800da0238036091033"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
@@ -100,7 +89,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/davecgh/go-spew/spew",
-    "github.com/hashicorp/golang-lru",
     "github.com/olekukonko/tablewriter",
     "github.com/sebdah/goldie",
     "github.com/stretchr/testify/assert",

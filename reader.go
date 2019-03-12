@@ -8,14 +8,12 @@ package ntfs
 
 import (
 	"io"
-
-	lru "github.com/hashicorp/golang-lru"
 )
 
 type PagedReader struct {
 	reader   io.ReaderAt
 	pagesize int64
-	lru      *lru.Cache
+	lru      *LRU
 }
 
 func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
@@ -37,8 +35,9 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 		var page_buf []byte
 
 		page := offset - offset%self.pagesize
-		cached_page_buf, pres := self.lru.Get(page)
+		cached_page_buf, pres := self.lru.Get(int(page))
 		if !pres {
+			DebugPrint("Cache miss for %x (%x)", page, self.pagesize)
 			// Read this page into memory.
 			page_buf = make([]byte, self.pagesize)
 			_, err := self.reader.ReadAt(page_buf, page)
@@ -46,14 +45,15 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 				return buf_idx, err
 			}
 
-			self.lru.Add(page, page_buf)
+			self.lru.Add(int(page), page_buf)
 		} else {
 			page_buf = cached_page_buf.([]byte)
 		}
 
-		for i := 0; i < to_read; i++ {
-			buf[buf_idx+i] = page_buf[i+int(offset%self.pagesize)]
-		}
+		// Copy the relevant data from the page.
+		page_offset := int(offset % self.pagesize)
+		copy(buf[buf_idx:buf_idx+to_read],
+			page_buf[page_offset:page_offset+to_read])
 
 		offset += int64(to_read)
 		buf_idx += to_read
@@ -61,14 +61,15 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 }
 
 func NewPagedReader(reader io.ReaderAt) (*PagedReader, error) {
-	cache, err := lru.New(50)
+	// By default 10mb cache.
+	cache, err := NewLRU(100, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PagedReader{
 		reader:   reader,
-		pagesize: 1024,
+		pagesize: 64 * 1024,
 		lru:      cache,
 	}, nil
 }
