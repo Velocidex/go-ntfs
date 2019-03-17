@@ -26,7 +26,8 @@ var (
 )
 
 func doCAT() {
-	root, err := ntfs.GetRootMFTEntry(*cat_command_file_arg)
+	reader, _ := ntfs.NewPagedReader(*cat_command_file_arg, 1024, 10000)
+	root, err := ntfs.GetRootMFTEntry(reader)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	var data io.ReaderAt

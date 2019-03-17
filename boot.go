@@ -69,12 +69,7 @@ func (self *NTFS_BOOT_SECTOR) MFT() (*MFT_ENTRY, error) {
 func NewBootRecord(profile *vtypes.Profile, reader io.ReaderAt, offset int64) (
 	*NTFS_BOOT_SECTOR, error) {
 
-	wrapped_reader, err := NewPagedReader(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	record_obj, err := profile.Create("NTFS_BOOT_SECTOR", offset, wrapped_reader, nil)
+	record_obj, err := profile.Create("NTFS_BOOT_SECTOR", offset, reader, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -37,7 +37,8 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 		page := offset - offset%self.pagesize
 		cached_page_buf, pres := self.lru.Get(int(page))
 		if !pres {
-			DebugPrint("Cache miss for %x (%x)", page, self.pagesize)
+			DebugPrint("Cache miss for %x (%x) (%d)\n", page, self.pagesize,
+				self.lru.Len())
 			// Read this page into memory.
 			page_buf = make([]byte, self.pagesize)
 			_, err := self.reader.ReadAt(page_buf, page)
@@ -60,16 +61,16 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 	}
 }
 
-func NewPagedReader(reader io.ReaderAt) (*PagedReader, error) {
+func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedReader, error) {
 	// By default 10mb cache.
-	cache, err := NewLRU(100, nil)
+	cache, err := NewLRU(cache_size, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PagedReader{
 		reader:   reader,
-		pagesize: 64 * 1024,
+		pagesize: pagesize,
 		lru:      cache,
 	}, nil
 }

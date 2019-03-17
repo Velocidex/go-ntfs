@@ -21,7 +21,8 @@ var (
 )
 
 func doSTAT() {
-	root, err := ntfs.GetRootMFTEntry(*stat_command_file_arg)
+	reader, _ := ntfs.NewPagedReader(*stat_command_file_arg, 1024, 10000)
+	root, err := ntfs.GetRootMFTEntry(reader)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	var mft_entry *ntfs.MFT_ENTRY

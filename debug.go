@@ -11,6 +11,8 @@ import (
 var (
 	debug       = false
 	LZNT1_debug = false
+
+	NTFS_DEBUG *bool
 )
 
 func Debug(arg interface{}) {
@@ -30,10 +32,24 @@ func LZNT1Printf(fmt_str string, args ...interface{}) {
 }
 
 func DebugPrint(fmt_str string, v ...interface{}) {
-	for _, x := range os.Environ() {
-		if strings.HasPrefix(x, "NTFS_DEBUG=") {
-			fmt.Printf(fmt_str, v...)
-			return
+	if NTFS_DEBUG == nil {
+		// os.Environ() seems very expensive in Go so we cache
+		// it.
+		for _, x := range os.Environ() {
+			if strings.HasPrefix(x, "NTFS_DEBUG=") {
+				value := true
+				NTFS_DEBUG = &value
+				break
+			}
 		}
+	}
+
+	if NTFS_DEBUG == nil {
+		value := false
+		NTFS_DEBUG = &value
+	}
+
+	if *NTFS_DEBUG {
+		fmt.Printf(fmt_str, v...)
 	}
 }
