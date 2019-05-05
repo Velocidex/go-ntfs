@@ -1,5 +1,8 @@
-// Based on github.com/hashicorp/golang-lru/simple but more optimized
-// for speed: by changing keys to int mapaccess is much faster.
+// Based on
+// https://github.com/hashicorp/golang-lru/blob/master/simplelru/lru.go
+// but more optimized for speed: by changing keys to int mapaccess is
+// much faster. We also added locking to the LRU to make it thread
+// safe.
 
 package ntfs
 
@@ -12,7 +15,7 @@ import (
 // EvictCallback is used to get a callback when a cache entry is evicted
 type EvictCallback func(key int, value interface{})
 
-// LRU implements a non-thread safe fixed size LRU cache
+// LRU implements a thread safe fixed size LRU cache
 type LRU struct {
 	size      int
 	evictList *list.List

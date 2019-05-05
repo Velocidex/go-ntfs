@@ -300,7 +300,6 @@ func (self *MFT_ENTRY) Data(attr_type, id int64) io.ReaderAt {
 						"compression_unit_size").
 						AsInteger()))
 			}
-
 			run = NewCompressedRunReader(
 				attr.RunList(), attr, compression_unit_size)
 		} else {

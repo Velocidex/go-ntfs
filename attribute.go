@@ -284,6 +284,9 @@ func NewCompressedRunReader(runs []Run,
 	// Break runs up into compression units.
 	for i := 0; i < len(reader_runs); i++ {
 		run := reader_runs[i]
+		if run.Length == 0 {
+			continue
+		}
 
 		if run.Length >= compression_unit_size {
 			reader_run := ReaderRun{
@@ -310,8 +313,8 @@ func NewCompressedRunReader(runs []Run,
 		// and swallow the sparse run that follows it. eg:
 		// [{0 474540 47 0} {47 0 1 0} {48 474588 1213 0} {1261 0 3 0}] Normalizes to:
 		// [{0 474540 32 0} {32 474572 16 15} {48 474588 1200 0} {1248 475788 16 13}]
-		if i+1 < len(runs) &&
-			reader_runs[i+1].Length+run.Length == compression_unit_size &&
+		if i+1 < len(reader_runs) &&
+			reader_runs[i+1].Length+run.Length >= compression_unit_size &&
 			reader_runs[i+1].TargetOffset == 0 {
 
 			normalized_reader_runs = append(normalized_reader_runs, ReaderRun{
@@ -322,7 +325,7 @@ func NewCompressedRunReader(runs []Run,
 				Length:           compression_unit_size,
 				CompressedLength: run.Length,
 			})
-			i++ // Swallow to empty sparse run.
+			reader_runs[i+1].Length -= compression_unit_size - run.Length
 		}
 
 	}
