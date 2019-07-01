@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -10,6 +11,9 @@ import (
 var (
 	stat_command = app.Command(
 		"stat", "inspect the boot record.")
+
+	stat_command_detailed = stat_command.Flag(
+		"verbose", "Show verbose information").Bool()
 
 	stat_command_file_arg = stat_command.Arg(
 		"file", "The image file to inspect",
@@ -38,7 +42,23 @@ func doSTAT() {
 	}
 	kingpin.FatalIfError(err, "Can not open path")
 
-	fmt.Println(mft_entry.DebugString())
+	if *stat_command_detailed {
+		fmt.Println(mft_entry.DebugString())
+
+		path, err := ntfs.GetFullPath(mft_entry)
+		fmt.Printf("FullPath: %s\n", path)
+		if err != nil {
+			fmt.Printf("FullPath error: %s\n", err)
+		}
+	} else {
+		stat, err := ntfs.ModelMFTEntry(mft_entry)
+		kingpin.FatalIfError(err, "Can not open path")
+
+		serialized, err := json.MarshalIndent(stat, " ", " ")
+		kingpin.FatalIfError(err, "Marshal")
+
+		fmt.Println(string(serialized))
+	}
 }
 
 func init() {
