@@ -339,27 +339,7 @@ func (self *MFT_ENTRY) Dir() []*INDEX_RECORD_ENTRY {
 	result := []*INDEX_RECORD_ENTRY{}
 
 	for _, node := range self.DirNodes() {
-		start := node.Get("offset_to_index_entry").AsInteger() + node.Offset()
-		end := node.Get("offset_to_end_index_entry").AsInteger() + node.Offset()
-
-		// Need to fit the last entry in - it should be at least size of FILE_NAME
-		for i := start; i+66 < end; {
-			record, err := self.Profile().Create(
-				"INDEX_RECORD_ENTRY", i, node.Reader(), nil)
-			if err != nil {
-				return result
-			}
-
-			result = append(result, &INDEX_RECORD_ENTRY{record})
-
-			// Records have varied sizes.
-			size_of_record := record.Get("sizeOfIndexEntry").AsInteger()
-			if size_of_record == 0 {
-				break
-			}
-
-			i += size_of_record
-		}
+		result = append(result, node.GetRecords()...)
 	}
 	return result
 }

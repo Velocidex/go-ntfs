@@ -53,6 +53,8 @@ const NTFS_PROFILE = `
                 "160": "$INDEX_ALLOCATION",
                 "176": "$BITMAP",
                 "192": "$REPARSE_POINT",
+                "208": "$EA_INFORMATION",
+                "224": "$EA",
                 "256": "$LOGGED_UTILITY_STREAM"
             }
         }]],
@@ -153,7 +155,7 @@ const NTFS_PROFILE = `
         "usn": [64, ["unsigned int"]]
     }],
 
-    "FILE_NAME": [0, {
+    "FILE_NAME": [66, {
         "mftReference": [0, ["BitField", {
             "target": "unsigned long long",
             "start_bit": 0,
@@ -232,7 +234,8 @@ const NTFS_PROFILE = `
 
     "INDEX_NODE_HEADER": [16, {
         "offset_to_index_entry": [0, ["unsigned int"]],
-        "offset_to_end_index_entry": [4, ["unsigned int"]]
+        "offset_to_end_index_entry": [4, ["unsigned int"]],
+        "sizeOfEntriesAlloc": [8, ["unsigned int"]]
     }],
 
     "ATTRIBUTE_LIST_ENTRY": [0, {

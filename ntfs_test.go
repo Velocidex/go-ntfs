@@ -40,6 +40,7 @@ func TestNTFS(t *testing.T) {
 
 	result["01 Open by path"] = ntfs.ListDir(dir)
 	result["02 Folder B stat"] = split(dir.DebugString())
+	result["02.1 I30"] = ntfs.ExtractI30List(dir)
 
 	// Open by mft id
 	mft_idx, attr, id, err := ntfs.ParseMFTId("46-128-5")
