@@ -15,6 +15,9 @@ var (
 	stat_command_detailed = stat_command.Flag(
 		"verbose", "Show verbose information").Bool()
 
+	stat_command_i30 = stat_command.Flag(
+		"i30", "Carve out $I30 entries").Bool()
+
 	stat_command_file_arg = stat_command.Arg(
 		"file", "The image file to inspect",
 	).Required().File()
@@ -50,11 +53,22 @@ func doSTAT() {
 		if err != nil {
 			fmt.Printf("FullPath error: %s\n", err)
 		}
+
 	} else {
 		stat, err := ntfs.ModelMFTEntry(mft_entry)
 		kingpin.FatalIfError(err, "Can not open path")
 
 		serialized, err := json.MarshalIndent(stat, " ", " ")
+		kingpin.FatalIfError(err, "Marshal")
+
+		fmt.Println(string(serialized))
+	}
+
+	if *stat_command_i30 {
+		i30_list := ntfs.ExtractI30List(mft_entry)
+		kingpin.FatalIfError(err, "Can not extract $I30")
+
+		serialized, err := json.MarshalIndent(i30_list, " ", " ")
 		kingpin.FatalIfError(err, "Marshal")
 
 		fmt.Println(string(serialized))
