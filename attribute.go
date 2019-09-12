@@ -473,8 +473,9 @@ func (self *INDEX_NODE_HEADER) GetRecords() []*INDEX_RECORD_ENTRY {
 	end := self.Get("offset_to_end_index_entry").AsInteger() + self.Offset()
 	start := self.Get("offset_to_index_entry").AsInteger() + self.Offset()
 
+	// Need to fit the last entry in - it should be at least size of FILE_NAME
 	dummy_record, _ := self.Profile().Create(
-		"INDEX_RECORD_ENTRY", 0, self.Reader(), nil)
+		"FILE_NAME", 0, self.Reader(), nil)
 
 	for i := start; i+dummy_record.Size() < end; {
 		record, err := self.Profile().Create(

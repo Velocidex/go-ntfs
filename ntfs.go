@@ -155,7 +155,7 @@ const NTFS_PROFILE = `
         "usn": [64, ["unsigned int"]]
     }],
 
-    "FILE_NAME": [0, {
+    "FILE_NAME": [66, {
         "mftReference": [0, ["BitField", {
             "target": "unsigned long long",
             "start_bit": 0,

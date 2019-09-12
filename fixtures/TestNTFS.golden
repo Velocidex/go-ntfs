@@ -131,6 +131,18 @@
   "00000060  0c 00 00 00                                       |....|",
   ""
  ],
+ "02.1 I30": [
+  {
+   "MFTId": "0x2e",
+   "Mtime": "2018-09-24T07:56:35Z",
+   "Atime": "2018-09-24T07:56:35Z",
+   "Ctime": "2018-09-24T07:56:35Z",
+   "Name": "Hello world text document.txt",
+   "NameType": "POSIX",
+   "IsDir": false,
+   "Size": 0
+  }
+ ],
  "03 Hello world.txt": "12: Hello world!",
  "04 Hello world.txt:goodbye.txt": "20: Goodbye cruel world.",
  "05 Compressed ones.bin hash": "2949120: f581eebdb9a49a622c305d4e44977bc91a4a1204"
