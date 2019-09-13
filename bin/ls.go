@@ -8,7 +8,7 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
-	ntfs "www.velocidex.com/golang/go-ntfs"
+	"www.velocidex.com/golang/go-ntfs/parser"
 )
 
 var (
@@ -27,22 +27,13 @@ var (
 )
 
 func doLS() {
-	reader, _ := ntfs.NewPagedReader(*ls_command_file_arg, 1024, 10000)
-	root, err := ntfs.GetRootMFTEntry(reader)
+	reader, _ := parser.NewPagedReader(*ls_command_file_arg, 1024, 10000)
+
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	var dir *ntfs.MFT_ENTRY
-
-	mft_idx, _, _, err := ntfs.ParseMFTId(*ls_command_arg)
-	if err == nil {
-		// Access by mft id (e.g. 1234-128-6)
-		dir, err = root.MFTEntry(mft_idx)
-		kingpin.FatalIfError(err, "Can not open root MFT entry")
-	} else {
-		// Access by filename.
-		dir, err = root.Open(*ls_command_arg)
-		kingpin.FatalIfError(err, "Can not open path")
-	}
+	dir, err := GetMFTEntry(ntfs_ctx, *ls_command_arg)
+	kingpin.FatalIfError(err, "Can not open path")
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{
@@ -56,7 +47,7 @@ func doLS() {
 		"Directory listing for MFT %v", *ls_command_arg))
 	defer table.Render()
 
-	for _, info := range ntfs.ListDir(dir) {
+	for _, info := range parser.ListDir(ntfs_ctx, dir) {
 		table.Append([]string{
 			info.MFTId,
 			fmt.Sprintf("%v", info.Size),

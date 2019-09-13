@@ -1,4 +1,4 @@
-package ntfs
+package parser
 
 import (
 	"fmt"

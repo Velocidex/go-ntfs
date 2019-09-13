@@ -1,0 +1,20 @@
+Module: parser
+Profile: NTFSProfile
+Filename: ntfs_profile.json
+GenerateDebugString: true
+Structs:
+   - NTFS_BOOT_SECTOR
+   - MFT_ENTRY
+   - NTFS_ATTRIBUTE
+   - NTFS_RESIDENT_ATTRIBUTE
+   - STANDARD_INFORMATION
+   - FILE_NAME
+   - STANDARD_INDEX_HEADER
+   - INDEX_RECORD_ENTRY
+   - INDEX_ROOT
+   - INDEX_NODE_HEADER
+   - ATTRIBUTE_LIST_ENTRY
+
+FieldBlackList:
+   _LARGE_INTEGER:
+   - u

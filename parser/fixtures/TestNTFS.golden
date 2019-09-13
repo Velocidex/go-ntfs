@@ -1,0 +1,55 @@
+{
+ "01 Open by path": [
+  {
+   "MFTId": "46-128-1",
+   "Mtime": "2018-09-24T07:55:29Z",
+   "Atime": "2018-09-24T07:55:29Z",
+   "Ctime": "2018-09-24T07:55:29Z",
+   "Name": "Hello world text document.txt",
+   "NameType": "POSIX",
+   "IsDir": false,
+   "Size": 12
+  },
+  {
+   "MFTId": "46-128-5",
+   "Mtime": "2018-09-24T07:55:29Z",
+   "Atime": "2018-09-24T07:55:29Z",
+   "Ctime": "2018-09-24T07:55:29Z",
+   "Name": "Hello world text document.txt:goodbye.txt",
+   "NameType": "POSIX",
+   "IsDir": false,
+   "Size": 20
+  }
+ ],
+ "02 Folder B stat": [
+  "struct MFT_ENTRY @ 0x0:",
+  "Attribute_offset: 0x38",
+  "Base_record_reference: 0x0",
+  "Fixup_count: 0x3",
+  "Fixup_offset: 0x30",
+  "Flags: 3 (ALLOCATED,DIRECTORY)",
+  "Link_count: 0x1",
+  "Logfile_sequence_number: 0x10c532",
+  "Mft_entry_allocated: 0x400",
+  "Mft_entry_size: 0x218",
+  "Next_attribute_id: 0x5",
+  "Record_number: 0x2d",
+  "Sequence_value: 0x1",
+  ""
+ ],
+ "03 I30": [
+  {
+   "MFTId": "46",
+   "Mtime": "2018-09-24T07:56:35Z",
+   "Atime": "2018-09-24T07:56:35Z",
+   "Ctime": "2018-09-24T07:56:35Z",
+   "Name": "Hello world text document.txt",
+   "NameType": "POSIX",
+   "IsDir": false,
+   "Size": 0
+  }
+ ],
+ "04 Hello world.txt": "12: Hello world!",
+ "05 Hello world.txt:goodbye.txt": "20: Goodbye cruel world.",
+ "06 Compressed ones.bin hash": "1425408: 0cd554fde284d20db033e10b5e8c66f479fe3c6e"
+}
