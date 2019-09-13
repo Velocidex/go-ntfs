@@ -1,4 +1,4 @@
-package ntfs
+package parser
 
 import (
 	"testing"
@@ -19,10 +19,10 @@ var (
 			{48, 1213},
 			{0, 3},
 		}, out: []ReaderRun{
-			{0, 474540, 32, 0},
-			{32, 474572, 16, 15},
-			{48, 474588, 1200, 0},
-			{1248, 475788, 16, 13},
+			{0, 474540, 32, 0, nil},
+			{32, 474572, 16, 15, nil},
+			{48, 474588, 1200, 0, nil},
+			{1248, 475788, 16, 13, nil},
 		}},
 		// A compressed run followed by a sparse run longer
 		// than compression size.
@@ -32,15 +32,16 @@ var (
 		}, out: []ReaderRun{
 
 			// A compressed run followed by sparse run.
-			{0, 1940823, 16, 2},
-			{2, 0, 16, 0},
+			{0, 1940823, 16, 2, nil},
+			{2, 0, 16, 0, nil},
 		}},
 	}
 )
 
 func TestNewCompressedRunReader(t *testing.T) {
 	for _, testcase := range TestCases {
-		runs := NewCompressedRunReader(testcase.input, nil, 16)
+		runs := NewCompressedRunReader(
+			testcase.input, 1024, nil, 16)
 		assert.Equal(t, testcase.out, runs.runs)
 	}
 }

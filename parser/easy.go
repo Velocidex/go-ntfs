@@ -1,5 +1,5 @@
 // Implement some easy APIs.
-package ntfs
+package parser
 
 import (
 	"errors"
@@ -21,23 +21,29 @@ type FileInfo struct {
 	Size     int64
 }
 
-func GetRootMFTEntry(image io.ReaderAt) (*MFT_ENTRY, error) {
-	profile, err := GetProfile()
+func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
+	ntfs := &NTFSContext{
+		DiskReader: image,
+		Profile:    NewNTFSProfile(),
+	}
+
+	// NTFS Parsing starts with the boot record.
+	ntfs.Boot = &NTFS_BOOT_SECTOR{Reader: image,
+		Profile: ntfs.Profile, Offset: offset}
+
+	err := ntfs.Boot.IsValid()
 	if err != nil {
 		return nil, err
 	}
 
-	boot, err := NewBootRecord(profile, image, 0)
+	mft_reader, err := BootstrapMFT(ntfs)
 	if err != nil {
 		return nil, err
 	}
 
-	mft, err := boot.MFT()
-	if err != nil {
-		return nil, err
-	}
+	ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(mft_reader, 5)
 
-	return mft.MFTEntry(5)
+	return ntfs, nil
 }
 
 func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) {
@@ -64,7 +70,7 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) 
 	}
 }
 
-func GetDataForPath(path string, root *MFT_ENTRY) (io.ReaderAt, error) {
+func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
 	// Check for ADS in the path.
 	parts := strings.Split(path, ":")
 	switch len(parts) {
@@ -76,22 +82,26 @@ func GetDataForPath(path string, root *MFT_ENTRY) (io.ReaderAt, error) {
 		return nil, errors.New("Path may not contain more than one ':'")
 	}
 
-	mft_entry, err := root.Open(parts[0])
+	root, err := ntfs.GetMFT(5)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, attr := range mft_entry.Attributes() {
-		if attr.Get("type").AsInteger() == 128 &&
+	mft_entry, err := root.Open(ntfs, parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
+		if attr.Type().Name == "$DATA" &&
 			attr.Name() == parts[1] {
-			return mft_entry.Data(
-				128, attr.Get("attribute_id").AsInteger()), nil
+			return attr.Data(ntfs), nil
 		}
 	}
 	return nil, errors.New("File not found.")
 }
 
-func ListDir(root *MFT_ENTRY) []*FileInfo {
+func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 	// The index itself stores pointers to the FILE_NAME entry for
 	// each MFT. Therefore there are usually 2 references to the
 	// same MFT entry. We de-duplicate these references because we
@@ -99,43 +109,45 @@ func ListDir(root *MFT_ENTRY) []*FileInfo {
 	seen := make(map[int64]bool)
 	result := []*FileInfo{}
 
-	for _, node := range root.Dir() {
-		node_mft_id := node.Get("mftReference").AsInteger()
+	for _, node := range root.Dir(ntfs) {
+		node_mft_id := int64(node.MftReference())
 		_, pres := seen[node_mft_id]
 		if pres {
 			continue
 		}
 		seen[node_mft_id] = true
 
-		node_mft, err := root.MFTEntry(node_mft_id)
+		node_mft, err := ntfs.GetMFT(node_mft_id)
 		if err != nil {
 			continue
 		}
 
-		for _, filename := range node_mft.FileName() {
-			for _, attr := range node_mft.Attributes() {
-				attr_id := attr.Get("attribute_id").AsInteger()
+		for _, filename := range node_mft.FileName(ntfs) {
+			for _, attr := range node_mft.EnumerateAttributes(ntfs) {
+				attr_id := attr.Attribute_id()
+				attr_type := attr.Type()
+
+				// Only show MFT entries with either
+				// $DATA or $INDEX_ROOT (files or
+				// directies)
 				is_dir := false
-				attr_type := attr.Get("type").AsInteger()
-				switch attr_type {
-				case 128: // $DATA attribute.
+				switch attr.Type().Name {
+				case "$DATA":
 					is_dir = false
-				case 144: // $INDEX_ROOT
+				case "$INDEX_ROOT":
 					is_dir = true
 				default:
 					continue
-
 				}
 
 				inode := fmt.Sprintf(
-					"%d-%d-%d", node_mft_id, attr_type, attr_id)
+					"%d-%d-%d", node_mft_id,
+					attr_type.Value, attr_id)
 
-				// Only show the first VCN run
-				// of non-resident $DATA
-				// attributes.
+				// Only show the first VCN run of
+				// non-resident $DATA attributes.
 				if !attr.IsResident() &&
-					attr.Get("runlist_vcn_start").
-						AsInteger() != 0 {
+					attr.Runlist_vcn_start() != 0 {
 					continue
 				}
 
@@ -149,20 +161,14 @@ func ListDir(root *MFT_ENTRY) []*FileInfo {
 				}
 
 				result = append(result, &FileInfo{
-					MFTId: inode,
-					Mtime: time.Unix(
-						filename.Get("file_modified").
-							AsInteger(), 0),
-					Atime: time.Unix(
-						filename.Get("file_accessed").
-							AsInteger(), 0),
-					Ctime: time.Unix(
-						filename.Get("mft_modified").
-							AsInteger(), 0),
+					MFTId:    inode,
+					Mtime:    filename.File_modified().Time,
+					Atime:    filename.File_accessed().Time,
+					Ctime:    filename.Mft_modified().Time,
 					Name:     filename.Name() + ads,
-					NameType: filename.Get("name_type").AsString(),
+					NameType: filename.name_type().Name,
 					IsDir:    is_dir,
-					Size:     attr.Size(),
+					Size:     attr.DataSize(),
 				})
 			}
 		}

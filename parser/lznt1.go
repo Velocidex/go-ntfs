@@ -9,7 +9,7 @@ https://github.com/libyal/reviveit/
 https://github.com/sleuthkit/sleuthkit/blob/develop/tsk/fs/ntfs.c
 */
 
-package ntfs
+package parser
 
 import (
 	"encoding/binary"

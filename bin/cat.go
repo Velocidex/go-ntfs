@@ -5,7 +5,7 @@ import (
 	"os"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
-	ntfs "www.velocidex.com/golang/go-ntfs"
+	"www.velocidex.com/golang/go-ntfs/parser"
 )
 
 var (
@@ -26,26 +26,25 @@ var (
 )
 
 func doCAT() {
-	reader, _ := ntfs.NewPagedReader(*cat_command_file_arg, 1024, 10000)
-	root, err := ntfs.GetRootMFTEntry(reader)
+	reader, _ := parser.NewPagedReader(*cat_command_file_arg, 1024, 10000)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	var data io.ReaderAt
-	mft_idx, attr_type, attr_id, err := ntfs.ParseMFTId(*cat_command_arg)
-	if err == nil {
-		// Access by mft id (e.g. 1234-128-6)
-		mft_entry, err := root.MFTEntry(mft_idx)
-		kingpin.FatalIfError(err, "Can not open root MFT entry")
-		data = mft_entry.Data(attr_type, attr_id)
-	} else {
-		// Access by filename - retrieve the first unnamed
-		// $DATA stream.
-		data, err = ntfs.GetDataForPath(*cat_command_arg, root)
-		kingpin.FatalIfError(err, "Can not open path")
+	mft_entry, err := GetMFTEntry(ntfs_ctx, *cat_command_arg)
+	kingpin.FatalIfError(err, "Can not open path")
+
+	// Access by mft id (e.g. 1234-128-6)
+	_, attr_type, attr_id, err := parser.ParseMFTId(*cat_command_arg)
+	if err != nil {
+		attr_type = 128 // $DATA
 	}
 
-	var fd io.WriteCloser = os.Stdout
+	attribute, err := mft_entry.GetAttribute(ntfs_ctx, attr_type, attr_id)
+	kingpin.FatalIfError(err, "Can not open attribute")
 
+	data := attribute.Data(ntfs_ctx)
+
+	var fd io.WriteCloser = os.Stdout
 	if *cat_command_output_file != nil {
 		fd = *cat_command_output_file
 		defer fd.Close()

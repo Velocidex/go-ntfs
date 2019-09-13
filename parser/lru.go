@@ -4,7 +4,7 @@
 // much faster. We also added locking to the LRU to make it thread
 // safe.
 
-package ntfs
+package parser
 
 import (
 	"container/list"

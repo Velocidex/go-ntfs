@@ -4,7 +4,7 @@
 // aligned reading and adds pages to an LRU cache to make accessing
 // various field members faster.
 
-package ntfs
+package parser
 
 import (
 	"io"
