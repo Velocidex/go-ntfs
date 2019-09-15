@@ -467,7 +467,8 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		// The attribute_list_entry points to a different MFT
 		// entry than the one we are working on now. We need
 		// to fetch it from there.
-		if attr_list_entry.MftReference() != uint64(mft_entry.Record_number()) {
+		if ntfs.RootMFT != nil &&
+			attr_list_entry.MftReference() != uint64(mft_entry.Record_number()) {
 			attr, err := attr_list_entry.GetAttribute(ntfs)
 			if err != nil {
 				break

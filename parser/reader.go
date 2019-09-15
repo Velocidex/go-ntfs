@@ -8,15 +8,21 @@ package parser
 
 import (
 	"io"
+	"sync"
 )
 
 type PagedReader struct {
+	mu sync.Mutex
+
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
 }
 
 func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	buf_idx := 0
 	for {
 		// How much is left in this page to read?
