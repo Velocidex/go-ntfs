@@ -101,6 +101,61 @@ func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
 	return nil, errors.New("File not found.")
 }
 
+func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
+	result := []*FileInfo{}
+	for _, filename := range node_mft.FileName(ntfs) {
+		for _, attr := range node_mft.EnumerateAttributes(ntfs) {
+			attr_id := attr.Attribute_id()
+			attr_type := attr.Type()
+
+			// Only show MFT entries with either
+			// $DATA or $INDEX_ROOT (files or
+			// directies)
+			is_dir := false
+			switch attr.Type().Name {
+			case "$DATA":
+				is_dir = false
+			case "$INDEX_ROOT":
+				is_dir = true
+			default:
+				continue
+			}
+
+			inode := fmt.Sprintf(
+				"%d-%d-%d", node_mft.Record_number(),
+				attr_type.Value, attr_id)
+
+			// Only show the first VCN run of
+			// non-resident $DATA attributes.
+			if !attr.IsResident() &&
+				attr.Runlist_vcn_start() != 0 {
+				continue
+			}
+
+			ads := ""
+			name := attr.Name()
+			switch name {
+			case "$I30", "":
+				ads = ""
+			default:
+				ads = ":" + name
+			}
+
+			result = append(result, &FileInfo{
+				MFTId:    inode,
+				Mtime:    filename.File_modified().Time,
+				Atime:    filename.File_accessed().Time,
+				Ctime:    filename.Mft_modified().Time,
+				Name:     filename.Name() + ads,
+				NameType: filename.name_type().Name,
+				IsDir:    is_dir,
+				Size:     attr.DataSize(),
+			})
+		}
+	}
+	return result
+}
+
 func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 	// The index itself stores pointers to the FILE_NAME entry for
 	// each MFT. Therefore there are usually 2 references to the
@@ -121,57 +176,7 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 		if err != nil {
 			continue
 		}
-
-		for _, filename := range node_mft.FileName(ntfs) {
-			for _, attr := range node_mft.EnumerateAttributes(ntfs) {
-				attr_id := attr.Attribute_id()
-				attr_type := attr.Type()
-
-				// Only show MFT entries with either
-				// $DATA or $INDEX_ROOT (files or
-				// directies)
-				is_dir := false
-				switch attr.Type().Name {
-				case "$DATA":
-					is_dir = false
-				case "$INDEX_ROOT":
-					is_dir = true
-				default:
-					continue
-				}
-
-				inode := fmt.Sprintf(
-					"%d-%d-%d", node_mft_id,
-					attr_type.Value, attr_id)
-
-				// Only show the first VCN run of
-				// non-resident $DATA attributes.
-				if !attr.IsResident() &&
-					attr.Runlist_vcn_start() != 0 {
-					continue
-				}
-
-				ads := ""
-				name := attr.Name()
-				switch name {
-				case "$I30", "":
-					ads = ""
-				default:
-					ads = ":" + name
-				}
-
-				result = append(result, &FileInfo{
-					MFTId:    inode,
-					Mtime:    filename.File_modified().Time,
-					Atime:    filename.File_accessed().Time,
-					Ctime:    filename.Mft_modified().Time,
-					Name:     filename.Name() + ads,
-					NameType: filename.name_type().Name,
-					IsDir:    is_dir,
-					Size:     attr.DataSize(),
-				})
-			}
-		}
+		result = append(result, Stat(ntfs, node_mft)...)
 	}
 	return result
 }
