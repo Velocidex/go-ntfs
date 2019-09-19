@@ -545,7 +545,8 @@ func DecodeSTANDARD_INDEX_HEADER(
 
 	for idx, fixup_value := range fixup_table {
 		fixup_offset := (idx+1)*512 - 2
-		if buffer[fixup_offset] != fixup_magic[0] ||
+		if fixup_offset+1 >= len(buffer) ||
+			buffer[fixup_offset] != fixup_magic[0] ||
 			buffer[fixup_offset+1] != fixup_magic[1] {
 			return nil, errors.New("Fixup error with MFT")
 		}
