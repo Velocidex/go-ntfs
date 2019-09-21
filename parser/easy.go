@@ -103,7 +103,15 @@ func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
 
 func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	result := []*FileInfo{}
+
+	// We need the si for the timestamps.
+	si, err := node_mft.StandardInformation(ntfs)
+	if err != nil {
+		return nil
+	}
+
 	for _, filename := range node_mft.FileName(ntfs) {
+		// Find the needed attributes.
 		for _, attr := range node_mft.EnumerateAttributes(ntfs) {
 			attr_id := attr.Attribute_id()
 			attr_type := attr.Type()
@@ -143,9 +151,9 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 			result = append(result, &FileInfo{
 				MFTId:    inode,
-				Mtime:    filename.File_modified().Time,
-				Atime:    filename.File_accessed().Time,
-				Ctime:    filename.Mft_modified().Time,
+				Mtime:    si.File_altered_time().Time,
+				Atime:    si.File_accessed_time().Time,
+				Ctime:    si.Mft_altered_time().Time,
 				Name:     filename.Name() + ads,
 				NameType: filename.name_type().Name,
 				IsDir:    is_dir,
