@@ -247,5 +247,107 @@
             "end_bit": 48
         }]],
         "Attribute_id": [24, ["unsigned short"]]
-    }]
+    }],
+
+  "VSS_VOLUME_HEADER": [0, {
+    "Identifier": [0, ["GUID"]],
+    "Version": [16, ["unsigned long"]],
+    "RecordType": [20, ["unsigned long"]],
+    "CurrentOffset": [24, ["long long"]],
+    "CatalogOffset": [48, ["long long"]],
+    "MaxSize": [56, ["unsigned long long"]],
+    "VolumeGUID": [64, ["GUID"]],
+    "ShadowVolumeGUID": [80, ["GUID"]]
+  }],
+
+  "VSS_CATALOG_HEADER": [128, {
+    "Identifier": [0, ["GUID"]],
+    "Version": [16, ["unsigned long"]],
+    "RecordType": [20, ["unsigned long"]],
+    "RelativeOffset": [24, ["long long"]],
+    "CurrentOffset": [32, ["long long"]],
+    "NextOffset": [40, ["long long"]]
+  }],
+
+  "VSS_CATALOG_ENTRY_1": [128, {
+    "EntryType": [0, ["long long"]]
+  }],
+
+  "VSS_CATALOG_ENTRY_2": [128, {
+    "EntryType": [0, ["long long"]],
+    "VolumeSize": [8, ["long long"]],
+    "StoreGUID": [16, ["GUID"]],
+    "CreationTime": [48, ["WinFileTime"]]
+  }],
+
+  "VSS_CATALOG_ENTRY_3": [128, {
+    "EntryType": [0, ["long long"]],
+    "StoreBlockListOffset": [8, ["long long"]],
+    "StoreGUID": [16, ["GUID"]],
+    "StoreHeaderOffset": [32, ["long long"]],
+    "StoreBlockRangeListOffset": [40, ["long long"]],
+    "StoreBitmapOffset": [48, ["long long"]],
+    "NTFSFileReference": [56, ["long long"]],
+    "AllocatedSize": [64, ["long long"]],
+    "StorePreviousBitmapOffset": [72, ["long long"]]
+  }],
+
+  "VSS_STORE_BLOCK_HEADER": [128, {
+    "Identifier": [0, ["GUID"]],
+    "Version": [16, ["unsigned long"]],
+    "RecordType": [20, ["Enumeration", {
+      "choices": {
+        "1": "VolumeHeader",
+        "2": "CatalogBlockHeader",
+        "3": "BlockDescriptorList",
+        "4": "StoreHeader",
+        "5": "StoreBlockRangesList",
+        "6": "StoreBitmap"
+      },
+      "target": "unsigned long"
+    }]],
+    "RelativeOffset": [24, ["long long"]],
+    "CurrentOffset": [32, ["long long"]],
+    "NextOffset": [40, ["long long"]],
+    "SizeOfStore": [48, ["long long"]]
+  }],
+
+  "VSS_STORE_INFORMATION": [0, {
+    "ShadowCopyGUID": [16, ["GUID"]],
+    "ShadowCopySetGUID": [32, ["GUID"]],
+    "SnapshotContext": [48, ["unsigned long"]],
+    "AttributeFlags": [56, ["Flags", {
+      "target": "unsigned long",
+      "maskmap": {
+        "VSS_VOLSNAP_ATTR_PERSISTENT": 1,
+        "VSS_VOLSNAP_ATTR_NO_AUTORECOVERY": 2,
+        "VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE": 4,
+        "VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE": 8,
+        "VSS_VOLSNAP_ATTR_NO_WRITERS": 16,
+        "VSS_VOLSNAP_ATTR_TRANSPORTABLE": 32,
+        "VSS_VOLSNAP_ATTR_NOT_SURFACED": 64,
+        "VSS_VOLSNAP_ATTR_NOT_TRANSACTED": 128,
+        "VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED": 65536,
+        "VSS_VOLSNAP_ATTR_DIFFERENTIAL": 131072,
+        "VSS_VOLSNAP_ATTR_PLEX": 262144,
+        "VSS_VOLSNAP_ATTR_IMPORTED": 524288,
+        "VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY": 1048576,
+        "VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY": 2097152,
+        "VSS_VOLSNAP_ATTR_AUTORECOVER": 4194304,
+        "VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY": 8388608,
+        "VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT": 16777216,
+        "VSS_VOLSNAP_ATTR_TXF_RECOVERY": 33554432
+      }
+    }]]
+  }],
+
+  "GUID": [16, {
+    "Data1": [0, ["unsigned long", {}]],
+    "Data2": [4, ["unsigned short", {}]],
+    "Data3": [6, ["unsigned short", {}]],
+    "Data4": [8, ["Array", {
+      "count": 8,
+      "target": "unsigned char"
+    }]]
+  }]
 }

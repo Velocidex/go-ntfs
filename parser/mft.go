@@ -101,7 +101,7 @@ func (self *MFT_ENTRY) Display(ntfs *NTFSContext) string {
 
 	result = append(result, "Attribute:")
 	for _, attr := range self.EnumerateAttributes(ntfs) {
-		result = append(result, attr.DebugString())
+		result = append(result, attr.PrintStats(ntfs))
 	}
 
 	return fmt.Sprintf("[MFT_ENTRY] @ %#0x\n", self.Offset) +
