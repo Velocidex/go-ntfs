@@ -47,6 +47,10 @@ type NTFSProfile struct {
     Off_FILE_NAME__length_of_name int64
     Off_FILE_NAME_name int64
     Off_FILE_NAME_name_type int64
+    Off_GUID_Data1 int64
+    Off_GUID_Data2 int64
+    Off_GUID_Data3 int64
+    Off_GUID_Data4 int64
     Off_INDEX_NODE_HEADER_Offset_to_end_index_entry int64
     Off_INDEX_NODE_HEADER_Offset_to_index_entry int64
     Off_INDEX_NODE_HEADER_SizeOfEntriesAlloc int64
@@ -126,11 +130,50 @@ type NTFSProfile struct {
     Off_STANDARD_INFORMATION_Sid int64
     Off_STANDARD_INFORMATION_Usn int64
     Off_STANDARD_INFORMATION_Version int64
+    Off_VSS_CATALOG_ENTRY_1_EntryType int64
+    Off_VSS_CATALOG_ENTRY_2_CreationTime int64
+    Off_VSS_CATALOG_ENTRY_2_EntryType int64
+    Off_VSS_CATALOG_ENTRY_2_StoreGUID int64
+    Off_VSS_CATALOG_ENTRY_2_VolumeSize int64
+    Off_VSS_CATALOG_ENTRY_3_AllocatedSize int64
+    Off_VSS_CATALOG_ENTRY_3_EntryType int64
+    Off_VSS_CATALOG_ENTRY_3_NTFSFileReference int64
+    Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StoreBlockListOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StoreGUID int64
+    Off_VSS_CATALOG_ENTRY_3_StoreHeaderOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StorePreviousBitmapOffset int64
+    Off_VSS_CATALOG_HEADER_CurrentOffset int64
+    Off_VSS_CATALOG_HEADER_Identifier int64
+    Off_VSS_CATALOG_HEADER_NextOffset int64
+    Off_VSS_CATALOG_HEADER_RecordType int64
+    Off_VSS_CATALOG_HEADER_RelativeOffset int64
+    Off_VSS_CATALOG_HEADER_Version int64
+    Off_VSS_STORE_BLOCK_HEADER_CurrentOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_Identifier int64
+    Off_VSS_STORE_BLOCK_HEADER_NextOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_RecordType int64
+    Off_VSS_STORE_BLOCK_HEADER_RelativeOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_SizeOfStore int64
+    Off_VSS_STORE_BLOCK_HEADER_Version int64
+    Off_VSS_STORE_INFORMATION_AttributeFlags int64
+    Off_VSS_STORE_INFORMATION_ShadowCopyGUID int64
+    Off_VSS_STORE_INFORMATION_ShadowCopySetGUID int64
+    Off_VSS_STORE_INFORMATION_SnapshotContext int64
+    Off_VSS_VOLUME_HEADER_CatalogOffset int64
+    Off_VSS_VOLUME_HEADER_CurrentOffset int64
+    Off_VSS_VOLUME_HEADER_Identifier int64
+    Off_VSS_VOLUME_HEADER_MaxSize int64
+    Off_VSS_VOLUME_HEADER_RecordType int64
+    Off_VSS_VOLUME_HEADER_ShadowVolumeGUID int64
+    Off_VSS_VOLUME_HEADER_Version int64
+    Off_VSS_VOLUME_HEADER_VolumeGUID int64
 }
 
 func NewNTFSProfile() *NTFSProfile {
     // Specific offsets can be tweaked to cater for slight version mismatches.
-    self := &NTFSProfile{24,4,16,6,7,8,0,40,8,32,16,48,56,0,24,60,6,64,66,65,4,0,8,16,10,12,0,6,8,4,12,8,16,0,20,32,6,4,22,18,8,0,28,24,40,44,16,48,40,14,34,20,16,12,56,4,8,32,24,16,0,9,10,68,510,3,11,72,13,48,64,56,40,14,4,9,10,8,0,20,16,6,4,8,0,24,16,44,0,24,8,32,36,16,48,56,52,64,40}
+    self := &NTFSProfile{24,4,16,6,7,8,0,40,8,32,16,48,56,0,24,60,6,64,66,65,0,4,6,8,4,0,8,16,10,12,0,6,8,4,12,8,16,0,20,32,6,4,22,18,8,0,28,24,40,44,16,48,40,14,34,20,16,12,56,4,8,32,24,16,0,9,10,68,510,3,11,72,13,48,64,56,40,14,4,9,10,8,0,20,16,6,4,8,0,24,16,44,0,24,8,32,36,16,48,56,52,64,40,0,48,0,16,8,64,0,56,48,8,40,16,32,72,32,0,40,20,24,16,32,0,40,20,24,48,16,56,16,32,48,48,24,0,56,20,80,16,64}
     return self
 }
 
@@ -140,6 +183,10 @@ func (self *NTFSProfile) ATTRIBUTE_LIST_ENTRY(reader io.ReaderAt, offset int64) 
 
 func (self *NTFSProfile) FILE_NAME(reader io.ReaderAt, offset int64) *FILE_NAME {
     return &FILE_NAME{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) GUID(reader io.ReaderAt, offset int64) *GUID {
+    return &GUID{Reader: reader, Offset: offset, Profile: self}
 }
 
 func (self *NTFSProfile) INDEX_NODE_HEADER(reader io.ReaderAt, offset int64) *INDEX_NODE_HEADER {
@@ -176,6 +223,34 @@ func (self *NTFSProfile) STANDARD_INDEX_HEADER(reader io.ReaderAt, offset int64)
 
 func (self *NTFSProfile) STANDARD_INFORMATION(reader io.ReaderAt, offset int64) *STANDARD_INFORMATION {
     return &STANDARD_INFORMATION{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_CATALOG_ENTRY_1(reader io.ReaderAt, offset int64) *VSS_CATALOG_ENTRY_1 {
+    return &VSS_CATALOG_ENTRY_1{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_CATALOG_ENTRY_2(reader io.ReaderAt, offset int64) *VSS_CATALOG_ENTRY_2 {
+    return &VSS_CATALOG_ENTRY_2{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_CATALOG_ENTRY_3(reader io.ReaderAt, offset int64) *VSS_CATALOG_ENTRY_3 {
+    return &VSS_CATALOG_ENTRY_3{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_CATALOG_HEADER(reader io.ReaderAt, offset int64) *VSS_CATALOG_HEADER {
+    return &VSS_CATALOG_HEADER{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_STORE_BLOCK_HEADER(reader io.ReaderAt, offset int64) *VSS_STORE_BLOCK_HEADER {
+    return &VSS_STORE_BLOCK_HEADER{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_STORE_INFORMATION(reader io.ReaderAt, offset int64) *VSS_STORE_INFORMATION {
+    return &VSS_STORE_INFORMATION{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) VSS_VOLUME_HEADER(reader io.ReaderAt, offset int64) *VSS_VOLUME_HEADER {
+    return &VSS_VOLUME_HEADER{Reader: reader, Offset: offset, Profile: self}
 }
 
 
@@ -264,36 +339,28 @@ func (self *FILE_NAME) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
-   }
-
-   if value & 2 != 0 {
-      names["HIDDEN"] = true
-   }
-
-   if value & 4 != 0 {
-      names["SYSTEM"] = true
-   }
-
-   if value & 2048 != 0 {
-      names["COMPRESSED"] = true
-   }
-
-   if value & 4096 != 0 {
-      names["OFFLINE"] = true
+   if value & 512 != 0 {
+      names["SPARSE"] = true
    }
 
    if value & 8192 != 0 {
       names["NOT_INDEXED"] = true
    }
 
-   if value & 32 != 0 {
-      names["ARCHIVE"] = true
+   if value & 16384 != 0 {
+      names["ENCRYPTED"] = true
    }
 
-   if value & 64 != 0 {
-      names["DEVICE"] = true
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
+   }
+
+   if value & 4 != 0 {
+      names["SYSTEM"] = true
+   }
+
+   if value & 32 != 0 {
+      names["ARCHIVE"] = true
    }
 
    if value & 128 != 0 {
@@ -304,16 +371,24 @@ func (self *FILE_NAME) Flags() *Flags {
       names["TEMPORARY"] = true
    }
 
-   if value & 512 != 0 {
-      names["SPARSE"] = true
+   if value & 2 != 0 {
+      names["HIDDEN"] = true
+   }
+
+   if value & 64 != 0 {
+      names["DEVICE"] = true
    }
 
    if value & 1024 != 0 {
       names["REPARSE_POINT"] = true
    }
 
-   if value & 16384 != 0 {
-      names["ENCRYPTED"] = true
+   if value & 2048 != 0 {
+      names["COMPRESSED"] = true
+   }
+
+   if value & 4096 != 0 {
+      names["OFFLINE"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -381,6 +456,39 @@ func (self *FILE_NAME) DebugString() string {
     result += fmt.Sprintf("_length_of_name: %#0x\n", self._length_of_name())
     result += fmt.Sprintf("name: %v\n", string(self.name()))
     result += fmt.Sprintf("name_type: %v\n", self.name_type().DebugString())
+    return result
+}
+
+type GUID struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *GUID) Size() int {
+    return 16
+}
+
+func (self *GUID) Data1() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_GUID_Data1 + self.Offset)
+}
+
+func (self *GUID) Data2() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_GUID_Data2 + self.Offset)
+}
+
+func (self *GUID) Data3() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_GUID_Data3 + self.Offset)
+}
+
+func (self *GUID) Data4() []byte {
+   return ParseArray_byte(self.Profile, self.Reader, self.Profile.Off_GUID_Data4 + self.Offset, 8)
+}
+func (self *GUID) DebugString() string {
+    result := fmt.Sprintf("struct GUID @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("Data1: %#0x\n", self.Data1())
+    result += fmt.Sprintf("Data2: %#0x\n", self.Data2())
+    result += fmt.Sprintf("Data3: %#0x\n", self.Data3())
     return result
 }
 
@@ -1013,16 +1121,8 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 32 != 0 {
-      names["ARCHIVE"] = true
-   }
-
-   if value & 64 != 0 {
-      names["DEVICE"] = true
-   }
-
-   if value & 128 != 0 {
-      names["NORMAL"] = true
+   if value & 256 != 0 {
+      names["TEMPORARY"] = true
    }
 
    if value & 512 != 0 {
@@ -1037,10 +1137,6 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["ENCRYPTED"] = true
    }
 
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
-   }
-
    if value & 2 != 0 {
       names["HIDDEN"] = true
    }
@@ -1049,8 +1145,12 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["SYSTEM"] = true
    }
 
-   if value & 256 != 0 {
-      names["TEMPORARY"] = true
+   if value & 64 != 0 {
+      names["DEVICE"] = true
+   }
+
+   if value & 128 != 0 {
+      names["NORMAL"] = true
    }
 
    if value & 1024 != 0 {
@@ -1063,6 +1163,14 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
 
    if value & 4096 != 0 {
       names["OFFLINE"] = true
+   }
+
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
+   }
+
+   if value & 32 != 0 {
+      names["ARCHIVE"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1113,6 +1221,399 @@ func (self *STANDARD_INFORMATION) DebugString() string {
     return result
 }
 
+type VSS_CATALOG_ENTRY_1 struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_CATALOG_ENTRY_1) Size() int {
+    return 128
+}
+
+func (self *VSS_CATALOG_ENTRY_1) EntryType() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_1_EntryType + self.Offset))
+}
+func (self *VSS_CATALOG_ENTRY_1) DebugString() string {
+    result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_1 @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
+    return result
+}
+
+type VSS_CATALOG_ENTRY_2 struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_CATALOG_ENTRY_2) Size() int {
+    return 128
+}
+
+func (self *VSS_CATALOG_ENTRY_2) CreationTime() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_CreationTime + self.Offset)
+}
+
+func (self *VSS_CATALOG_ENTRY_2) EntryType() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_EntryType + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_2) StoreGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_StoreGUID + self.Offset)
+}
+
+func (self *VSS_CATALOG_ENTRY_2) VolumeSize() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_VolumeSize + self.Offset))
+}
+func (self *VSS_CATALOG_ENTRY_2) DebugString() string {
+    result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_2 @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("CreationTime: {\n%v}\n", self.CreationTime().DebugString())
+    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
+    result += fmt.Sprintf("StoreGUID: {\n%v}\n", self.StoreGUID().DebugString())
+    result += fmt.Sprintf("VolumeSize: %#0x\n", self.VolumeSize())
+    return result
+}
+
+type VSS_CATALOG_ENTRY_3 struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_CATALOG_ENTRY_3) Size() int {
+    return 128
+}
+
+func (self *VSS_CATALOG_ENTRY_3) AllocatedSize() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_AllocatedSize + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) EntryType() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_EntryType + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) NTFSFileReference() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_NTFSFileReference + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreBitmapOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreBlockListOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBlockListOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreBlockRangeListOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreGUID + self.Offset)
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreHeaderOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreHeaderOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StorePreviousBitmapOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StorePreviousBitmapOffset + self.Offset))
+}
+func (self *VSS_CATALOG_ENTRY_3) DebugString() string {
+    result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_3 @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("AllocatedSize: %#0x\n", self.AllocatedSize())
+    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
+    result += fmt.Sprintf("NTFSFileReference: %#0x\n", self.NTFSFileReference())
+    result += fmt.Sprintf("StoreBitmapOffset: %#0x\n", self.StoreBitmapOffset())
+    result += fmt.Sprintf("StoreBlockListOffset: %#0x\n", self.StoreBlockListOffset())
+    result += fmt.Sprintf("StoreBlockRangeListOffset: %#0x\n", self.StoreBlockRangeListOffset())
+    result += fmt.Sprintf("StoreGUID: {\n%v}\n", self.StoreGUID().DebugString())
+    result += fmt.Sprintf("StoreHeaderOffset: %#0x\n", self.StoreHeaderOffset())
+    result += fmt.Sprintf("StorePreviousBitmapOffset: %#0x\n", self.StorePreviousBitmapOffset())
+    return result
+}
+
+type VSS_CATALOG_HEADER struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_CATALOG_HEADER) Size() int {
+    return 128
+}
+
+func (self *VSS_CATALOG_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_HEADER) Identifier() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_Identifier + self.Offset)
+}
+
+func (self *VSS_CATALOG_HEADER) NextOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_NextOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_HEADER) RecordType() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_RecordType + self.Offset)
+}
+
+func (self *VSS_CATALOG_HEADER) RelativeOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_RelativeOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_HEADER) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_Version + self.Offset)
+}
+func (self *VSS_CATALOG_HEADER) DebugString() string {
+    result := fmt.Sprintf("struct VSS_CATALOG_HEADER @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
+    result += fmt.Sprintf("NextOffset: %#0x\n", self.NextOffset())
+    result += fmt.Sprintf("RecordType: %#0x\n", self.RecordType())
+    result += fmt.Sprintf("RelativeOffset: %#0x\n", self.RelativeOffset())
+    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    return result
+}
+
+type VSS_STORE_BLOCK_HEADER struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) Size() int {
+    return 128
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) Identifier() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_Identifier + self.Offset)
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) NextOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_NextOffset + self.Offset))
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) RecordType() *Enumeration {
+   value := ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_RecordType + self.Offset)
+   name := "Unknown"
+   switch value {
+
+      case 1:
+         name = "VolumeHeader"
+
+      case 2:
+         name = "CatalogBlockHeader"
+
+      case 3:
+         name = "BlockDescriptorList"
+
+      case 4:
+         name = "StoreHeader"
+
+      case 5:
+         name = "StoreBlockRangesList"
+
+      case 6:
+         name = "StoreBitmap"
+}
+   return &Enumeration{Value: uint64(value), Name: name}
+}
+
+
+func (self *VSS_STORE_BLOCK_HEADER) RelativeOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_RelativeOffset + self.Offset))
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) SizeOfStore() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_SizeOfStore + self.Offset))
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_Version + self.Offset)
+}
+func (self *VSS_STORE_BLOCK_HEADER) DebugString() string {
+    result := fmt.Sprintf("struct VSS_STORE_BLOCK_HEADER @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
+    result += fmt.Sprintf("NextOffset: %#0x\n", self.NextOffset())
+    result += fmt.Sprintf("RecordType: %v\n", self.RecordType().DebugString())
+    result += fmt.Sprintf("RelativeOffset: %#0x\n", self.RelativeOffset())
+    result += fmt.Sprintf("SizeOfStore: %#0x\n", self.SizeOfStore())
+    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    return result
+}
+
+type VSS_STORE_INFORMATION struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_STORE_INFORMATION) Size() int {
+    return 0
+}
+
+func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
+   value := ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_AttributeFlags + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & 16 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
+   }
+
+   if value & 262144 != 0 {
+      names["VSS_VOLSNAP_ATTR_PLEX"] = true
+   }
+
+   if value & 4194304 != 0 {
+      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
+   }
+
+   if value & 64 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
+   }
+
+   if value & 131072 != 0 {
+      names["VSS_VOLSNAP_ATTR_DIFFERENTIAL"] = true
+   }
+
+   if value & 524288 != 0 {
+      names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
+   }
+
+   if value & 2097152 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
+   }
+
+   if value & 8388608 != 0 {
+      names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
+   }
+
+   if value & 2 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTORECOVERY"] = true
+   }
+
+   if value & 4 != 0 {
+      names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
+   }
+
+   if value & 32 != 0 {
+      names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
+   }
+
+   if value & 8 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
+   }
+
+   if value & 1048576 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
+   }
+
+   if value & 16777216 != 0 {
+      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   }
+
+   if value & 33554432 != 0 {
+      names["VSS_VOLSNAP_ATTR_TXF_RECOVERY"] = true
+   }
+
+   if value & 1 != 0 {
+      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
+   }
+
+   if value & 128 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
+   }
+
+   if value & 65536 != 0 {
+      names["VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
+
+func (self *VSS_STORE_INFORMATION) ShadowCopyGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_ShadowCopyGUID + self.Offset)
+}
+
+func (self *VSS_STORE_INFORMATION) ShadowCopySetGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_ShadowCopySetGUID + self.Offset)
+}
+
+func (self *VSS_STORE_INFORMATION) SnapshotContext() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_SnapshotContext + self.Offset)
+}
+func (self *VSS_STORE_INFORMATION) DebugString() string {
+    result := fmt.Sprintf("struct VSS_STORE_INFORMATION @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("AttributeFlags: %v\n", self.AttributeFlags().DebugString())
+    result += fmt.Sprintf("ShadowCopyGUID: {\n%v}\n", self.ShadowCopyGUID().DebugString())
+    result += fmt.Sprintf("ShadowCopySetGUID: {\n%v}\n", self.ShadowCopySetGUID().DebugString())
+    result += fmt.Sprintf("SnapshotContext: %#0x\n", self.SnapshotContext())
+    return result
+}
+
+type VSS_VOLUME_HEADER struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *VSS_VOLUME_HEADER) Size() int {
+    return 0
+}
+
+func (self *VSS_VOLUME_HEADER) CatalogOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CatalogOffset + self.Offset))
+}
+
+func (self *VSS_VOLUME_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_VOLUME_HEADER) Identifier() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_Identifier + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) MaxSize() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_MaxSize + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) RecordType() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_RecordType + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) ShadowVolumeGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_ShadowVolumeGUID + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_Version + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) VolumeGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_VolumeGUID + self.Offset)
+}
+func (self *VSS_VOLUME_HEADER) DebugString() string {
+    result := fmt.Sprintf("struct VSS_VOLUME_HEADER @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("CatalogOffset: %#0x\n", self.CatalogOffset())
+    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
+    result += fmt.Sprintf("MaxSize: %#0x\n", self.MaxSize())
+    result += fmt.Sprintf("RecordType: %#0x\n", self.RecordType())
+    result += fmt.Sprintf("ShadowVolumeGUID: {\n%v}\n", self.ShadowVolumeGUID().DebugString())
+    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("VolumeGUID: {\n%v}\n", self.VolumeGUID().DebugString())
+    return result
+}
+
 type Enumeration struct {
     Value uint64
     Name  string
@@ -1145,6 +1646,16 @@ func (self Flags) IsSet(flag string) bool {
 }
 
 
+func ParseArray_byte(profile *NTFSProfile, reader io.ReaderAt, offset int64, count int) []byte {
+    result := []byte{}
+    for i:=0; i<count; i++ {
+      value := ParseUint8(reader, offset)
+      result = append(result, value)
+      offset += int64(1)
+    }
+    return result
+}
+
 func ParseInt32(reader io.ReaderAt, offset int64) int32 {
     data := make([]byte, 4)
     _, err := reader.ReadAt(data, offset)
@@ -1152,6 +1663,15 @@ func ParseInt32(reader io.ReaderAt, offset int64) int32 {
        return 0
     }
     return int32(binary.LittleEndian.Uint32(data))
+}
+
+func ParseInt64(reader io.ReaderAt, offset int64) int64 {
+    data := make([]byte, 8)
+    _, err := reader.ReadAt(data, offset)
+    if err != nil {
+       return 0
+    }
+    return int64(binary.LittleEndian.Uint64(data))
 }
 
 func ParseInt8(reader io.ReaderAt, offset int64) int8 {
