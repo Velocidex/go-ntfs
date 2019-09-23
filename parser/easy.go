@@ -196,12 +196,12 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 		for _, name := range other_file_names {
 			extra_name := name.Name()
-			info.ExtraNames = append(info.ExtraNames,
-				extra_name)
+			info.ExtraNames = append(info.ExtraNames, extra_name+ads)
 
 			if !strings.Contains(extra_name, "~") {
 				info_copy := *info
-				info_copy.Name = extra_name
+				info_copy.Name = extra_name + ads
+				info_copy.ExtraNames = []string{win32_name.Name() + ads}
 				result = append(result, &info_copy)
 			}
 		}
@@ -209,59 +209,6 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 		result = append(result, info)
 	}
 
-	return result
-
-	for _, filename := range node_mft.FileName(ntfs) {
-		// Find the needed attributes.
-		for _, attr := range node_mft.EnumerateAttributes(ntfs) {
-			attr_id := attr.Attribute_id()
-			attr_type := attr.Type()
-
-			// Only show MFT entries with either
-			// $DATA or $INDEX_ROOT (files or
-			// directies)
-			is_dir := false
-			switch attr.Type().Name {
-			case "$DATA":
-				is_dir = false
-			case "$INDEX_ROOT":
-				is_dir = true
-			default:
-				continue
-			}
-
-			inode := fmt.Sprintf(
-				"%d-%d-%d", node_mft.Record_number(),
-				attr_type.Value, attr_id)
-
-			// Only show the first VCN run of
-			// non-resident $DATA attributes.
-			if !attr.IsResident() &&
-				attr.Runlist_vcn_start() != 0 {
-				continue
-			}
-
-			ads := ""
-			name := attr.Name()
-			switch name {
-			case "$I30", "":
-				ads = ""
-			default:
-				ads = ":" + name
-			}
-
-			result = append(result, &FileInfo{
-				MFTId:    inode,
-				Mtime:    si.File_altered_time().Time,
-				Atime:    si.File_accessed_time().Time,
-				Ctime:    si.Mft_altered_time().Time,
-				Name:     filename.Name() + ads,
-				NameType: filename.name_type().Name,
-				IsDir:    is_dir,
-				Size:     attr.DataSize(),
-			})
-		}
-	}
 	return result
 }
 
