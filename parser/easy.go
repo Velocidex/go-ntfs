@@ -11,14 +11,15 @@ import (
 )
 
 type FileInfo struct {
-	MFTId    string
-	Mtime    time.Time
-	Atime    time.Time
-	Ctime    time.Time
-	Name     string
-	NameType string
-	IsDir    bool
-	Size     int64
+	MFTId      string
+	Mtime      time.Time
+	Atime      time.Time
+	Ctime      time.Time
+	Name       string
+	NameType   string
+	ExtraNames []string
+	IsDir      bool
+	Size       int64
 }
 
 func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
@@ -102,13 +103,113 @@ func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
 }
 
 func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
-	result := []*FileInfo{}
+	var si *STANDARD_INFORMATION
+	var other_file_names []*FILE_NAME
+	var data_attributes []*NTFS_ATTRIBUTE
+	var win32_name *FILE_NAME
+	var index_attribute *NTFS_ATTRIBUTE
+	var is_dir bool
+
+	// Walk all the attributes collecting the imporant things.
+	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
+		switch attr.Type().Name {
+		case "$STANDARD_INFORMATION":
+			si = ntfs.Profile.STANDARD_INFORMATION(attr.Data(ntfs), 0)
+
+		case "$FILE_NAME":
+			// Separate the filenames into LFN and other file names.
+			file_name := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
+			switch file_name.name_type().Name {
+			case "POSIX", "Win32", "DOS+Win32":
+				win32_name = file_name
+			default:
+				other_file_names = append(
+					other_file_names, file_name)
+			}
+
+		case "$DATA":
+			// Only show the first VCN run of
+			// non-resident $DATA attributes.
+			if !attr.IsResident() &&
+				attr.Runlist_vcn_start() != 0 {
+				continue
+			}
+
+			data_attributes = append(data_attributes, attr)
+
+		case "$INDEX_ROOT", "$INDEX_ALLOCATION":
+			is_dir = true
+			index_attribute = attr
+		}
+	}
 
 	// We need the si for the timestamps.
-	si, err := node_mft.StandardInformation(ntfs)
-	if err != nil {
+	if si == nil || win32_name == nil {
 		return nil
 	}
+
+	// Now generate multiple file info for streams we want to be
+	// distinct.
+	result := []*FileInfo{}
+	if index_attribute != nil {
+		inode := fmt.Sprintf(
+			"%d-%d-%d", node_mft.Record_number(),
+			index_attribute.Type().Value,
+			index_attribute.Attribute_id())
+
+		result = append(result, &FileInfo{
+			MFTId:    inode,
+			Mtime:    si.File_altered_time().Time,
+			Atime:    si.File_accessed_time().Time,
+			Ctime:    si.Mft_altered_time().Time,
+			Name:     win32_name.Name(),
+			NameType: win32_name.name_type().Name,
+			IsDir:    is_dir,
+		})
+	}
+
+	for _, attr := range data_attributes {
+		ads := ""
+		name := attr.Name()
+		switch name {
+		case "$I30", "":
+			ads = ""
+		default:
+			ads = ":" + name
+		}
+
+		inode := fmt.Sprintf(
+			"%d-%d-%d", node_mft.Record_number(),
+			attr.Type().Value,
+			attr.Attribute_id())
+
+		info := &FileInfo{
+			MFTId:    inode,
+			Mtime:    si.File_altered_time().Time,
+			Atime:    si.File_accessed_time().Time,
+			Ctime:    si.Mft_altered_time().Time,
+			Name:     win32_name.Name() + ads,
+			NameType: win32_name.name_type().Name,
+			IsDir:    is_dir,
+			Size:     attr.DataSize(),
+		}
+
+		for _, name := range other_file_names {
+			extra_name := name.Name()
+			info.ExtraNames = append(info.ExtraNames,
+				extra_name)
+
+			if !strings.Contains(extra_name, "~") {
+				info_copy := *info
+				info_copy.Name = extra_name
+				result = append(result, &info_copy)
+			}
+		}
+
+		result = append(result, info)
+	}
+
+	return result
 
 	for _, filename := range node_mft.FileName(ntfs) {
 		// Find the needed attributes.
