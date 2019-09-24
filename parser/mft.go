@@ -25,8 +25,6 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 			break
 		}
 
-		Printf(attribute.DebugString())
-
 		// This is an $ATTRIBUTE_LIST attribute - append its
 		// own attributes to this one.
 		if attribute.Type().Name == "$ATTRIBUTE_LIST" {

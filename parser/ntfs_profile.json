@@ -184,7 +184,7 @@
             }}]],
         "Reparse_value": [60, ["unsigned long"]],
         "_length_of_name": [64, ["unsigned char"]],
-        "name_type": [65, ["Enumeration", {
+        "NameType": [65, ["Enumeration", {
             "target": "unsigned char",
             "choices": {
                 "0": "POSIX",

@@ -73,7 +73,7 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 				MFTModifiedTime:  filename.Mft_modified().Time,
 				AccessedTime:     filename.File_accessed().Time,
 			},
-			Type: filename.name_type().Name,
+			Type: filename.NameType().Name,
 			Name: filename.Name(),
 		})
 	}
