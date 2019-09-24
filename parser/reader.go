@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"fmt"
 	"io"
 	"sync"
 )
@@ -17,6 +18,9 @@ type PagedReader struct {
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
+
+	Hits int64
+	Miss int64
 }
 
 func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
@@ -43,6 +47,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 		page := offset - offset%self.pagesize
 		cached_page_buf, pres := self.lru.Get(int(page))
 		if !pres {
+			self.Miss += 1
 			DebugPrint("Cache miss for %x (%x) (%d)\n", page, self.pagesize,
 				self.lru.Len())
 			// Read this page into memory.
@@ -54,6 +59,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 
 			self.lru.Add(int(page), page_buf)
 		} else {
+			self.Hits += 1
 			page_buf = cached_page_buf.([]byte)
 		}
 
@@ -64,6 +70,10 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 
 		offset += int64(to_read)
 		buf_idx += to_read
+		if debug && (self.Hits+self.Miss)%10000 == 0 {
+			fmt.Printf("PageCache hit %v miss %v (%v)\n", self.Hits, self.Miss,
+				float64(self.Hits)/float64(self.Miss))
+		}
 	}
 }
 

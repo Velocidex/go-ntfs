@@ -23,7 +23,7 @@ func ExtractI30List(ntfs *NTFSContext, mft_entry *MFT_ENTRY) []*FileInfo {
 			Atime:    filename.File_accessed().Time,
 			Ctime:    filename.Mft_modified().Time,
 			Name:     filename.Name(),
-			NameType: filename.name_type().Name,
+			NameType: filename.NameType().Name,
 		})
 	}
 

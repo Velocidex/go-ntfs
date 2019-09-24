@@ -119,7 +119,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 		case "$FILE_NAME":
 			// Separate the filenames into LFN and other file names.
 			file_name := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
-			switch file_name.name_type().Name {
+			switch file_name.NameType().Name {
 			case "POSIX", "Win32", "DOS+Win32":
 				win32_name = file_name
 			default:
@@ -151,21 +151,40 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	// Now generate multiple file info for streams we want to be
 	// distinct.
 	result := []*FileInfo{}
+
+	add_extra_names := func(info *FileInfo, ads string) {
+		for _, name := range other_file_names {
+			extra_name := name.Name()
+			info.ExtraNames = append(info.ExtraNames, extra_name+ads)
+
+			if !strings.Contains(extra_name, "~") {
+				// Make a copy
+				info_copy := *info
+				info_copy.Name = extra_name + ads
+				info_copy.ExtraNames = []string{win32_name.Name() + ads}
+				result = append(result, &info_copy)
+			}
+		}
+	}
+
 	if index_attribute != nil {
 		inode := fmt.Sprintf(
 			"%d-%d-%d", node_mft.Record_number(),
 			index_attribute.Type().Value,
 			index_attribute.Attribute_id())
 
-		result = append(result, &FileInfo{
+		info := &FileInfo{
 			MFTId:    inode,
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
 			Name:     win32_name.Name(),
-			NameType: win32_name.name_type().Name,
+			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,
-		})
+		}
+
+		add_extra_names(info, "")
+		result = append(result, info)
 	}
 
 	for _, attr := range data_attributes {
@@ -189,22 +208,12 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
 			Name:     win32_name.Name() + ads,
-			NameType: win32_name.name_type().Name,
+			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,
 			Size:     attr.DataSize(),
 		}
 
-		for _, name := range other_file_names {
-			extra_name := name.Name()
-			info.ExtraNames = append(info.ExtraNames, extra_name+ads)
-
-			if !strings.Contains(extra_name, "~") {
-				info_copy := *info
-				info_copy.Name = extra_name + ads
-				info_copy.ExtraNames = []string{win32_name.Name() + ads}
-				result = append(result, &info_copy)
-			}
-		}
+		add_extra_names(info, ads)
 
 		result = append(result, info)
 	}

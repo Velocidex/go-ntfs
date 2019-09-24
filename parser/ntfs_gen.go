@@ -42,11 +42,11 @@ type NTFSProfile struct {
     Off_FILE_NAME_Flags int64
     Off_FILE_NAME_MftReference int64
     Off_FILE_NAME_Mft_modified int64
+    Off_FILE_NAME_NameType int64
     Off_FILE_NAME_Reparse_value int64
     Off_FILE_NAME_Seq_num int64
     Off_FILE_NAME__length_of_name int64
     Off_FILE_NAME_name int64
-    Off_FILE_NAME_name_type int64
     Off_GUID_Data1 int64
     Off_GUID_Data2 int64
     Off_GUID_Data3 int64
@@ -173,7 +173,7 @@ type NTFSProfile struct {
 
 func NewNTFSProfile() *NTFSProfile {
     // Specific offsets can be tweaked to cater for slight version mismatches.
-    self := &NTFSProfile{24,4,16,6,7,8,0,40,8,32,16,48,56,0,24,60,6,64,66,65,0,4,6,8,4,0,8,16,10,12,0,6,8,4,12,8,16,0,20,32,6,4,22,18,8,0,28,24,40,44,16,48,40,14,34,20,16,12,56,4,8,32,24,16,0,9,10,68,510,3,11,72,13,48,64,56,40,14,4,9,10,8,0,20,16,6,4,8,0,24,16,44,0,24,8,32,36,16,48,56,52,64,40,0,48,0,16,8,64,0,56,48,8,40,16,32,72,32,0,40,20,24,16,32,0,40,20,24,48,16,56,16,32,48,48,24,0,56,20,80,16,64}
+    self := &NTFSProfile{24,4,16,6,7,8,0,40,8,32,16,48,56,0,24,65,60,6,64,66,0,4,6,8,4,0,8,16,10,12,0,6,8,4,12,8,16,0,20,32,6,4,22,18,8,0,28,24,40,44,16,48,40,14,34,20,16,12,56,4,8,32,24,16,0,9,10,68,510,3,11,72,13,48,64,56,40,14,4,9,10,8,0,20,16,6,4,8,0,24,16,44,0,24,8,32,36,16,48,56,52,64,40,0,48,0,16,8,64,0,56,48,8,40,16,32,72,32,0,40,20,24,16,32,0,40,20,24,48,16,56,16,32,48,48,24,0,56,20,80,16,64}
     return self
 }
 
@@ -339,20 +339,12 @@ func (self *FILE_NAME) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 512 != 0 {
-      names["SPARSE"] = true
-   }
-
-   if value & 8192 != 0 {
-      names["NOT_INDEXED"] = true
-   }
-
-   if value & 16384 != 0 {
-      names["ENCRYPTED"] = true
-   }
-
    if value & 1 != 0 {
       names["READ_ONLY"] = true
+   }
+
+   if value & 2 != 0 {
+      names["HIDDEN"] = true
    }
 
    if value & 4 != 0 {
@@ -367,20 +359,8 @@ func (self *FILE_NAME) Flags() *Flags {
       names["NORMAL"] = true
    }
 
-   if value & 256 != 0 {
-      names["TEMPORARY"] = true
-   }
-
-   if value & 2 != 0 {
-      names["HIDDEN"] = true
-   }
-
-   if value & 64 != 0 {
-      names["DEVICE"] = true
-   }
-
-   if value & 1024 != 0 {
-      names["REPARSE_POINT"] = true
+   if value & 512 != 0 {
+      names["SPARSE"] = true
    }
 
    if value & 2048 != 0 {
@@ -389,6 +369,26 @@ func (self *FILE_NAME) Flags() *Flags {
 
    if value & 4096 != 0 {
       names["OFFLINE"] = true
+   }
+
+   if value & 8192 != 0 {
+      names["NOT_INDEXED"] = true
+   }
+
+   if value & 64 != 0 {
+      names["DEVICE"] = true
+   }
+
+   if value & 256 != 0 {
+      names["TEMPORARY"] = true
+   }
+
+   if value & 1024 != 0 {
+      names["REPARSE_POINT"] = true
+   }
+
+   if value & 16384 != 0 {
+      names["ENCRYPTED"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -404,25 +404,8 @@ func (self *FILE_NAME) Mft_modified() *WinFileTime {
     return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_Mft_modified + self.Offset)
 }
 
-func (self *FILE_NAME) Reparse_value() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_FILE_NAME_Reparse_value + self.Offset)
-}
-
-func (self *FILE_NAME) Seq_num() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_FILE_NAME_Seq_num + self.Offset)
-}
-
-func (self *FILE_NAME) _length_of_name() byte {
-   return ParseUint8(self.Reader, self.Profile.Off_FILE_NAME__length_of_name + self.Offset)
-}
-
-
-func (self *FILE_NAME) name() string {
-  return ParseTerminatedUTF16String(self.Reader, self.Profile.Off_FILE_NAME_name + self.Offset)
-}
-
-func (self *FILE_NAME) name_type() *Enumeration {
-   value := ParseUint8(self.Reader, self.Profile.Off_FILE_NAME_name_type + self.Offset)
+func (self *FILE_NAME) NameType() *Enumeration {
+   value := ParseUint8(self.Reader, self.Profile.Off_FILE_NAME_NameType + self.Offset)
    name := "Unknown"
    switch value {
 
@@ -441,6 +424,23 @@ func (self *FILE_NAME) name_type() *Enumeration {
    return &Enumeration{Value: uint64(value), Name: name}
 }
 
+
+func (self *FILE_NAME) Reparse_value() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_FILE_NAME_Reparse_value + self.Offset)
+}
+
+func (self *FILE_NAME) Seq_num() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_FILE_NAME_Seq_num + self.Offset)
+}
+
+func (self *FILE_NAME) _length_of_name() byte {
+   return ParseUint8(self.Reader, self.Profile.Off_FILE_NAME__length_of_name + self.Offset)
+}
+
+
+func (self *FILE_NAME) name() string {
+  return ParseTerminatedUTF16String(self.Reader, self.Profile.Off_FILE_NAME_name + self.Offset)
+}
 func (self *FILE_NAME) DebugString() string {
     result := fmt.Sprintf("struct FILE_NAME @ %#x:\n", self.Offset)
     result += fmt.Sprintf("Allocated_size: %#0x\n", self.Allocated_size())
@@ -451,11 +451,11 @@ func (self *FILE_NAME) DebugString() string {
     result += fmt.Sprintf("Flags: %v\n", self.Flags().DebugString())
     result += fmt.Sprintf("MftReference: %#0x\n", self.MftReference())
     result += fmt.Sprintf("Mft_modified: {\n%v}\n", self.Mft_modified().DebugString())
+    result += fmt.Sprintf("NameType: %v\n", self.NameType().DebugString())
     result += fmt.Sprintf("Reparse_value: %#0x\n", self.Reparse_value())
     result += fmt.Sprintf("Seq_num: %#0x\n", self.Seq_num())
     result += fmt.Sprintf("_length_of_name: %#0x\n", self._length_of_name())
     result += fmt.Sprintf("name: %v\n", string(self.name()))
-    result += fmt.Sprintf("name_type: %v\n", self.name_type().DebugString())
     return result
 }
 
@@ -737,16 +737,16 @@ func (self *NTFS_ATTRIBUTE) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & (1 << 15) != 0 {
-      names["SPARSE"] = true
-   }
-
    if value & (1 << 0) != 0 {
       names["COMPRESSED"] = true
    }
 
    if value & (1 << 14) != 0 {
       names["ENCRYPTED"] = true
+   }
+
+   if value & (1 << 15) != 0 {
+      names["SPARSE"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1121,6 +1121,22 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
    names := make(map[string]bool)
 
 
+   if value & 4096 != 0 {
+      names["OFFLINE"] = true
+   }
+
+   if value & 16384 != 0 {
+      names["ENCRYPTED"] = true
+   }
+
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
+   }
+
+   if value & 4 != 0 {
+      names["SYSTEM"] = true
+   }
+
    if value & 256 != 0 {
       names["TEMPORARY"] = true
    }
@@ -1129,20 +1145,20 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["SPARSE"] = true
    }
 
-   if value & 8192 != 0 {
-      names["NOT_INDEXED"] = true
+   if value & 1024 != 0 {
+      names["REPARSE_POINT"] = true
    }
 
-   if value & 16384 != 0 {
-      names["ENCRYPTED"] = true
+   if value & 8192 != 0 {
+      names["NOT_INDEXED"] = true
    }
 
    if value & 2 != 0 {
       names["HIDDEN"] = true
    }
 
-   if value & 4 != 0 {
-      names["SYSTEM"] = true
+   if value & 32 != 0 {
+      names["ARCHIVE"] = true
    }
 
    if value & 64 != 0 {
@@ -1153,24 +1169,8 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["NORMAL"] = true
    }
 
-   if value & 1024 != 0 {
-      names["REPARSE_POINT"] = true
-   }
-
    if value & 2048 != 0 {
       names["COMPRESSED"] = true
-   }
-
-   if value & 4096 != 0 {
-      names["OFFLINE"] = true
-   }
-
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
-   }
-
-   if value & 32 != 0 {
-      names["ARCHIVE"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1464,36 +1464,48 @@ func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 16 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
-   }
-
-   if value & 262144 != 0 {
-      names["VSS_VOLSNAP_ATTR_PLEX"] = true
-   }
-
-   if value & 4194304 != 0 {
-      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
-   }
-
-   if value & 64 != 0 {
-      names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
+   if value & 32 != 0 {
+      names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
    }
 
    if value & 131072 != 0 {
       names["VSS_VOLSNAP_ATTR_DIFFERENTIAL"] = true
    }
 
-   if value & 524288 != 0 {
-      names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
-   }
-
-   if value & 2097152 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
+   if value & 262144 != 0 {
+      names["VSS_VOLSNAP_ATTR_PLEX"] = true
    }
 
    if value & 8388608 != 0 {
       names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
+   }
+
+   if value & 1 != 0 {
+      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
+   }
+
+   if value & 65536 != 0 {
+      names["VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED"] = true
+   }
+
+   if value & 16777216 != 0 {
+      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   }
+
+   if value & 64 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
+   }
+
+   if value & 128 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
+   }
+
+   if value & 524288 != 0 {
+      names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
+   }
+
+   if value & 1048576 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
    }
 
    if value & 2 != 0 {
@@ -1504,36 +1516,24 @@ func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
       names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
    }
 
-   if value & 32 != 0 {
-      names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
-   }
-
    if value & 8 != 0 {
       names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
    }
 
-   if value & 1048576 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
+   if value & 16 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
    }
 
-   if value & 16777216 != 0 {
-      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   if value & 4194304 != 0 {
+      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
+   }
+
+   if value & 2097152 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
    }
 
    if value & 33554432 != 0 {
       names["VSS_VOLSNAP_ATTR_TXF_RECOVERY"] = true
-   }
-
-   if value & 1 != 0 {
-      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
-   }
-
-   if value & 128 != 0 {
-      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
-   }
-
-   if value & 65536 != 0 {
-      names["VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
