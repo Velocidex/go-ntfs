@@ -37,6 +37,8 @@ func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
 		return nil, err
 	}
 
+	ntfs.ClusterSize = ntfs.Boot.ClusterSize()
+
 	mft_reader, err := BootstrapMFT(ntfs)
 	if err != nil {
 		return nil, err
