@@ -6,10 +6,11 @@ import (
 )
 
 type NTFSContext struct {
-	DiskReader io.ReaderAt
-	Boot       *NTFS_BOOT_SECTOR
-	RootMFT    *MFT_ENTRY
-	Profile    *NTFSProfile
+	DiskReader  io.ReaderAt
+	Boot        *NTFS_BOOT_SECTOR
+	RootMFT     *MFT_ENTRY
+	Profile     *NTFSProfile
+	ClusterSize int64
 }
 
 func (self *NTFSContext) GetMFT(id int64) (*MFT_ENTRY, error) {

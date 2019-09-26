@@ -40,17 +40,35 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 		compression_unit_size := int64(1 << uint64(self.Compression_unit_size()))
 		return LimitedReader{
 			NewCompressedRunReader(self.RunList(),
-				ntfs.Boot.ClusterSize(),
+				ntfs.ClusterSize,
 				ntfs.DiskReader,
 				compression_unit_size),
 			int64(self.Actual_size()),
 		}
 	} else {
-		return LimitedReader{
-			NewRunReader(self.RunList(),
-				ntfs.Boot.ClusterSize(), ntfs.DiskReader),
-			int64(self.Actual_size()),
+		initialized_size := int64(self.Initialized_size())
+		runs := []ReaderRun{
+			ReaderRun{
+				FileOffset:   0,
+				TargetOffset: 0,
+				Length:       initialized_size,
+				ClusterSize:  1,
+				Reader: NewRunReader(
+					self.RunList(), ntfs.DiskReader, ntfs.ClusterSize),
+			},
 		}
+
+		actual_size := int64(self.Actual_size())
+		if actual_size > initialized_size {
+			runs = append(runs, ReaderRun{
+				FileOffset:   initialized_size,
+				TargetOffset: 0,
+				ClusterSize:  1, // Sizes are in units of bytes
+				Length:       actual_size - initialized_size,
+				Reader:       &NullReader{}})
+		}
+
+		return &RunReader{runs: runs}
 	}
 }
 
@@ -188,6 +206,7 @@ type ReaderRun struct {
 	FileOffset       int64
 	TargetOffset     int64
 	Length           int64
+	ClusterSize      int64
 	CompressedLength int64
 	Reader           io.ReaderAt
 }
@@ -208,15 +227,10 @@ func (self *ReaderRun) Decompress(reader io.ReaderAt, cluster_size int64) ([]byt
 // An io.ReaderAt which works off runs.
 type RunReader struct {
 	runs []ReaderRun
-
-	cluster_size int64
-
-	// The attribute that owns us.
-	//attribute *NTFSAttribute
 }
 
 // Convert the NTFS relative runlist into an absolute run list.
-func MakeReaderRuns(runs []Run, disk_reader io.ReaderAt) []ReaderRun {
+func MakeReaderRuns(runs []Run, disk_reader io.ReaderAt, cluster_size int64) []ReaderRun {
 	reader_runs := []ReaderRun{}
 	file_offset := int64(0)
 	target_offset := int64(0)
@@ -230,7 +244,8 @@ func MakeReaderRuns(runs []Run, disk_reader io.ReaderAt) []ReaderRun {
 				FileOffset:   file_offset,
 				TargetOffset: 0,
 				Length:       run.Length,
-				Reader:       disk_reader,
+				ClusterSize:  cluster_size,
+				Reader:       &NullReader{},
 			})
 
 		} else {
@@ -238,6 +253,7 @@ func MakeReaderRuns(runs []Run, disk_reader io.ReaderAt) []ReaderRun {
 				FileOffset:   file_offset,
 				TargetOffset: target_offset,
 				Length:       run.Length,
+				ClusterSize:  cluster_size,
 				Reader:       disk_reader,
 			})
 		}
@@ -251,7 +267,7 @@ func NewCompressedRunReader(runs []Run,
 	cluster_size int64,
 	disk_reader io.ReaderAt,
 	compression_unit_size int64) *RunReader {
-	reader_runs := MakeReaderRuns(runs, disk_reader)
+	reader_runs := MakeReaderRuns(runs, disk_reader, cluster_size)
 
 	normalized_reader_runs := []ReaderRun{}
 
@@ -267,6 +283,7 @@ func NewCompressedRunReader(runs []Run,
 				FileOffset:   run.FileOffset,
 				TargetOffset: run.TargetOffset,
 				Length:       run.Length - run.Length%compression_unit_size,
+				ClusterSize:  cluster_size,
 				Reader:       disk_reader,
 			}
 
@@ -275,6 +292,7 @@ func NewCompressedRunReader(runs []Run,
 				FileOffset:   reader_run.FileOffset + reader_run.Length,
 				TargetOffset: reader_run.TargetOffset + reader_run.Length,
 				Length:       run.Length - reader_run.Length,
+				ClusterSize:  cluster_size,
 				Reader:       disk_reader,
 			}
 		}
@@ -300,6 +318,7 @@ func NewCompressedRunReader(runs []Run,
 				// Take up the entire compression unit
 				Length:           compression_unit_size,
 				CompressedLength: run.Length,
+				ClusterSize:      cluster_size,
 				Reader:           disk_reader,
 			})
 			reader_runs[i+1].Length -= compression_unit_size - run.Length
@@ -311,37 +330,28 @@ func NewCompressedRunReader(runs []Run,
 		"Normalized runlist %v to:\nNormal runlist %v\n",
 		compression_unit_size, runs,
 		reader_runs, normalized_reader_runs)
-	return &RunReader{runs: normalized_reader_runs, cluster_size: cluster_size}
+	return &RunReader{runs: normalized_reader_runs}
 }
 
-func NewRunReader(runs []Run, cluster_size int64, disk_reader io.ReaderAt) *RunReader {
+func NewRunReader(runs []Run, disk_reader io.ReaderAt, cluster_size int64) *RunReader {
 	return &RunReader{
-		runs:         MakeReaderRuns(runs, disk_reader),
-		cluster_size: cluster_size,
+		runs: MakeReaderRuns(runs, disk_reader, cluster_size),
 	}
 }
-
-/*
-// Returns the boot sector.
-func (self *RunReader) Boot() *NTFS_BOOT_SECTOR {
-	return self.attribute.mft.Boot
-}
-*/
 
 func (self *RunReader) readFromARun(
 	run_idx int,
 	buf []byte,
-	cluster_size int64,
 	run_offset int) (int, error) {
 
 	//	Printf("readFromARun %v\n", self.runs[run_idx])
 
 	run := self.runs[run_idx]
-	target_offset := run.TargetOffset * cluster_size
+	target_offset := run.TargetOffset * run.ClusterSize
 	is_compressed := run.CompressedLength > 0
 
 	if is_compressed {
-		decompressed, err := run.Decompress(run.Reader, cluster_size)
+		decompressed, err := run.Decompress(run.Reader, run.ClusterSize)
 		if err != nil {
 			return 0, err
 		}
@@ -360,22 +370,16 @@ func (self *RunReader) readFromARun(
 		}
 
 	} else {
-		to_read := int(run.Length*cluster_size) - run_offset
+		to_read := int(run.Length*run.ClusterSize) - run_offset
 		if len(buf) < to_read {
 			to_read = len(buf)
 		}
 
-		// The run is sparse - just skip the buffer.
-		if target_offset == 0 {
-			return to_read, nil
-
-		} else {
-			// Run contains data - read it
-			// into the buffer.
-			n, err := run.Reader.ReadAt(
-				buf[:to_read], target_offset+int64(run_offset))
-			return n, err
-		}
+		// Run contains data - read it
+		// into the buffer.
+		n, err := run.Reader.ReadAt(
+			buf[:to_read], target_offset+int64(run_offset))
+		return n, err
 	}
 }
 
@@ -385,8 +389,10 @@ func (self *RunReader) ReadAt(buf []byte, file_offset int64) (
 
 	// Find the run which covers the required offset.
 	for j := 0; j < len(self.runs) && buf_idx < len(buf); j++ {
-		run_file_offset := self.runs[j].FileOffset * self.cluster_size
-		run_length := self.runs[j].Length * self.cluster_size
+		run := self.runs[j]
+
+		run_file_offset := run.FileOffset * run.ClusterSize
+		run_length := run.Length * run.ClusterSize
 		run_end_file_offset := run_file_offset + run_length
 
 		// This run can provide us with some data.
@@ -396,8 +402,7 @@ func (self *RunReader) ReadAt(buf []byte, file_offset int64) (
 			// The relative offset within the run.
 			run_offset := int(file_offset - run_file_offset)
 
-			n, err := self.readFromARun(
-				j, buf[buf_idx:], self.cluster_size, run_offset)
+			n, err := self.readFromARun(j, buf[buf_idx:], run_offset)
 			if err != nil {
 				Printf("Reading run %v returned error %v\n", self.runs[j], err)
 				return buf_idx, err
@@ -415,7 +420,7 @@ func (self *RunReader) ReadAt(buf []byte, file_offset int64) (
 
 	if buf_idx == 0 {
 		Printf("Could not find runs for offset %d: %v. Cluster size %d\n",
-			file_offset, self.runs, self.cluster_size)
+			file_offset, self.runs, self.runs[0].ClusterSize)
 		return buf_idx, io.EOF
 	}
 
@@ -555,4 +560,14 @@ func DecodeSTANDARD_INDEX_HEADER(
 	// Produce a new STANDARD_INDEX_HEADER record with a fixed up
 	// page.
 	return fixed_up_index, nil
+}
+
+type NullReader struct{}
+
+func (self *NullReader) ReadAt(buf []byte, offset int64) (int, error) {
+	for i := 0; i < len(buf); i++ {
+		buf[i] = 0
+	}
+
+	return len(buf), nil
 }
