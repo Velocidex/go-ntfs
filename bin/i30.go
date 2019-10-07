@@ -43,8 +43,12 @@ func doI30() {
 			"Mtime", "Atime", "Ctime", "Btime"})
 
 		for _, info := range data {
+			name := info.Name
+			if info.IsSlack {
+				name += fmt.Sprintf(" (slack @ %#x)", info.SlackOffset)
+			}
 			writer.Write([]string{
-				info.Name,
+				name,
 				info.NameType,
 				fmt.Sprintf("%v", info.Size),
 				fmt.Sprintf("%v", info.AllocatedSize),

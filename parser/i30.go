@@ -17,6 +17,11 @@ func ExtractI30ListFromStream(
 			return
 		}
 
+		slack_offset := int64(0)
+		if slack {
+			slack_offset = record.Offset
+		}
+
 		filename := record.File()
 		result = append(result, &FileInfo{
 			MFTId:         fmt.Sprintf("%d", record.MftReference()),
@@ -29,6 +34,7 @@ func ExtractI30ListFromStream(
 			Name:          filename.Name(),
 			NameType:      filename.NameType().Name,
 			IsSlack:       slack,
+			SlackOffset:   slack_offset,
 		})
 	}
 
@@ -45,9 +51,8 @@ func ExtractI30ListFromStream(
 		}
 
 		for _, record := range node.ScanSlack(ntfs) {
-			add_record(false, record)
+			add_record(true, record)
 		}
-
 	}
 
 	return result

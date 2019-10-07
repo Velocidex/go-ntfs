@@ -24,7 +24,8 @@ type FileInfo struct {
 	AllocatedSize int64
 
 	// Is it in I30 slack?
-	IsSlack bool `json:"MFTId,omitempty"`
+	IsSlack     bool  `json:"IsSlack,omitempty"`
+	SlackOffset int64 `json:"SlackOffset,omitempty"`
 }
 
 func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
