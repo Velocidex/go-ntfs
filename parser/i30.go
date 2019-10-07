@@ -1,33 +1,77 @@
 package parser
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
-func ExtractI30List(ntfs *NTFSContext, mft_entry *MFT_ENTRY) []*FileInfo {
-	records := []*INDEX_RECORD_ENTRY{}
-
-	for _, node := range mft_entry.DirNodes(ntfs) {
-		records = append(records, node.GetRecords(ntfs)...)
-		records = append(records, node.ScanSlack(ntfs)...)
-	}
-
+func ExtractI30ListFromStream(
+	ntfs *NTFSContext,
+	reader io.ReaderAt,
+	stream_size int64) []*FileInfo {
 	result := []*FileInfo{}
-	for _, record := range records {
+
+	add_record := func(
+		slack bool, record *INDEX_RECORD_ENTRY) {
 		if !record.IsValid() {
-			continue
+			return
+		}
+
+		slack_offset := int64(0)
+		if slack {
+			slack_offset = record.Offset
 		}
 
 		filename := record.File()
 		result = append(result, &FileInfo{
-			MFTId:    fmt.Sprintf("%d", record.MftReference()),
-			Mtime:    filename.File_modified().Time,
-			Atime:    filename.File_accessed().Time,
-			Ctime:    filename.Mft_modified().Time,
-			Name:     filename.Name(),
-			NameType: filename.NameType().Name,
+			MFTId:         fmt.Sprintf("%d", record.MftReference()),
+			Mtime:         filename.Mft_modified().Time,
+			Atime:         filename.File_accessed().Time,
+			Ctime:         filename.Created().Time,
+			Btime:         filename.File_modified().Time,
+			Size:          int64(filename.FilenameSize()),
+			AllocatedSize: int64(filename.Allocated_size()),
+			Name:          filename.Name(),
+			NameType:      filename.NameType().Name,
+			IsSlack:       slack,
+			SlackOffset:   slack_offset,
 		})
 	}
 
+	for i := int64(0); i < stream_size; i += 0x1000 {
+		index_root, err := DecodeSTANDARD_INDEX_HEADER(
+			ntfs, reader, i, 0x1000)
+		if err != nil {
+			continue
+		}
+
+		node := index_root.Node()
+		for _, record := range node.GetRecords(ntfs) {
+			add_record(false, record)
+		}
+
+		for _, record := range node.ScanSlack(ntfs) {
+			add_record(true, record)
+		}
+	}
+
 	return result
+}
+
+func ExtractI30List(ntfs *NTFSContext, mft_entry *MFT_ENTRY) []*FileInfo {
+	results := []*FileInfo{}
+	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
+		switch attr.Type().Name {
+		case "$INDEX_ALLOCATION":
+			attr_reader := attr.Data(ntfs)
+			results = append(results,
+				ExtractI30ListFromStream(ntfs,
+					attr_reader,
+					attr.DataSize())...)
+		}
+	}
+
+	return results
 }
 
 const (

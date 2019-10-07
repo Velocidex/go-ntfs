@@ -11,15 +11,21 @@ import (
 )
 
 type FileInfo struct {
-	MFTId      string
-	Mtime      time.Time
-	Atime      time.Time
-	Ctime      time.Time
-	Name       string
-	NameType   string
-	ExtraNames []string
-	IsDir      bool
-	Size       int64
+	MFTId         string    `json:"MFTId,omitempty"`
+	Mtime         time.Time `json:"Mtime,omitempty"`
+	Atime         time.Time `json:"Atime,omitempty"`
+	Ctime         time.Time `json:"Ctime,omitempty"`
+	Btime         time.Time `json:"Btime,omitempty"` // Birth time.
+	Name          string    `json:"Name,omitempty"`
+	NameType      string    `json:"NameType,omitempty"`
+	ExtraNames    []string  `json:"ExtraNames,omitempty"`
+	IsDir         bool      `json:"IsDir,omitempty"`
+	Size          int64
+	AllocatedSize int64
+
+	// Is it in I30 slack?
+	IsSlack     bool  `json:"IsSlack,omitempty"`
+	SlackOffset int64 `json:"SlackOffset,omitempty"`
 }
 
 func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
