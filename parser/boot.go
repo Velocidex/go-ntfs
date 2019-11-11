@@ -31,6 +31,10 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 	// value is the magic and the rest are fixup values.
 	fixup_offset := mft.Offset + int64(mft.Fixup_offset())
 	fixup_count := int64(mft.Fixup_count())
+	if fixup_count == 0 {
+		return nil, errors.New("Invalid fixup")
+	}
+
 	fixup_table := make([]byte, fixup_count*2)
 	_, err := mft.Reader.ReadAt(fixup_table, fixup_offset)
 	if err != nil {
