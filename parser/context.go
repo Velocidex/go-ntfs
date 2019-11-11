@@ -11,6 +11,15 @@ type NTFSContext struct {
 	RootMFT     *MFT_ENTRY
 	Profile     *NTFSProfile
 	ClusterSize int64
+	RecordSize  int64
+}
+
+func (self *NTFSContext) GetRecordSize() int64 {
+	if self.RecordSize == 0 {
+		self.RecordSize = self.Boot.RecordSize()
+	}
+
+	return self.RecordSize
 }
 
 func (self *NTFSContext) GetMFT(id int64) (*MFT_ENTRY, error) {
@@ -21,7 +30,7 @@ func (self *NTFSContext) GetMFT(id int64) (*MFT_ENTRY, error) {
 	}
 
 	disk_mft := self.Profile.MFT_ENTRY(self.RootMFT.Reader,
-		self.Boot.RecordSize()*id)
+		self.GetRecordSize()*id)
 
 	// Fixup the entry.
 	mft_reader, err := FixUpDiskMFTEntry(disk_mft)
