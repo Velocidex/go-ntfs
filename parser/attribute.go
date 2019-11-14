@@ -532,26 +532,28 @@ func DecodeSTANDARD_INDEX_HEADER(
 
 	fixup_offset := offset + int64(index.Fixup_offset())
 	fixup_count := index.Fixup_count()
-	fixup_table := make([]byte, fixup_count*2)
-	_, err = reader.ReadAt(fixup_table, fixup_offset)
-	if err != nil {
-		return nil, err
-	}
-
-	fixup_magic := []byte{fixup_table[0], fixup_table[1]}
-	sector_idx := 0
-	for idx := 2; idx < len(fixup_table); idx += 2 {
-		fixup_offset := (sector_idx+1)*512 - 2
-		if fixup_offset+1 >= len(buffer) ||
-			buffer[fixup_offset] != fixup_magic[0] ||
-			buffer[fixup_offset+1] != fixup_magic[1] {
-			return nil, errors.New("Fixup error with MFT")
+	if fixup_count > 0 {
+		fixup_table := make([]byte, fixup_count*2)
+		_, err = reader.ReadAt(fixup_table, fixup_offset)
+		if err != nil {
+			return nil, err
 		}
 
-		// Apply the fixup
-		buffer[fixup_offset] = fixup_table[idx]
-		buffer[fixup_offset+1] = fixup_table[idx+1]
-		sector_idx += 1
+		fixup_magic := []byte{fixup_table[0], fixup_table[1]}
+		sector_idx := 0
+		for idx := 2; idx < len(fixup_table); idx += 2 {
+			fixup_offset := (sector_idx+1)*512 - 2
+			if fixup_offset+1 >= len(buffer) ||
+				buffer[fixup_offset] != fixup_magic[0] ||
+				buffer[fixup_offset+1] != fixup_magic[1] {
+				return nil, errors.New("Fixup error with MFT")
+			}
+
+			// Apply the fixup
+			buffer[fixup_offset] = fixup_table[idx]
+			buffer[fixup_offset+1] = fixup_table[idx+1]
+			sector_idx += 1
+		}
 	}
 
 	fixed_up_index := ntfs.Profile.STANDARD_INDEX_HEADER(

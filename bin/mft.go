@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -26,7 +27,8 @@ func doMFT() {
 	st, err := (*mft_command_file_arg).Stat()
 	kingpin.FatalIfError(err, "Can not open MFT file")
 
-	for item := range parser.ParseMFTFile(reader, st.Size(), 0x1000, 0x400) {
+	for item := range parser.ParseMFTFile(context.Background(),
+		reader, st.Size(), 0x1000, 0x400) {
 		serialized, err := json.MarshalIndent(item, " ", " ")
 		kingpin.FatalIfError(err, "Marshal")
 

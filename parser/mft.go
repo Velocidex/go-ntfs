@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -269,7 +270,9 @@ type MFTHighlight struct {
 	LastAccess0x30       time.Time
 }
 
-func ParseMFTFile(reader io.ReaderAt,
+func ParseMFTFile(
+	ctx context.Context,
+	reader io.ReaderAt,
 	size int64,
 	cluster_size int64,
 	record_size int64) chan *MFTHighlight {
@@ -279,17 +282,17 @@ func ParseMFTFile(reader io.ReaderAt,
 		defer close(output)
 
 		cache, _ := lru.New(1000)
-		ctx := &NTFSContext{
+		ntfs := &NTFSContext{
 			DiskReader:  &NullReader{},
 			Profile:     NewNTFSProfile(),
 			ClusterSize: cluster_size,
 			RecordSize:  record_size,
 		}
 
-		ctx.RootMFT = ctx.Profile.MFT_ENTRY(reader, 0)
+		ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(reader, 0)
 
 		for i := int64(0); i < size; i += record_size {
-			mft_entry, err := getMFT_ENTRY(ctx, reader, i)
+			mft_entry, err := getMFT_ENTRY(ntfs, reader, i)
 			if err != nil {
 				continue
 			}
@@ -298,7 +301,7 @@ func ParseMFTFile(reader io.ReaderAt,
 			var si *STANDARD_INFORMATION
 			var size int64
 
-			for _, attr := range mft_entry.EnumerateAttributes(ctx) {
+			for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 				attr_type := attr.Type()
 				switch attr_type.Name {
 				case "$DATA":
@@ -306,13 +309,13 @@ func ParseMFTFile(reader io.ReaderAt,
 						size = attr.DataSize()
 					}
 				case "$FILE_NAME":
-					res := ctx.Profile.FILE_NAME(
-						attr.Data(ctx), 0)
+					res := ntfs.Profile.FILE_NAME(
+						attr.Data(ntfs), 0)
 					file_names = append(file_names, res)
 
 				case "$STANDARD_INFORMATION":
-					si = ctx.Profile.STANDARD_INFORMATION(
-						attr.Data(ctx), 0)
+					si = ntfs.Profile.STANDARD_INFORMATION(
+						attr.Data(ntfs), 0)
 				}
 			}
 			if len(file_names) == 0 {
@@ -322,7 +325,7 @@ func ParseMFTFile(reader io.ReaderAt,
 				continue
 			}
 
-			full_path, err := getFullPathWithCache(ctx, mft_entry,
+			full_path, err := getFullPathWithCache(ntfs, mft_entry,
 				file_names, cache)
 			if err != nil {
 				continue
@@ -347,6 +350,14 @@ func ParseMFTFile(reader io.ReaderAt,
 				LastRecordChange0x30: file_names[0].Mft_modified().Time,
 				LastAccess0x10:       si.File_accessed_time().Time,
 				LastAccess0x30:       file_names[0].File_accessed().Time,
+			}
+
+			// Check for cancellations.
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				continue
 			}
 		}
 	}()
