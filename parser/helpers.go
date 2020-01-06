@@ -7,7 +7,7 @@ import (
 )
 
 func filetimeToUnixtime(ft uint64) uint64 {
-	return (ft - 11644473600000*10000) / 10000000
+	return (ft - 11644473600000*10000) * 100
 }
 
 // A FileTime object is a timestamp in windows filetime format.
@@ -25,5 +25,5 @@ func (self *WinFileTime) DebugString() string {
 
 func (self *NTFSProfile) WinFileTime(reader io.ReaderAt, offset int64) *WinFileTime {
 	filetime := ParseUint64(reader, offset)
-	return &WinFileTime{time.Unix(int64(filetimeToUnixtime(filetime)), 0)}
+	return &WinFileTime{time.Unix(0, int64(filetimeToUnixtime(filetime)))}
 }
