@@ -370,9 +370,9 @@ func (self *RunReader) readFromARun(
 		}
 
 	} else {
-		to_read := int(run.Length*run.ClusterSize) - run_offset
-		if len(buf) < to_read {
-			to_read = len(buf)
+		to_read := run.Length*run.ClusterSize - int64(run_offset)
+		if int64(len(buf)) < to_read {
+			to_read = int64(len(buf))
 		}
 
 		// Run contains data - read it
