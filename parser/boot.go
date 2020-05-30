@@ -27,29 +27,30 @@ func (self *NTFS_BOOT_SECTOR) RecordSize() int64 {
 // MFT_ENTRY from disk into a buffer and perfoms the fixups. We then
 // return an MFT_ENTRY instantiated over this fixed up buffer.
 func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
+	// Read the entire MFT entry into the buffer and then apply
+	// the fixup table. (Maxsize uint16)
+	buffer := make([]byte, mft.Mft_entry_allocated())
+	_, err := mft.Reader.ReadAt(buffer, mft.Offset)
+	if err != nil {
+		return nil, err
+	}
+
 	// The fixup table is an array of 2 byte values. The first
 	// value is the magic and the rest are fixup values.
 	fixup_offset := mft.Offset + int64(mft.Fixup_offset())
 	fixup_count := int64(mft.Fixup_count())
 	if fixup_count == 0 {
-		return nil, errors.New("Invalid fixup")
+		return bytes.NewReader(buffer), nil
 	}
 
 	fixup_table := make([]byte, fixup_count*2)
-	_, err := mft.Reader.ReadAt(fixup_table, fixup_offset)
+	_, err = mft.Reader.ReadAt(fixup_table, fixup_offset)
 	if err != nil {
 		return nil, err
 	}
 
 	fixup_magic := []byte{fixup_table[0], fixup_table[1]}
 
-	// Read the entire MFT entry into the buffer and then apply
-	// the fixup table.
-	buffer := make([]byte, mft.Mft_entry_allocated())
-	_, err = mft.Reader.ReadAt(buffer, mft.Offset)
-	if err != nil {
-		return nil, err
-	}
 	sector_idx := 0
 	for idx := 2; idx < len(fixup_table); idx += 2 {
 		fixup_offset := (sector_idx+1)*512 - 2
@@ -81,7 +82,8 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 	// 2. Search for the $DATA attribute.
 	// 3. Reconstruct the runlist and RunReader from this attribute.
 	// 4. Instantiate the MFT over this new reader.
-	offset := int64(ntfs.Boot._mft_cluster()) * ntfs.Boot.ClusterSize()
+	record_size := ntfs.Boot.ClusterSize()
+	offset := int64(ntfs.Boot._mft_cluster()) * record_size
 	disk_mft := ntfs.Profile.MFT_ENTRY(ntfs.DiskReader, offset)
 
 	fixed_up_reader, err := FixUpDiskMFTEntry(disk_mft)

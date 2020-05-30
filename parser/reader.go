@@ -53,7 +53,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 			// Read this page into memory.
 			page_buf = make([]byte, self.pagesize)
 			_, err := self.reader.ReadAt(page_buf, page)
-			if err != nil {
+			if err != nil && err != io.EOF {
 				return buf_idx, err
 			}
 

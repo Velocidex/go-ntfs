@@ -89,15 +89,6 @@ func (self *MFT_ENTRY) Open(ntfs *NTFSContext, filename string) (*MFT_ENTRY, err
 	return directory, nil
 }
 
-func indent(input string) string {
-	var indented []string
-	for _, line := range strings.Split(input, "\n") {
-		indented = append(indented, "  "+line)
-	}
-
-	return strings.Join(indented, "\n")
-}
-
 func (self *MFT_ENTRY) Display(ntfs *NTFSContext) string {
 	result := []string{self.DebugString()}
 

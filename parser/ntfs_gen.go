@@ -24,156 +24,167 @@ var (
    _ = utf8.RuneError
    _ = sort.Strings
    _ = strings.Join
+   _ = io.Copy
 )
 
+func indent(text string) string {
+    result := []string{}
+    lines := strings.Split(text,"\n")
+    for _, line := range lines {
+         result = append(result, "  " + line)
+    }
+    return strings.Join(result, "\n")
+}
+
+
 type NTFSProfile struct {
-    Off_ATTRIBUTE_LIST_ENTRY_Attribute_id int64
+    Off_ATTRIBUTE_LIST_ENTRY_Type int64
     Off_ATTRIBUTE_LIST_ENTRY_Length int64
-    Off_ATTRIBUTE_LIST_ENTRY_MftReference int64
     Off_ATTRIBUTE_LIST_ENTRY_Name_length int64
     Off_ATTRIBUTE_LIST_ENTRY_Offset_to_name int64
     Off_ATTRIBUTE_LIST_ENTRY_Starting_vcn int64
-    Off_ATTRIBUTE_LIST_ENTRY_Type int64
-    Off_FILE_NAME_Allocated_size int64
+    Off_ATTRIBUTE_LIST_ENTRY_MftReference int64
+    Off_ATTRIBUTE_LIST_ENTRY_Attribute_id int64
+    Off_FILE_NAME_MftReference int64
+    Off_FILE_NAME_Seq_num int64
     Off_FILE_NAME_Created int64
-    Off_FILE_NAME_File_accessed int64
     Off_FILE_NAME_File_modified int64
+    Off_FILE_NAME_Mft_modified int64
+    Off_FILE_NAME_File_accessed int64
+    Off_FILE_NAME_Allocated_size int64
     Off_FILE_NAME_FilenameSize int64
     Off_FILE_NAME_Flags int64
-    Off_FILE_NAME_MftReference int64
-    Off_FILE_NAME_Mft_modified int64
-    Off_FILE_NAME_NameType int64
     Off_FILE_NAME_Reparse_value int64
-    Off_FILE_NAME_Seq_num int64
     Off_FILE_NAME__length_of_name int64
+    Off_FILE_NAME_NameType int64
     Off_FILE_NAME_name int64
     Off_GUID_Data1 int64
     Off_GUID_Data2 int64
     Off_GUID_Data3 int64
     Off_GUID_Data4 int64
-    Off_INDEX_NODE_HEADER_Offset_to_end_index_entry int64
     Off_INDEX_NODE_HEADER_Offset_to_index_entry int64
+    Off_INDEX_NODE_HEADER_Offset_to_end_index_entry int64
     Off_INDEX_NODE_HEADER_SizeOfEntriesAlloc int64
-    Off_INDEX_RECORD_ENTRY_File int64
-    Off_INDEX_RECORD_ENTRY_FilenameOffset int64
-    Off_INDEX_RECORD_ENTRY_Flags int64
     Off_INDEX_RECORD_ENTRY_MftReference int64
     Off_INDEX_RECORD_ENTRY_Seq_num int64
     Off_INDEX_RECORD_ENTRY_SizeOfIndexEntry int64
-    Off_INDEX_ROOT_Collation_rule int64
-    Off_INDEX_ROOT_Idx_size_c int64
-    Off_INDEX_ROOT_Idxalloc_size_b int64
-    Off_INDEX_ROOT_Node int64
+    Off_INDEX_RECORD_ENTRY_FilenameOffset int64
+    Off_INDEX_RECORD_ENTRY_Flags int64
+    Off_INDEX_RECORD_ENTRY_File int64
     Off_INDEX_ROOT_Type int64
-    Off_MFT_ENTRY_Attribute_offset int64
-    Off_MFT_ENTRY_Base_record_reference int64
-    Off_MFT_ENTRY_Fixup_count int64
-    Off_MFT_ENTRY_Fixup_offset int64
-    Off_MFT_ENTRY_Flags int64
-    Off_MFT_ENTRY_Link_count int64
-    Off_MFT_ENTRY_Logfile_sequence_number int64
+    Off_INDEX_ROOT_Collation_rule int64
+    Off_INDEX_ROOT_Idxalloc_size_b int64
+    Off_INDEX_ROOT_Idx_size_c int64
+    Off_INDEX_ROOT_Node int64
     Off_MFT_ENTRY_Magic int64
-    Off_MFT_ENTRY_Mft_entry_allocated int64
+    Off_MFT_ENTRY_Fixup_offset int64
+    Off_MFT_ENTRY_Fixup_count int64
+    Off_MFT_ENTRY_Logfile_sequence_number int64
+    Off_MFT_ENTRY_Sequence_value int64
+    Off_MFT_ENTRY_Link_count int64
+    Off_MFT_ENTRY_Attribute_offset int64
+    Off_MFT_ENTRY_Flags int64
     Off_MFT_ENTRY_Mft_entry_size int64
+    Off_MFT_ENTRY_Mft_entry_allocated int64
+    Off_MFT_ENTRY_Base_record_reference int64
     Off_MFT_ENTRY_Next_attribute_id int64
     Off_MFT_ENTRY_Record_number int64
-    Off_MFT_ENTRY_Sequence_value int64
-    Off_NTFS_ATTRIBUTE_Actual_size int64
-    Off_NTFS_ATTRIBUTE_Allocated_size int64
-    Off_NTFS_ATTRIBUTE_Attribute_id int64
-    Off_NTFS_ATTRIBUTE_Compression_unit_size int64
-    Off_NTFS_ATTRIBUTE_Content_offset int64
-    Off_NTFS_ATTRIBUTE_Content_size int64
-    Off_NTFS_ATTRIBUTE_Flags int64
-    Off_NTFS_ATTRIBUTE_Initialized_size int64
+    Off_NTFS_ATTRIBUTE_Type int64
     Off_NTFS_ATTRIBUTE_Length int64
     Off_NTFS_ATTRIBUTE_Resident int64
-    Off_NTFS_ATTRIBUTE_Runlist_offset int64
-    Off_NTFS_ATTRIBUTE_Runlist_vcn_end int64
-    Off_NTFS_ATTRIBUTE_Runlist_vcn_start int64
-    Off_NTFS_ATTRIBUTE_Type int64
     Off_NTFS_ATTRIBUTE_name_length int64
     Off_NTFS_ATTRIBUTE_name_offset int64
-    Off_NTFS_BOOT_SECTOR_Index_record_size int64
-    Off_NTFS_BOOT_SECTOR_Magic int64
+    Off_NTFS_ATTRIBUTE_Flags int64
+    Off_NTFS_ATTRIBUTE_Attribute_id int64
+    Off_NTFS_ATTRIBUTE_Content_size int64
+    Off_NTFS_ATTRIBUTE_Content_offset int64
+    Off_NTFS_ATTRIBUTE_Runlist_vcn_start int64
+    Off_NTFS_ATTRIBUTE_Runlist_vcn_end int64
+    Off_NTFS_ATTRIBUTE_Runlist_offset int64
+    Off_NTFS_ATTRIBUTE_Compression_unit_size int64
+    Off_NTFS_ATTRIBUTE_Allocated_size int64
+    Off_NTFS_ATTRIBUTE_Actual_size int64
+    Off_NTFS_ATTRIBUTE_Initialized_size int64
     Off_NTFS_BOOT_SECTOR_Oemname int64
     Off_NTFS_BOOT_SECTOR_Sector_size int64
-    Off_NTFS_BOOT_SECTOR_Serial int64
     Off_NTFS_BOOT_SECTOR__cluster_size int64
-    Off_NTFS_BOOT_SECTOR__mft_cluster int64
-    Off_NTFS_BOOT_SECTOR__mft_record_size int64
-    Off_NTFS_BOOT_SECTOR__mirror_mft_cluster int64
     Off_NTFS_BOOT_SECTOR__volume_size int64
-    Off_NTFS_RESIDENT_ATTRIBUTE_Attribute_id int64
+    Off_NTFS_BOOT_SECTOR__mft_cluster int64
+    Off_NTFS_BOOT_SECTOR__mirror_mft_cluster int64
+    Off_NTFS_BOOT_SECTOR__mft_record_size int64
+    Off_NTFS_BOOT_SECTOR_Index_record_size int64
+    Off_NTFS_BOOT_SECTOR_Serial int64
+    Off_NTFS_BOOT_SECTOR_Magic int64
+    Off_NTFS_RESIDENT_ATTRIBUTE_Type int64
     Off_NTFS_RESIDENT_ATTRIBUTE_Length int64
+    Off_NTFS_RESIDENT_ATTRIBUTE_Resident int64
     Off_NTFS_RESIDENT_ATTRIBUTE_Name_length int64
     Off_NTFS_RESIDENT_ATTRIBUTE_Name_offset int64
-    Off_NTFS_RESIDENT_ATTRIBUTE_Resident int64
-    Off_NTFS_RESIDENT_ATTRIBUTE_Type int64
-    Off_NTFS_RESIDENT_ATTRIBUTE_content_offset int64
+    Off_NTFS_RESIDENT_ATTRIBUTE_Attribute_id int64
     Off_NTFS_RESIDENT_ATTRIBUTE_content_size int64
-    Off_STANDARD_INDEX_HEADER_Fixup_count int64
-    Off_STANDARD_INDEX_HEADER_Fixup_offset int64
-    Off_STANDARD_INDEX_HEADER_LogFileSeqNum int64
+    Off_NTFS_RESIDENT_ATTRIBUTE_content_offset int64
     Off_STANDARD_INDEX_HEADER_MagicNumber int64
-    Off_STANDARD_INDEX_HEADER_Node int64
+    Off_STANDARD_INDEX_HEADER_Fixup_offset int64
+    Off_STANDARD_INDEX_HEADER_Fixup_count int64
+    Off_STANDARD_INDEX_HEADER_LogFileSeqNum int64
     Off_STANDARD_INDEX_HEADER_VcnOfINDX int64
-    Off_STANDARD_INFORMATION_Class_id int64
+    Off_STANDARD_INDEX_HEADER_Node int64
     Off_STANDARD_INFORMATION_Create_time int64
-    Off_STANDARD_INFORMATION_File_accessed_time int64
     Off_STANDARD_INFORMATION_File_altered_time int64
+    Off_STANDARD_INFORMATION_Mft_altered_time int64
+    Off_STANDARD_INFORMATION_File_accessed_time int64
     Off_STANDARD_INFORMATION_Flags int64
     Off_STANDARD_INFORMATION_Max_versions int64
-    Off_STANDARD_INFORMATION_Mft_altered_time int64
-    Off_STANDARD_INFORMATION_Owner_id int64
-    Off_STANDARD_INFORMATION_Quota int64
-    Off_STANDARD_INFORMATION_Sid int64
-    Off_STANDARD_INFORMATION_Usn int64
     Off_STANDARD_INFORMATION_Version int64
+    Off_STANDARD_INFORMATION_Class_id int64
+    Off_STANDARD_INFORMATION_Owner_id int64
+    Off_STANDARD_INFORMATION_Sid int64
+    Off_STANDARD_INFORMATION_Quota int64
+    Off_STANDARD_INFORMATION_Usn int64
     Off_VSS_CATALOG_ENTRY_1_EntryType int64
-    Off_VSS_CATALOG_ENTRY_2_CreationTime int64
     Off_VSS_CATALOG_ENTRY_2_EntryType int64
-    Off_VSS_CATALOG_ENTRY_2_StoreGUID int64
     Off_VSS_CATALOG_ENTRY_2_VolumeSize int64
-    Off_VSS_CATALOG_ENTRY_3_AllocatedSize int64
+    Off_VSS_CATALOG_ENTRY_2_StoreGUID int64
+    Off_VSS_CATALOG_ENTRY_2_CreationTime int64
     Off_VSS_CATALOG_ENTRY_3_EntryType int64
-    Off_VSS_CATALOG_ENTRY_3_NTFSFileReference int64
-    Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset int64
     Off_VSS_CATALOG_ENTRY_3_StoreBlockListOffset int64
-    Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset int64
     Off_VSS_CATALOG_ENTRY_3_StoreGUID int64
     Off_VSS_CATALOG_ENTRY_3_StoreHeaderOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset int64
+    Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset int64
+    Off_VSS_CATALOG_ENTRY_3_NTFSFileReference int64
+    Off_VSS_CATALOG_ENTRY_3_AllocatedSize int64
     Off_VSS_CATALOG_ENTRY_3_StorePreviousBitmapOffset int64
-    Off_VSS_CATALOG_HEADER_CurrentOffset int64
     Off_VSS_CATALOG_HEADER_Identifier int64
-    Off_VSS_CATALOG_HEADER_NextOffset int64
+    Off_VSS_CATALOG_HEADER_Version int64
     Off_VSS_CATALOG_HEADER_RecordType int64
     Off_VSS_CATALOG_HEADER_RelativeOffset int64
-    Off_VSS_CATALOG_HEADER_Version int64
-    Off_VSS_STORE_BLOCK_HEADER_CurrentOffset int64
+    Off_VSS_CATALOG_HEADER_CurrentOffset int64
+    Off_VSS_CATALOG_HEADER_NextOffset int64
     Off_VSS_STORE_BLOCK_HEADER_Identifier int64
-    Off_VSS_STORE_BLOCK_HEADER_NextOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_Version int64
     Off_VSS_STORE_BLOCK_HEADER_RecordType int64
     Off_VSS_STORE_BLOCK_HEADER_RelativeOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_CurrentOffset int64
+    Off_VSS_STORE_BLOCK_HEADER_NextOffset int64
     Off_VSS_STORE_BLOCK_HEADER_SizeOfStore int64
-    Off_VSS_STORE_BLOCK_HEADER_Version int64
-    Off_VSS_STORE_INFORMATION_AttributeFlags int64
     Off_VSS_STORE_INFORMATION_ShadowCopyGUID int64
     Off_VSS_STORE_INFORMATION_ShadowCopySetGUID int64
     Off_VSS_STORE_INFORMATION_SnapshotContext int64
-    Off_VSS_VOLUME_HEADER_CatalogOffset int64
-    Off_VSS_VOLUME_HEADER_CurrentOffset int64
+    Off_VSS_STORE_INFORMATION_AttributeFlags int64
     Off_VSS_VOLUME_HEADER_Identifier int64
-    Off_VSS_VOLUME_HEADER_MaxSize int64
-    Off_VSS_VOLUME_HEADER_RecordType int64
-    Off_VSS_VOLUME_HEADER_ShadowVolumeGUID int64
     Off_VSS_VOLUME_HEADER_Version int64
+    Off_VSS_VOLUME_HEADER_RecordType int64
+    Off_VSS_VOLUME_HEADER_CurrentOffset int64
+    Off_VSS_VOLUME_HEADER_CatalogOffset int64
+    Off_VSS_VOLUME_HEADER_MaxSize int64
     Off_VSS_VOLUME_HEADER_VolumeGUID int64
+    Off_VSS_VOLUME_HEADER_ShadowVolumeGUID int64
 }
 
 func NewNTFSProfile() *NTFSProfile {
     // Specific offsets can be tweaked to cater for slight version mismatches.
-    self := &NTFSProfile{24,4,16,6,7,8,0,40,8,32,16,48,56,0,24,65,60,6,64,66,0,4,6,8,4,0,8,16,10,12,0,6,8,4,12,8,16,0,20,32,6,4,22,18,8,0,28,24,40,44,16,48,40,14,34,20,16,12,56,4,8,32,24,16,0,9,10,68,510,3,11,72,13,48,64,56,40,14,4,9,10,8,0,20,16,6,4,8,0,24,16,44,0,24,8,32,36,16,48,56,52,64,40,0,48,0,16,8,64,0,56,48,8,40,16,32,72,32,0,40,20,24,16,32,0,40,20,24,48,16,56,16,32,48,48,24,0,56,20,80,16,64}
+    self := &NTFSProfile{0,4,6,7,8,16,24,0,6,8,16,24,32,40,48,56,60,64,65,66,0,4,6,8,0,4,8,0,6,8,10,12,16,0,4,8,12,16,0,4,6,8,16,18,20,22,24,28,32,40,44,0,4,8,9,10,12,14,16,20,16,24,32,34,40,48,56,3,11,13,40,48,56,64,68,72,510,0,4,8,9,10,14,16,20,0,4,6,8,16,24,0,8,16,24,32,36,40,44,48,52,56,64,0,0,8,16,48,0,8,16,32,40,48,56,64,72,0,16,20,24,32,40,0,16,20,24,32,40,48,16,32,48,56,0,16,20,24,48,56,64,80}
     return self
 }
 
@@ -264,17 +275,12 @@ func (self *ATTRIBUTE_LIST_ENTRY) Size() int {
     return 0
 }
 
-func (self *ATTRIBUTE_LIST_ENTRY) Attribute_id() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Attribute_id + self.Offset)
+func (self *ATTRIBUTE_LIST_ENTRY) Type() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Type + self.Offset)
 }
 
 func (self *ATTRIBUTE_LIST_ENTRY) Length() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Length + self.Offset)
-}
-
-func (self *ATTRIBUTE_LIST_ENTRY) MftReference() uint64 {
-   value := ParseUint64(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_MftReference + self.Offset)
-   return (uint64(value) & 0xffffffffffff) >> 0x0
 }
 
 func (self *ATTRIBUTE_LIST_ENTRY) Name_length() byte {
@@ -289,18 +295,23 @@ func (self *ATTRIBUTE_LIST_ENTRY) Starting_vcn() uint64 {
     return ParseUint64(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Starting_vcn + self.Offset)
 }
 
-func (self *ATTRIBUTE_LIST_ENTRY) Type() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Type + self.Offset)
+func (self *ATTRIBUTE_LIST_ENTRY) MftReference() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_MftReference + self.Offset)
+   return (uint64(value) & 0xffffffffffff) >> 0x0
+}
+
+func (self *ATTRIBUTE_LIST_ENTRY) Attribute_id() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_ATTRIBUTE_LIST_ENTRY_Attribute_id + self.Offset)
 }
 func (self *ATTRIBUTE_LIST_ENTRY) DebugString() string {
     result := fmt.Sprintf("struct ATTRIBUTE_LIST_ENTRY @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Attribute_id: %#0x\n", self.Attribute_id())
-    result += fmt.Sprintf("Length: %#0x\n", self.Length())
-    result += fmt.Sprintf("MftReference: %#0x\n", self.MftReference())
-    result += fmt.Sprintf("Name_length: %#0x\n", self.Name_length())
-    result += fmt.Sprintf("Offset_to_name: %#0x\n", self.Offset_to_name())
-    result += fmt.Sprintf("Starting_vcn: %#0x\n", self.Starting_vcn())
-    result += fmt.Sprintf("Type: %#0x\n", self.Type())
+    result += fmt.Sprintf("  Type: %#0x\n", self.Type())
+    result += fmt.Sprintf("  Length: %#0x\n", self.Length())
+    result += fmt.Sprintf("  Name_length: %#0x\n", self.Name_length())
+    result += fmt.Sprintf("  Offset_to_name: %#0x\n", self.Offset_to_name())
+    result += fmt.Sprintf("  Starting_vcn: %#0x\n", self.Starting_vcn())
+    result += fmt.Sprintf("  MftReference: %#0x\n", self.MftReference())
+    result += fmt.Sprintf("  Attribute_id: %#0x\n", self.Attribute_id())
     return result
 }
 
@@ -314,20 +325,33 @@ func (self *FILE_NAME) Size() int {
     return 66
 }
 
-func (self *FILE_NAME) Allocated_size() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_FILE_NAME_Allocated_size + self.Offset)
+func (self *FILE_NAME) MftReference() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_FILE_NAME_MftReference + self.Offset)
+   return (uint64(value) & 0xffffffffffff) >> 0x0
+}
+
+func (self *FILE_NAME) Seq_num() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_FILE_NAME_Seq_num + self.Offset)
 }
 
 func (self *FILE_NAME) Created() *WinFileTime {
     return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_Created + self.Offset)
 }
 
+func (self *FILE_NAME) File_modified() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_File_modified + self.Offset)
+}
+
+func (self *FILE_NAME) Mft_modified() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_Mft_modified + self.Offset)
+}
+
 func (self *FILE_NAME) File_accessed() *WinFileTime {
     return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_File_accessed + self.Offset)
 }
 
-func (self *FILE_NAME) File_modified() *WinFileTime {
-    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_File_modified + self.Offset)
+func (self *FILE_NAME) Allocated_size() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_FILE_NAME_Allocated_size + self.Offset)
 }
 
 func (self *FILE_NAME) FilenameSize() uint64 {
@@ -339,10 +363,6 @@ func (self *FILE_NAME) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
-   }
-
    if value & 2 != 0 {
       names["HIDDEN"] = true
    }
@@ -351,32 +371,28 @@ func (self *FILE_NAME) Flags() *Flags {
       names["SYSTEM"] = true
    }
 
-   if value & 32 != 0 {
-      names["ARCHIVE"] = true
-   }
-
-   if value & 128 != 0 {
-      names["NORMAL"] = true
-   }
-
    if value & 512 != 0 {
       names["SPARSE"] = true
-   }
-
-   if value & 2048 != 0 {
-      names["COMPRESSED"] = true
    }
 
    if value & 4096 != 0 {
       names["OFFLINE"] = true
    }
 
-   if value & 8192 != 0 {
-      names["NOT_INDEXED"] = true
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
+   }
+
+   if value & 32 != 0 {
+      names["ARCHIVE"] = true
    }
 
    if value & 64 != 0 {
       names["DEVICE"] = true
+   }
+
+   if value & 128 != 0 {
+      names["NORMAL"] = true
    }
 
    if value & 256 != 0 {
@@ -387,6 +403,14 @@ func (self *FILE_NAME) Flags() *Flags {
       names["REPARSE_POINT"] = true
    }
 
+   if value & 2048 != 0 {
+      names["COMPRESSED"] = true
+   }
+
+   if value & 8192 != 0 {
+      names["NOT_INDEXED"] = true
+   }
+
    if value & 16384 != 0 {
       names["ENCRYPTED"] = true
    }
@@ -395,13 +419,12 @@ func (self *FILE_NAME) Flags() *Flags {
 }
 
 
-func (self *FILE_NAME) MftReference() uint64 {
-   value := ParseUint64(self.Reader, self.Profile.Off_FILE_NAME_MftReference + self.Offset)
-   return (uint64(value) & 0xffffffffffff) >> 0x0
+func (self *FILE_NAME) Reparse_value() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_FILE_NAME_Reparse_value + self.Offset)
 }
 
-func (self *FILE_NAME) Mft_modified() *WinFileTime {
-    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_FILE_NAME_Mft_modified + self.Offset)
+func (self *FILE_NAME) _length_of_name() byte {
+   return ParseUint8(self.Reader, self.Profile.Off_FILE_NAME__length_of_name + self.Offset)
 }
 
 func (self *FILE_NAME) NameType() *Enumeration {
@@ -425,37 +448,25 @@ func (self *FILE_NAME) NameType() *Enumeration {
 }
 
 
-func (self *FILE_NAME) Reparse_value() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_FILE_NAME_Reparse_value + self.Offset)
-}
-
-func (self *FILE_NAME) Seq_num() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_FILE_NAME_Seq_num + self.Offset)
-}
-
-func (self *FILE_NAME) _length_of_name() byte {
-   return ParseUint8(self.Reader, self.Profile.Off_FILE_NAME__length_of_name + self.Offset)
-}
-
 
 func (self *FILE_NAME) name() string {
   return ParseTerminatedUTF16String(self.Reader, self.Profile.Off_FILE_NAME_name + self.Offset)
 }
 func (self *FILE_NAME) DebugString() string {
     result := fmt.Sprintf("struct FILE_NAME @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Allocated_size: %#0x\n", self.Allocated_size())
-    result += fmt.Sprintf("Created: {\n%v}\n", self.Created().DebugString())
-    result += fmt.Sprintf("File_accessed: {\n%v}\n", self.File_accessed().DebugString())
-    result += fmt.Sprintf("File_modified: {\n%v}\n", self.File_modified().DebugString())
-    result += fmt.Sprintf("FilenameSize: %#0x\n", self.FilenameSize())
-    result += fmt.Sprintf("Flags: %v\n", self.Flags().DebugString())
-    result += fmt.Sprintf("MftReference: %#0x\n", self.MftReference())
-    result += fmt.Sprintf("Mft_modified: {\n%v}\n", self.Mft_modified().DebugString())
-    result += fmt.Sprintf("NameType: %v\n", self.NameType().DebugString())
-    result += fmt.Sprintf("Reparse_value: %#0x\n", self.Reparse_value())
-    result += fmt.Sprintf("Seq_num: %#0x\n", self.Seq_num())
-    result += fmt.Sprintf("_length_of_name: %#0x\n", self._length_of_name())
-    result += fmt.Sprintf("name: %v\n", string(self.name()))
+    result += fmt.Sprintf("  MftReference: %#0x\n", self.MftReference())
+    result += fmt.Sprintf("  Seq_num: %#0x\n", self.Seq_num())
+    result += fmt.Sprintf("  Created: {\n%v}\n", indent(self.Created().DebugString()))
+    result += fmt.Sprintf("  File_modified: {\n%v}\n", indent(self.File_modified().DebugString()))
+    result += fmt.Sprintf("  Mft_modified: {\n%v}\n", indent(self.Mft_modified().DebugString()))
+    result += fmt.Sprintf("  File_accessed: {\n%v}\n", indent(self.File_accessed().DebugString()))
+    result += fmt.Sprintf("  Allocated_size: %#0x\n", self.Allocated_size())
+    result += fmt.Sprintf("  FilenameSize: %#0x\n", self.FilenameSize())
+    result += fmt.Sprintf("  Flags: %v\n", self.Flags().DebugString())
+    result += fmt.Sprintf("  Reparse_value: %#0x\n", self.Reparse_value())
+    result += fmt.Sprintf("  _length_of_name: %#0x\n", self._length_of_name())
+    result += fmt.Sprintf("  NameType: %v\n", self.NameType().DebugString())
+    result += fmt.Sprintf("  name: %v\n", string(self.name()))
     return result
 }
 
@@ -486,9 +497,9 @@ func (self *GUID) Data4() []byte {
 }
 func (self *GUID) DebugString() string {
     result := fmt.Sprintf("struct GUID @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Data1: %#0x\n", self.Data1())
-    result += fmt.Sprintf("Data2: %#0x\n", self.Data2())
-    result += fmt.Sprintf("Data3: %#0x\n", self.Data3())
+    result += fmt.Sprintf("  Data1: %#0x\n", self.Data1())
+    result += fmt.Sprintf("  Data2: %#0x\n", self.Data2())
+    result += fmt.Sprintf("  Data3: %#0x\n", self.Data3())
     return result
 }
 
@@ -502,12 +513,12 @@ func (self *INDEX_NODE_HEADER) Size() int {
     return 16
 }
 
-func (self *INDEX_NODE_HEADER) Offset_to_end_index_entry() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_INDEX_NODE_HEADER_Offset_to_end_index_entry + self.Offset)
-}
-
 func (self *INDEX_NODE_HEADER) Offset_to_index_entry() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_INDEX_NODE_HEADER_Offset_to_index_entry + self.Offset)
+}
+
+func (self *INDEX_NODE_HEADER) Offset_to_end_index_entry() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_INDEX_NODE_HEADER_Offset_to_end_index_entry + self.Offset)
 }
 
 func (self *INDEX_NODE_HEADER) SizeOfEntriesAlloc() int32 {
@@ -515,9 +526,9 @@ func (self *INDEX_NODE_HEADER) SizeOfEntriesAlloc() int32 {
 }
 func (self *INDEX_NODE_HEADER) DebugString() string {
     result := fmt.Sprintf("struct INDEX_NODE_HEADER @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Offset_to_end_index_entry: %#0x\n", self.Offset_to_end_index_entry())
-    result += fmt.Sprintf("Offset_to_index_entry: %#0x\n", self.Offset_to_index_entry())
-    result += fmt.Sprintf("SizeOfEntriesAlloc: %#0x\n", self.SizeOfEntriesAlloc())
+    result += fmt.Sprintf("  Offset_to_index_entry: %#0x\n", self.Offset_to_index_entry())
+    result += fmt.Sprintf("  Offset_to_end_index_entry: %#0x\n", self.Offset_to_end_index_entry())
+    result += fmt.Sprintf("  SizeOfEntriesAlloc: %#0x\n", self.SizeOfEntriesAlloc())
     return result
 }
 
@@ -529,18 +540,6 @@ type INDEX_RECORD_ENTRY struct {
 
 func (self *INDEX_RECORD_ENTRY) Size() int {
     return 0
-}
-
-func (self *INDEX_RECORD_ENTRY) File() *FILE_NAME {
-    return self.Profile.FILE_NAME(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_File + self.Offset)
-}
-
-func (self *INDEX_RECORD_ENTRY) FilenameOffset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_FilenameOffset + self.Offset)
-}
-
-func (self *INDEX_RECORD_ENTRY) Flags() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_Flags + self.Offset)
 }
 
 func (self *INDEX_RECORD_ENTRY) MftReference() uint64 {
@@ -555,14 +554,26 @@ func (self *INDEX_RECORD_ENTRY) Seq_num() uint16 {
 func (self *INDEX_RECORD_ENTRY) SizeOfIndexEntry() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_SizeOfIndexEntry + self.Offset)
 }
+
+func (self *INDEX_RECORD_ENTRY) FilenameOffset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_FilenameOffset + self.Offset)
+}
+
+func (self *INDEX_RECORD_ENTRY) Flags() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_Flags + self.Offset)
+}
+
+func (self *INDEX_RECORD_ENTRY) File() *FILE_NAME {
+    return self.Profile.FILE_NAME(self.Reader, self.Profile.Off_INDEX_RECORD_ENTRY_File + self.Offset)
+}
 func (self *INDEX_RECORD_ENTRY) DebugString() string {
     result := fmt.Sprintf("struct INDEX_RECORD_ENTRY @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("File: {\n%v}\n", self.File().DebugString())
-    result += fmt.Sprintf("FilenameOffset: %#0x\n", self.FilenameOffset())
-    result += fmt.Sprintf("Flags: %#0x\n", self.Flags())
-    result += fmt.Sprintf("MftReference: %#0x\n", self.MftReference())
-    result += fmt.Sprintf("Seq_num: %#0x\n", self.Seq_num())
-    result += fmt.Sprintf("SizeOfIndexEntry: %#0x\n", self.SizeOfIndexEntry())
+    result += fmt.Sprintf("  MftReference: %#0x\n", self.MftReference())
+    result += fmt.Sprintf("  Seq_num: %#0x\n", self.Seq_num())
+    result += fmt.Sprintf("  SizeOfIndexEntry: %#0x\n", self.SizeOfIndexEntry())
+    result += fmt.Sprintf("  FilenameOffset: %#0x\n", self.FilenameOffset())
+    result += fmt.Sprintf("  Flags: %#0x\n", self.Flags())
+    result += fmt.Sprintf("  File: {\n%v}\n", indent(self.File().DebugString()))
     return result
 }
 
@@ -576,32 +587,32 @@ func (self *INDEX_ROOT) Size() int {
     return 0
 }
 
-func (self *INDEX_ROOT) Collation_rule() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Collation_rule + self.Offset)
+func (self *INDEX_ROOT) Type() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Type + self.Offset)
 }
 
-func (self *INDEX_ROOT) Idx_size_c() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Idx_size_c + self.Offset)
+func (self *INDEX_ROOT) Collation_rule() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Collation_rule + self.Offset)
 }
 
 func (self *INDEX_ROOT) Idxalloc_size_b() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Idxalloc_size_b + self.Offset)
 }
 
+func (self *INDEX_ROOT) Idx_size_c() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Idx_size_c + self.Offset)
+}
+
 func (self *INDEX_ROOT) Node() *INDEX_NODE_HEADER {
     return self.Profile.INDEX_NODE_HEADER(self.Reader, self.Profile.Off_INDEX_ROOT_Node + self.Offset)
 }
-
-func (self *INDEX_ROOT) Type() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_INDEX_ROOT_Type + self.Offset)
-}
 func (self *INDEX_ROOT) DebugString() string {
     result := fmt.Sprintf("struct INDEX_ROOT @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Collation_rule: %#0x\n", self.Collation_rule())
-    result += fmt.Sprintf("Idx_size_c: %#0x\n", self.Idx_size_c())
-    result += fmt.Sprintf("Idxalloc_size_b: %#0x\n", self.Idxalloc_size_b())
-    result += fmt.Sprintf("Node: {\n%v}\n", self.Node().DebugString())
-    result += fmt.Sprintf("Type: %#0x\n", self.Type())
+    result += fmt.Sprintf("  Type: %#0x\n", self.Type())
+    result += fmt.Sprintf("  Collation_rule: %#0x\n", self.Collation_rule())
+    result += fmt.Sprintf("  Idxalloc_size_b: %#0x\n", self.Idxalloc_size_b())
+    result += fmt.Sprintf("  Idx_size_c: %#0x\n", self.Idx_size_c())
+    result += fmt.Sprintf("  Node: {\n%v}\n", indent(self.Node().DebugString()))
     return result
 }
 
@@ -615,20 +626,34 @@ func (self *MFT_ENTRY) Size() int {
     return 0
 }
 
-func (self *MFT_ENTRY) Attribute_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Attribute_offset + self.Offset)
+
+func (self *MFT_ENTRY) Magic() *Signature {
+  value := ParseSignature(self.Reader, self.Profile.Off_MFT_ENTRY_Magic + self.Offset, 4)
+  return &Signature{value: value, signature: "FILE"}
 }
 
-func (self *MFT_ENTRY) Base_record_reference() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_MFT_ENTRY_Base_record_reference + self.Offset)
+func (self *MFT_ENTRY) Fixup_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Fixup_offset + self.Offset)
 }
 
 func (self *MFT_ENTRY) Fixup_count() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Fixup_count + self.Offset)
 }
 
-func (self *MFT_ENTRY) Fixup_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Fixup_offset + self.Offset)
+func (self *MFT_ENTRY) Logfile_sequence_number() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_MFT_ENTRY_Logfile_sequence_number + self.Offset)
+}
+
+func (self *MFT_ENTRY) Sequence_value() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Sequence_value + self.Offset)
+}
+
+func (self *MFT_ENTRY) Link_count() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Link_count + self.Offset)
+}
+
+func (self *MFT_ENTRY) Attribute_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Attribute_offset + self.Offset)
 }
 
 func (self *MFT_ENTRY) Flags() *Flags {
@@ -648,26 +673,16 @@ func (self *MFT_ENTRY) Flags() *Flags {
 }
 
 
-func (self *MFT_ENTRY) Link_count() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Link_count + self.Offset)
-}
-
-func (self *MFT_ENTRY) Logfile_sequence_number() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_MFT_ENTRY_Logfile_sequence_number + self.Offset)
-}
-
-
-func (self *MFT_ENTRY) Magic() *Signature {
-  value := ParseSignature(self.Reader, self.Profile.Off_MFT_ENTRY_Magic + self.Offset, 4)
-  return &Signature{value: value, signature: "FILE"}
+func (self *MFT_ENTRY) Mft_entry_size() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Mft_entry_size + self.Offset)
 }
 
 func (self *MFT_ENTRY) Mft_entry_allocated() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Mft_entry_allocated + self.Offset)
 }
 
-func (self *MFT_ENTRY) Mft_entry_size() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Mft_entry_size + self.Offset)
+func (self *MFT_ENTRY) Base_record_reference() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_MFT_ENTRY_Base_record_reference + self.Offset)
 }
 
 func (self *MFT_ENTRY) Next_attribute_id() uint16 {
@@ -677,24 +692,20 @@ func (self *MFT_ENTRY) Next_attribute_id() uint16 {
 func (self *MFT_ENTRY) Record_number() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_MFT_ENTRY_Record_number + self.Offset)
 }
-
-func (self *MFT_ENTRY) Sequence_value() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_MFT_ENTRY_Sequence_value + self.Offset)
-}
 func (self *MFT_ENTRY) DebugString() string {
     result := fmt.Sprintf("struct MFT_ENTRY @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Attribute_offset: %#0x\n", self.Attribute_offset())
-    result += fmt.Sprintf("Base_record_reference: %#0x\n", self.Base_record_reference())
-    result += fmt.Sprintf("Fixup_count: %#0x\n", self.Fixup_count())
-    result += fmt.Sprintf("Fixup_offset: %#0x\n", self.Fixup_offset())
-    result += fmt.Sprintf("Flags: %v\n", self.Flags().DebugString())
-    result += fmt.Sprintf("Link_count: %#0x\n", self.Link_count())
-    result += fmt.Sprintf("Logfile_sequence_number: %#0x\n", self.Logfile_sequence_number())
-    result += fmt.Sprintf("Mft_entry_allocated: %#0x\n", self.Mft_entry_allocated())
-    result += fmt.Sprintf("Mft_entry_size: %#0x\n", self.Mft_entry_size())
-    result += fmt.Sprintf("Next_attribute_id: %#0x\n", self.Next_attribute_id())
-    result += fmt.Sprintf("Record_number: %#0x\n", self.Record_number())
-    result += fmt.Sprintf("Sequence_value: %#0x\n", self.Sequence_value())
+    result += fmt.Sprintf("  Fixup_offset: %#0x\n", self.Fixup_offset())
+    result += fmt.Sprintf("  Fixup_count: %#0x\n", self.Fixup_count())
+    result += fmt.Sprintf("  Logfile_sequence_number: %#0x\n", self.Logfile_sequence_number())
+    result += fmt.Sprintf("  Sequence_value: %#0x\n", self.Sequence_value())
+    result += fmt.Sprintf("  Link_count: %#0x\n", self.Link_count())
+    result += fmt.Sprintf("  Attribute_offset: %#0x\n", self.Attribute_offset())
+    result += fmt.Sprintf("  Flags: %v\n", self.Flags().DebugString())
+    result += fmt.Sprintf("  Mft_entry_size: %#0x\n", self.Mft_entry_size())
+    result += fmt.Sprintf("  Mft_entry_allocated: %#0x\n", self.Mft_entry_allocated())
+    result += fmt.Sprintf("  Base_record_reference: %#0x\n", self.Base_record_reference())
+    result += fmt.Sprintf("  Next_attribute_id: %#0x\n", self.Next_attribute_id())
+    result += fmt.Sprintf("  Record_number: %#0x\n", self.Record_number())
     return result
 }
 
@@ -706,86 +717,6 @@ type NTFS_ATTRIBUTE struct {
 
 func (self *NTFS_ATTRIBUTE) Size() int {
     return 0
-}
-
-func (self *NTFS_ATTRIBUTE) Actual_size() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Actual_size + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Allocated_size() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Allocated_size + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Attribute_id() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Attribute_id + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Compression_unit_size() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Compression_unit_size + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Content_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Content_offset + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Content_size() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Content_size + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Flags() *Flags {
-   value := ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Flags + self.Offset)
-   names := make(map[string]bool)
-
-
-   if value & (1 << 0) != 0 {
-      names["COMPRESSED"] = true
-   }
-
-   if value & (1 << 14) != 0 {
-      names["ENCRYPTED"] = true
-   }
-
-   if value & (1 << 15) != 0 {
-      names["SPARSE"] = true
-   }
-
-   return &Flags{Value: uint64(value), Names: names}
-}
-
-
-func (self *NTFS_ATTRIBUTE) Initialized_size() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Initialized_size + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Length() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Length + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Resident() *Enumeration {
-   value := ParseUint8(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Resident + self.Offset)
-   name := "Unknown"
-   switch value {
-
-      case 0:
-         name = "RESIDENT"
-
-      case 1:
-         name = "NON-RESIDENT"
-}
-   return &Enumeration{Value: uint64(value), Name: name}
-}
-
-
-func (self *NTFS_ATTRIBUTE) Runlist_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_offset + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Runlist_vcn_end() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_vcn_end + self.Offset)
-}
-
-func (self *NTFS_ATTRIBUTE) Runlist_vcn_start() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_vcn_start + self.Offset)
 }
 
 func (self *NTFS_ATTRIBUTE) Type() *Enumeration {
@@ -842,6 +773,25 @@ func (self *NTFS_ATTRIBUTE) Type() *Enumeration {
 }
 
 
+func (self *NTFS_ATTRIBUTE) Length() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Length + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Resident() *Enumeration {
+   value := ParseUint8(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Resident + self.Offset)
+   name := "Unknown"
+   switch value {
+
+      case 0:
+         name = "RESIDENT"
+
+      case 1:
+         name = "NON-RESIDENT"
+}
+   return &Enumeration{Value: uint64(value), Name: name}
+}
+
+
 func (self *NTFS_ATTRIBUTE) name_length() byte {
    return ParseUint8(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_name_length + self.Offset)
 }
@@ -849,24 +799,85 @@ func (self *NTFS_ATTRIBUTE) name_length() byte {
 func (self *NTFS_ATTRIBUTE) name_offset() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_name_offset + self.Offset)
 }
+
+func (self *NTFS_ATTRIBUTE) Flags() *Flags {
+   value := ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Flags + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & (1 << 0) != 0 {
+      names["COMPRESSED"] = true
+   }
+
+   if value & (1 << 14) != 0 {
+      names["ENCRYPTED"] = true
+   }
+
+   if value & (1 << 15) != 0 {
+      names["SPARSE"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
+
+func (self *NTFS_ATTRIBUTE) Attribute_id() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Attribute_id + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Content_size() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Content_size + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Content_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Content_offset + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Runlist_vcn_start() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_vcn_start + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Runlist_vcn_end() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_vcn_end + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Runlist_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Runlist_offset + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Compression_unit_size() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Compression_unit_size + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Allocated_size() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Allocated_size + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Actual_size() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Actual_size + self.Offset)
+}
+
+func (self *NTFS_ATTRIBUTE) Initialized_size() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_ATTRIBUTE_Initialized_size + self.Offset)
+}
 func (self *NTFS_ATTRIBUTE) DebugString() string {
     result := fmt.Sprintf("struct NTFS_ATTRIBUTE @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Actual_size: %#0x\n", self.Actual_size())
-    result += fmt.Sprintf("Allocated_size: %#0x\n", self.Allocated_size())
-    result += fmt.Sprintf("Attribute_id: %#0x\n", self.Attribute_id())
-    result += fmt.Sprintf("Compression_unit_size: %#0x\n", self.Compression_unit_size())
-    result += fmt.Sprintf("Content_offset: %#0x\n", self.Content_offset())
-    result += fmt.Sprintf("Content_size: %#0x\n", self.Content_size())
-    result += fmt.Sprintf("Flags: %v\n", self.Flags().DebugString())
-    result += fmt.Sprintf("Initialized_size: %#0x\n", self.Initialized_size())
-    result += fmt.Sprintf("Length: %#0x\n", self.Length())
-    result += fmt.Sprintf("Resident: %v\n", self.Resident().DebugString())
-    result += fmt.Sprintf("Runlist_offset: %#0x\n", self.Runlist_offset())
-    result += fmt.Sprintf("Runlist_vcn_end: %#0x\n", self.Runlist_vcn_end())
-    result += fmt.Sprintf("Runlist_vcn_start: %#0x\n", self.Runlist_vcn_start())
-    result += fmt.Sprintf("Type: %v\n", self.Type().DebugString())
-    result += fmt.Sprintf("name_length: %#0x\n", self.name_length())
-    result += fmt.Sprintf("name_offset: %#0x\n", self.name_offset())
+    result += fmt.Sprintf("  Type: %v\n", self.Type().DebugString())
+    result += fmt.Sprintf("  Length: %#0x\n", self.Length())
+    result += fmt.Sprintf("  Resident: %v\n", self.Resident().DebugString())
+    result += fmt.Sprintf("  name_length: %#0x\n", self.name_length())
+    result += fmt.Sprintf("  name_offset: %#0x\n", self.name_offset())
+    result += fmt.Sprintf("  Flags: %v\n", self.Flags().DebugString())
+    result += fmt.Sprintf("  Attribute_id: %#0x\n", self.Attribute_id())
+    result += fmt.Sprintf("  Content_size: %#0x\n", self.Content_size())
+    result += fmt.Sprintf("  Content_offset: %#0x\n", self.Content_offset())
+    result += fmt.Sprintf("  Runlist_vcn_start: %#0x\n", self.Runlist_vcn_start())
+    result += fmt.Sprintf("  Runlist_vcn_end: %#0x\n", self.Runlist_vcn_end())
+    result += fmt.Sprintf("  Runlist_offset: %#0x\n", self.Runlist_offset())
+    result += fmt.Sprintf("  Compression_unit_size: %#0x\n", self.Compression_unit_size())
+    result += fmt.Sprintf("  Allocated_size: %#0x\n", self.Allocated_size())
+    result += fmt.Sprintf("  Actual_size: %#0x\n", self.Actual_size())
+    result += fmt.Sprintf("  Initialized_size: %#0x\n", self.Initialized_size())
     return result
 }
 
@@ -880,14 +891,6 @@ func (self *NTFS_BOOT_SECTOR) Size() int {
     return 512
 }
 
-func (self *NTFS_BOOT_SECTOR) Index_record_size() byte {
-   return ParseUint8(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Index_record_size + self.Offset)
-}
-
-func (self *NTFS_BOOT_SECTOR) Magic() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Magic + self.Offset)
-}
-
 
 func (self *NTFS_BOOT_SECTOR) Oemname() string {
   return ParseString(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Oemname + self.Offset, 8)
@@ -897,42 +900,50 @@ func (self *NTFS_BOOT_SECTOR) Sector_size() uint16 {
    return ParseUint16(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Sector_size + self.Offset)
 }
 
-
-func (self *NTFS_BOOT_SECTOR) Serial() string {
-  return ParseString(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Serial + self.Offset, 8)
-}
-
 func (self *NTFS_BOOT_SECTOR) _cluster_size() byte {
    return ParseUint8(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__cluster_size + self.Offset)
+}
+
+func (self *NTFS_BOOT_SECTOR) _volume_size() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__volume_size + self.Offset)
 }
 
 func (self *NTFS_BOOT_SECTOR) _mft_cluster() uint64 {
     return ParseUint64(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__mft_cluster + self.Offset)
 }
 
-func (self *NTFS_BOOT_SECTOR) _mft_record_size() int8 {
-   return ParseInt8(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__mft_record_size + self.Offset)
-}
-
 func (self *NTFS_BOOT_SECTOR) _mirror_mft_cluster() uint64 {
     return ParseUint64(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__mirror_mft_cluster + self.Offset)
 }
 
-func (self *NTFS_BOOT_SECTOR) _volume_size() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__volume_size + self.Offset)
+func (self *NTFS_BOOT_SECTOR) _mft_record_size() int8 {
+   return ParseInt8(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR__mft_record_size + self.Offset)
+}
+
+func (self *NTFS_BOOT_SECTOR) Index_record_size() byte {
+   return ParseUint8(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Index_record_size + self.Offset)
+}
+
+
+func (self *NTFS_BOOT_SECTOR) Serial() string {
+  return ParseString(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Serial + self.Offset, 8)
+}
+
+func (self *NTFS_BOOT_SECTOR) Magic() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_BOOT_SECTOR_Magic + self.Offset)
 }
 func (self *NTFS_BOOT_SECTOR) DebugString() string {
     result := fmt.Sprintf("struct NTFS_BOOT_SECTOR @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Index_record_size: %#0x\n", self.Index_record_size())
-    result += fmt.Sprintf("Magic: %#0x\n", self.Magic())
-    result += fmt.Sprintf("Oemname: %v\n", string(self.Oemname()))
-    result += fmt.Sprintf("Sector_size: %#0x\n", self.Sector_size())
-    result += fmt.Sprintf("Serial: %v\n", string(self.Serial()))
-    result += fmt.Sprintf("_cluster_size: %#0x\n", self._cluster_size())
-    result += fmt.Sprintf("_mft_cluster: %#0x\n", self._mft_cluster())
-    result += fmt.Sprintf("_mft_record_size: %#0x\n", self._mft_record_size())
-    result += fmt.Sprintf("_mirror_mft_cluster: %#0x\n", self._mirror_mft_cluster())
-    result += fmt.Sprintf("_volume_size: %#0x\n", self._volume_size())
+    result += fmt.Sprintf("  Oemname: %v\n", string(self.Oemname()))
+    result += fmt.Sprintf("  Sector_size: %#0x\n", self.Sector_size())
+    result += fmt.Sprintf("  _cluster_size: %#0x\n", self._cluster_size())
+    result += fmt.Sprintf("  _volume_size: %#0x\n", self._volume_size())
+    result += fmt.Sprintf("  _mft_cluster: %#0x\n", self._mft_cluster())
+    result += fmt.Sprintf("  _mirror_mft_cluster: %#0x\n", self._mirror_mft_cluster())
+    result += fmt.Sprintf("  _mft_record_size: %#0x\n", self._mft_record_size())
+    result += fmt.Sprintf("  Index_record_size: %#0x\n", self.Index_record_size())
+    result += fmt.Sprintf("  Serial: %v\n", string(self.Serial()))
+    result += fmt.Sprintf("  Magic: %#0x\n", self.Magic())
     return result
 }
 
@@ -945,37 +956,6 @@ type NTFS_RESIDENT_ATTRIBUTE struct {
 func (self *NTFS_RESIDENT_ATTRIBUTE) Size() int {
     return 0
 }
-
-func (self *NTFS_RESIDENT_ATTRIBUTE) Attribute_id() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Attribute_id + self.Offset)
-}
-
-func (self *NTFS_RESIDENT_ATTRIBUTE) Length() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Length + self.Offset)
-}
-
-func (self *NTFS_RESIDENT_ATTRIBUTE) Name_length() byte {
-   return ParseUint8(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Name_length + self.Offset)
-}
-
-func (self *NTFS_RESIDENT_ATTRIBUTE) Name_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Name_offset + self.Offset)
-}
-
-func (self *NTFS_RESIDENT_ATTRIBUTE) Resident() *Enumeration {
-   value := ParseUint8(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Resident + self.Offset)
-   name := "Unknown"
-   switch value {
-
-      case 0:
-         name = "RESIDENT"
-
-      case 1:
-         name = "NON-RESIDENT"
-}
-   return &Enumeration{Value: uint64(value), Name: name}
-}
-
 
 func (self *NTFS_RESIDENT_ATTRIBUTE) Type() *Enumeration {
    value := ParseUint32(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Type + self.Offset)
@@ -1025,23 +1005,54 @@ func (self *NTFS_RESIDENT_ATTRIBUTE) Type() *Enumeration {
 }
 
 
-func (self *NTFS_RESIDENT_ATTRIBUTE) content_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_content_offset + self.Offset)
+func (self *NTFS_RESIDENT_ATTRIBUTE) Length() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Length + self.Offset)
+}
+
+func (self *NTFS_RESIDENT_ATTRIBUTE) Resident() *Enumeration {
+   value := ParseUint8(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Resident + self.Offset)
+   name := "Unknown"
+   switch value {
+
+      case 0:
+         name = "RESIDENT"
+
+      case 1:
+         name = "NON-RESIDENT"
+}
+   return &Enumeration{Value: uint64(value), Name: name}
+}
+
+
+func (self *NTFS_RESIDENT_ATTRIBUTE) Name_length() byte {
+   return ParseUint8(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Name_length + self.Offset)
+}
+
+func (self *NTFS_RESIDENT_ATTRIBUTE) Name_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Name_offset + self.Offset)
+}
+
+func (self *NTFS_RESIDENT_ATTRIBUTE) Attribute_id() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_Attribute_id + self.Offset)
 }
 
 func (self *NTFS_RESIDENT_ATTRIBUTE) content_size() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_content_size + self.Offset)
 }
+
+func (self *NTFS_RESIDENT_ATTRIBUTE) content_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_NTFS_RESIDENT_ATTRIBUTE_content_offset + self.Offset)
+}
 func (self *NTFS_RESIDENT_ATTRIBUTE) DebugString() string {
     result := fmt.Sprintf("struct NTFS_RESIDENT_ATTRIBUTE @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Attribute_id: %#0x\n", self.Attribute_id())
-    result += fmt.Sprintf("Length: %#0x\n", self.Length())
-    result += fmt.Sprintf("Name_length: %#0x\n", self.Name_length())
-    result += fmt.Sprintf("Name_offset: %#0x\n", self.Name_offset())
-    result += fmt.Sprintf("Resident: %v\n", self.Resident().DebugString())
-    result += fmt.Sprintf("Type: %v\n", self.Type().DebugString())
-    result += fmt.Sprintf("content_offset: %#0x\n", self.content_offset())
-    result += fmt.Sprintf("content_size: %#0x\n", self.content_size())
+    result += fmt.Sprintf("  Type: %v\n", self.Type().DebugString())
+    result += fmt.Sprintf("  Length: %#0x\n", self.Length())
+    result += fmt.Sprintf("  Resident: %v\n", self.Resident().DebugString())
+    result += fmt.Sprintf("  Name_length: %#0x\n", self.Name_length())
+    result += fmt.Sprintf("  Name_offset: %#0x\n", self.Name_offset())
+    result += fmt.Sprintf("  Attribute_id: %#0x\n", self.Attribute_id())
+    result += fmt.Sprintf("  content_size: %#0x\n", self.content_size())
+    result += fmt.Sprintf("  content_offset: %#0x\n", self.content_offset())
     return result
 }
 
@@ -1055,38 +1066,38 @@ func (self *STANDARD_INDEX_HEADER) Size() int {
     return 42
 }
 
-func (self *STANDARD_INDEX_HEADER) Fixup_count() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Fixup_count + self.Offset)
-}
-
-func (self *STANDARD_INDEX_HEADER) Fixup_offset() uint16 {
-   return ParseUint16(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Fixup_offset + self.Offset)
-}
-
-func (self *STANDARD_INDEX_HEADER) LogFileSeqNum() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_LogFileSeqNum + self.Offset)
-}
-
 
 func (self *STANDARD_INDEX_HEADER) MagicNumber() *Signature {
   value := ParseSignature(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_MagicNumber + self.Offset, 4)
   return &Signature{value: value, signature: "INDX"}
 }
 
-func (self *STANDARD_INDEX_HEADER) Node() *INDEX_NODE_HEADER {
-    return self.Profile.INDEX_NODE_HEADER(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Node + self.Offset)
+func (self *STANDARD_INDEX_HEADER) Fixup_offset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Fixup_offset + self.Offset)
+}
+
+func (self *STANDARD_INDEX_HEADER) Fixup_count() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Fixup_count + self.Offset)
+}
+
+func (self *STANDARD_INDEX_HEADER) LogFileSeqNum() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_LogFileSeqNum + self.Offset)
 }
 
 func (self *STANDARD_INDEX_HEADER) VcnOfINDX() uint64 {
     return ParseUint64(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_VcnOfINDX + self.Offset)
 }
+
+func (self *STANDARD_INDEX_HEADER) Node() *INDEX_NODE_HEADER {
+    return self.Profile.INDEX_NODE_HEADER(self.Reader, self.Profile.Off_STANDARD_INDEX_HEADER_Node + self.Offset)
+}
 func (self *STANDARD_INDEX_HEADER) DebugString() string {
     result := fmt.Sprintf("struct STANDARD_INDEX_HEADER @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Fixup_count: %#0x\n", self.Fixup_count())
-    result += fmt.Sprintf("Fixup_offset: %#0x\n", self.Fixup_offset())
-    result += fmt.Sprintf("LogFileSeqNum: %#0x\n", self.LogFileSeqNum())
-    result += fmt.Sprintf("Node: {\n%v}\n", self.Node().DebugString())
-    result += fmt.Sprintf("VcnOfINDX: %#0x\n", self.VcnOfINDX())
+    result += fmt.Sprintf("  Fixup_offset: %#0x\n", self.Fixup_offset())
+    result += fmt.Sprintf("  Fixup_count: %#0x\n", self.Fixup_count())
+    result += fmt.Sprintf("  LogFileSeqNum: %#0x\n", self.LogFileSeqNum())
+    result += fmt.Sprintf("  VcnOfINDX: %#0x\n", self.VcnOfINDX())
+    result += fmt.Sprintf("  Node: {\n%v}\n", indent(self.Node().DebugString()))
     return result
 }
 
@@ -1100,20 +1111,20 @@ func (self *STANDARD_INFORMATION) Size() int {
     return 0
 }
 
-func (self *STANDARD_INFORMATION) Class_id() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Class_id + self.Offset)
-}
-
 func (self *STANDARD_INFORMATION) Create_time() *WinFileTime {
     return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Create_time + self.Offset)
 }
 
-func (self *STANDARD_INFORMATION) File_accessed_time() *WinFileTime {
-    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_File_accessed_time + self.Offset)
-}
-
 func (self *STANDARD_INFORMATION) File_altered_time() *WinFileTime {
     return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_File_altered_time + self.Offset)
+}
+
+func (self *STANDARD_INFORMATION) Mft_altered_time() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Mft_altered_time + self.Offset)
+}
+
+func (self *STANDARD_INFORMATION) File_accessed_time() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_File_accessed_time + self.Offset)
 }
 
 func (self *STANDARD_INFORMATION) Flags() *Flags {
@@ -1121,20 +1132,16 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 4096 != 0 {
-      names["OFFLINE"] = true
+   if value & 4 != 0 {
+      names["SYSTEM"] = true
+   }
+
+   if value & 8192 != 0 {
+      names["NOT_INDEXED"] = true
    }
 
    if value & 16384 != 0 {
       names["ENCRYPTED"] = true
-   }
-
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
-   }
-
-   if value & 4 != 0 {
-      names["SYSTEM"] = true
    }
 
    if value & 256 != 0 {
@@ -1149,8 +1156,8 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["REPARSE_POINT"] = true
    }
 
-   if value & 8192 != 0 {
-      names["NOT_INDEXED"] = true
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
    }
 
    if value & 2 != 0 {
@@ -1173,6 +1180,10 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["COMPRESSED"] = true
    }
 
+   if value & 4096 != 0 {
+      names["OFFLINE"] = true
+   }
+
    return &Flags{Value: uint64(value), Names: names}
 }
 
@@ -1181,43 +1192,43 @@ func (self *STANDARD_INFORMATION) Max_versions() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Max_versions + self.Offset)
 }
 
-func (self *STANDARD_INFORMATION) Mft_altered_time() *WinFileTime {
-    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Mft_altered_time + self.Offset)
+func (self *STANDARD_INFORMATION) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Version + self.Offset)
+}
+
+func (self *STANDARD_INFORMATION) Class_id() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Class_id + self.Offset)
 }
 
 func (self *STANDARD_INFORMATION) Owner_id() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Owner_id + self.Offset)
 }
 
-func (self *STANDARD_INFORMATION) Quota() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Quota + self.Offset)
-}
-
 func (self *STANDARD_INFORMATION) Sid() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Sid + self.Offset)
+}
+
+func (self *STANDARD_INFORMATION) Quota() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Quota + self.Offset)
 }
 
 func (self *STANDARD_INFORMATION) Usn() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Usn + self.Offset)
 }
-
-func (self *STANDARD_INFORMATION) Version() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_STANDARD_INFORMATION_Version + self.Offset)
-}
 func (self *STANDARD_INFORMATION) DebugString() string {
     result := fmt.Sprintf("struct STANDARD_INFORMATION @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("Class_id: %#0x\n", self.Class_id())
-    result += fmt.Sprintf("Create_time: {\n%v}\n", self.Create_time().DebugString())
-    result += fmt.Sprintf("File_accessed_time: {\n%v}\n", self.File_accessed_time().DebugString())
-    result += fmt.Sprintf("File_altered_time: {\n%v}\n", self.File_altered_time().DebugString())
-    result += fmt.Sprintf("Flags: %v\n", self.Flags().DebugString())
-    result += fmt.Sprintf("Max_versions: %#0x\n", self.Max_versions())
-    result += fmt.Sprintf("Mft_altered_time: {\n%v}\n", self.Mft_altered_time().DebugString())
-    result += fmt.Sprintf("Owner_id: %#0x\n", self.Owner_id())
-    result += fmt.Sprintf("Quota: %#0x\n", self.Quota())
-    result += fmt.Sprintf("Sid: %#0x\n", self.Sid())
-    result += fmt.Sprintf("Usn: %#0x\n", self.Usn())
-    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  Create_time: {\n%v}\n", indent(self.Create_time().DebugString()))
+    result += fmt.Sprintf("  File_altered_time: {\n%v}\n", indent(self.File_altered_time().DebugString()))
+    result += fmt.Sprintf("  Mft_altered_time: {\n%v}\n", indent(self.Mft_altered_time().DebugString()))
+    result += fmt.Sprintf("  File_accessed_time: {\n%v}\n", indent(self.File_accessed_time().DebugString()))
+    result += fmt.Sprintf("  Flags: %v\n", self.Flags().DebugString())
+    result += fmt.Sprintf("  Max_versions: %#0x\n", self.Max_versions())
+    result += fmt.Sprintf("  Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  Class_id: %#0x\n", self.Class_id())
+    result += fmt.Sprintf("  Owner_id: %#0x\n", self.Owner_id())
+    result += fmt.Sprintf("  Sid: %#0x\n", self.Sid())
+    result += fmt.Sprintf("  Quota: %#0x\n", self.Quota())
+    result += fmt.Sprintf("  Usn: %#0x\n", self.Usn())
     return result
 }
 
@@ -1236,7 +1247,7 @@ func (self *VSS_CATALOG_ENTRY_1) EntryType() int64 {
 }
 func (self *VSS_CATALOG_ENTRY_1) DebugString() string {
     result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_1 @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
+    result += fmt.Sprintf("  EntryType: %#0x\n", self.EntryType())
     return result
 }
 
@@ -1250,27 +1261,27 @@ func (self *VSS_CATALOG_ENTRY_2) Size() int {
     return 128
 }
 
-func (self *VSS_CATALOG_ENTRY_2) CreationTime() *WinFileTime {
-    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_CreationTime + self.Offset)
-}
-
 func (self *VSS_CATALOG_ENTRY_2) EntryType() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_EntryType + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_2) VolumeSize() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_VolumeSize + self.Offset))
 }
 
 func (self *VSS_CATALOG_ENTRY_2) StoreGUID() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_StoreGUID + self.Offset)
 }
 
-func (self *VSS_CATALOG_ENTRY_2) VolumeSize() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_VolumeSize + self.Offset))
+func (self *VSS_CATALOG_ENTRY_2) CreationTime() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_2_CreationTime + self.Offset)
 }
 func (self *VSS_CATALOG_ENTRY_2) DebugString() string {
     result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_2 @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("CreationTime: {\n%v}\n", self.CreationTime().DebugString())
-    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
-    result += fmt.Sprintf("StoreGUID: {\n%v}\n", self.StoreGUID().DebugString())
-    result += fmt.Sprintf("VolumeSize: %#0x\n", self.VolumeSize())
+    result += fmt.Sprintf("  EntryType: %#0x\n", self.EntryType())
+    result += fmt.Sprintf("  VolumeSize: %#0x\n", self.VolumeSize())
+    result += fmt.Sprintf("  StoreGUID: {\n%v}\n", indent(self.StoreGUID().DebugString()))
+    result += fmt.Sprintf("  CreationTime: {\n%v}\n", indent(self.CreationTime().DebugString()))
     return result
 }
 
@@ -1284,28 +1295,12 @@ func (self *VSS_CATALOG_ENTRY_3) Size() int {
     return 128
 }
 
-func (self *VSS_CATALOG_ENTRY_3) AllocatedSize() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_AllocatedSize + self.Offset))
-}
-
 func (self *VSS_CATALOG_ENTRY_3) EntryType() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_EntryType + self.Offset))
 }
 
-func (self *VSS_CATALOG_ENTRY_3) NTFSFileReference() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_NTFSFileReference + self.Offset))
-}
-
-func (self *VSS_CATALOG_ENTRY_3) StoreBitmapOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset + self.Offset))
-}
-
 func (self *VSS_CATALOG_ENTRY_3) StoreBlockListOffset() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBlockListOffset + self.Offset))
-}
-
-func (self *VSS_CATALOG_ENTRY_3) StoreBlockRangeListOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset + self.Offset))
 }
 
 func (self *VSS_CATALOG_ENTRY_3) StoreGUID() *GUID {
@@ -1316,20 +1311,36 @@ func (self *VSS_CATALOG_ENTRY_3) StoreHeaderOffset() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreHeaderOffset + self.Offset))
 }
 
+func (self *VSS_CATALOG_ENTRY_3) StoreBlockRangeListOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBlockRangeListOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) StoreBitmapOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StoreBitmapOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) NTFSFileReference() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_NTFSFileReference + self.Offset))
+}
+
+func (self *VSS_CATALOG_ENTRY_3) AllocatedSize() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_AllocatedSize + self.Offset))
+}
+
 func (self *VSS_CATALOG_ENTRY_3) StorePreviousBitmapOffset() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_ENTRY_3_StorePreviousBitmapOffset + self.Offset))
 }
 func (self *VSS_CATALOG_ENTRY_3) DebugString() string {
     result := fmt.Sprintf("struct VSS_CATALOG_ENTRY_3 @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("AllocatedSize: %#0x\n", self.AllocatedSize())
-    result += fmt.Sprintf("EntryType: %#0x\n", self.EntryType())
-    result += fmt.Sprintf("NTFSFileReference: %#0x\n", self.NTFSFileReference())
-    result += fmt.Sprintf("StoreBitmapOffset: %#0x\n", self.StoreBitmapOffset())
-    result += fmt.Sprintf("StoreBlockListOffset: %#0x\n", self.StoreBlockListOffset())
-    result += fmt.Sprintf("StoreBlockRangeListOffset: %#0x\n", self.StoreBlockRangeListOffset())
-    result += fmt.Sprintf("StoreGUID: {\n%v}\n", self.StoreGUID().DebugString())
-    result += fmt.Sprintf("StoreHeaderOffset: %#0x\n", self.StoreHeaderOffset())
-    result += fmt.Sprintf("StorePreviousBitmapOffset: %#0x\n", self.StorePreviousBitmapOffset())
+    result += fmt.Sprintf("  EntryType: %#0x\n", self.EntryType())
+    result += fmt.Sprintf("  StoreBlockListOffset: %#0x\n", self.StoreBlockListOffset())
+    result += fmt.Sprintf("  StoreGUID: {\n%v}\n", indent(self.StoreGUID().DebugString()))
+    result += fmt.Sprintf("  StoreHeaderOffset: %#0x\n", self.StoreHeaderOffset())
+    result += fmt.Sprintf("  StoreBlockRangeListOffset: %#0x\n", self.StoreBlockRangeListOffset())
+    result += fmt.Sprintf("  StoreBitmapOffset: %#0x\n", self.StoreBitmapOffset())
+    result += fmt.Sprintf("  NTFSFileReference: %#0x\n", self.NTFSFileReference())
+    result += fmt.Sprintf("  AllocatedSize: %#0x\n", self.AllocatedSize())
+    result += fmt.Sprintf("  StorePreviousBitmapOffset: %#0x\n", self.StorePreviousBitmapOffset())
     return result
 }
 
@@ -1343,16 +1354,12 @@ func (self *VSS_CATALOG_HEADER) Size() int {
     return 128
 }
 
-func (self *VSS_CATALOG_HEADER) CurrentOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_CurrentOffset + self.Offset))
-}
-
 func (self *VSS_CATALOG_HEADER) Identifier() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_Identifier + self.Offset)
 }
 
-func (self *VSS_CATALOG_HEADER) NextOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_NextOffset + self.Offset))
+func (self *VSS_CATALOG_HEADER) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_Version + self.Offset)
 }
 
 func (self *VSS_CATALOG_HEADER) RecordType() uint32 {
@@ -1363,17 +1370,21 @@ func (self *VSS_CATALOG_HEADER) RelativeOffset() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_RelativeOffset + self.Offset))
 }
 
-func (self *VSS_CATALOG_HEADER) Version() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_Version + self.Offset)
+func (self *VSS_CATALOG_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_CATALOG_HEADER) NextOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_CATALOG_HEADER_NextOffset + self.Offset))
 }
 func (self *VSS_CATALOG_HEADER) DebugString() string {
     result := fmt.Sprintf("struct VSS_CATALOG_HEADER @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
-    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
-    result += fmt.Sprintf("NextOffset: %#0x\n", self.NextOffset())
-    result += fmt.Sprintf("RecordType: %#0x\n", self.RecordType())
-    result += fmt.Sprintf("RelativeOffset: %#0x\n", self.RelativeOffset())
-    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  Identifier: {\n%v}\n", indent(self.Identifier().DebugString()))
+    result += fmt.Sprintf("  Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  RecordType: %#0x\n", self.RecordType())
+    result += fmt.Sprintf("  RelativeOffset: %#0x\n", self.RelativeOffset())
+    result += fmt.Sprintf("  CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("  NextOffset: %#0x\n", self.NextOffset())
     return result
 }
 
@@ -1387,16 +1398,12 @@ func (self *VSS_STORE_BLOCK_HEADER) Size() int {
     return 128
 }
 
-func (self *VSS_STORE_BLOCK_HEADER) CurrentOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_CurrentOffset + self.Offset))
-}
-
 func (self *VSS_STORE_BLOCK_HEADER) Identifier() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_Identifier + self.Offset)
 }
 
-func (self *VSS_STORE_BLOCK_HEADER) NextOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_NextOffset + self.Offset))
+func (self *VSS_STORE_BLOCK_HEADER) Version() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_Version + self.Offset)
 }
 
 func (self *VSS_STORE_BLOCK_HEADER) RecordType() *Enumeration {
@@ -1430,22 +1437,26 @@ func (self *VSS_STORE_BLOCK_HEADER) RelativeOffset() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_RelativeOffset + self.Offset))
 }
 
+func (self *VSS_STORE_BLOCK_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_STORE_BLOCK_HEADER) NextOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_NextOffset + self.Offset))
+}
+
 func (self *VSS_STORE_BLOCK_HEADER) SizeOfStore() int64 {
     return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_SizeOfStore + self.Offset))
 }
-
-func (self *VSS_STORE_BLOCK_HEADER) Version() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_BLOCK_HEADER_Version + self.Offset)
-}
 func (self *VSS_STORE_BLOCK_HEADER) DebugString() string {
     result := fmt.Sprintf("struct VSS_STORE_BLOCK_HEADER @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
-    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
-    result += fmt.Sprintf("NextOffset: %#0x\n", self.NextOffset())
-    result += fmt.Sprintf("RecordType: %v\n", self.RecordType().DebugString())
-    result += fmt.Sprintf("RelativeOffset: %#0x\n", self.RelativeOffset())
-    result += fmt.Sprintf("SizeOfStore: %#0x\n", self.SizeOfStore())
-    result += fmt.Sprintf("Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  Identifier: {\n%v}\n", indent(self.Identifier().DebugString()))
+    result += fmt.Sprintf("  Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  RecordType: %v\n", self.RecordType().DebugString())
+    result += fmt.Sprintf("  RelativeOffset: %#0x\n", self.RelativeOffset())
+    result += fmt.Sprintf("  CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("  NextOffset: %#0x\n", self.NextOffset())
+    result += fmt.Sprintf("  SizeOfStore: %#0x\n", self.SizeOfStore())
     return result
 }
 
@@ -1459,87 +1470,6 @@ func (self *VSS_STORE_INFORMATION) Size() int {
     return 0
 }
 
-func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
-   value := ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_AttributeFlags + self.Offset)
-   names := make(map[string]bool)
-
-
-   if value & 32 != 0 {
-      names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
-   }
-
-   if value & 131072 != 0 {
-      names["VSS_VOLSNAP_ATTR_DIFFERENTIAL"] = true
-   }
-
-   if value & 262144 != 0 {
-      names["VSS_VOLSNAP_ATTR_PLEX"] = true
-   }
-
-   if value & 8388608 != 0 {
-      names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
-   }
-
-   if value & 1 != 0 {
-      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
-   }
-
-   if value & 65536 != 0 {
-      names["VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED"] = true
-   }
-
-   if value & 16777216 != 0 {
-      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
-   }
-
-   if value & 64 != 0 {
-      names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
-   }
-
-   if value & 128 != 0 {
-      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
-   }
-
-   if value & 524288 != 0 {
-      names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
-   }
-
-   if value & 1048576 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
-   }
-
-   if value & 2 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_AUTORECOVERY"] = true
-   }
-
-   if value & 4 != 0 {
-      names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
-   }
-
-   if value & 8 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
-   }
-
-   if value & 16 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
-   }
-
-   if value & 4194304 != 0 {
-      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
-   }
-
-   if value & 2097152 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
-   }
-
-   if value & 33554432 != 0 {
-      names["VSS_VOLSNAP_ATTR_TXF_RECOVERY"] = true
-   }
-
-   return &Flags{Value: uint64(value), Names: names}
-}
-
-
 func (self *VSS_STORE_INFORMATION) ShadowCopyGUID() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_ShadowCopyGUID + self.Offset)
 }
@@ -1551,12 +1481,93 @@ func (self *VSS_STORE_INFORMATION) ShadowCopySetGUID() *GUID {
 func (self *VSS_STORE_INFORMATION) SnapshotContext() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_SnapshotContext + self.Offset)
 }
+
+func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
+   value := ParseUint32(self.Reader, self.Profile.Off_VSS_STORE_INFORMATION_AttributeFlags + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & 1 != 0 {
+      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
+   }
+
+   if value & 2097152 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
+   }
+
+   if value & 16777216 != 0 {
+      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   }
+
+   if value & 64 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
+   }
+
+   if value & 131072 != 0 {
+      names["VSS_VOLSNAP_ATTR_DIFFERENTIAL"] = true
+   }
+
+   if value & 262144 != 0 {
+      names["VSS_VOLSNAP_ATTR_PLEX"] = true
+   }
+
+   if value & 1048576 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
+   }
+
+   if value & 128 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
+   }
+
+   if value & 4194304 != 0 {
+      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
+   }
+
+   if value & 2 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTORECOVERY"] = true
+   }
+
+   if value & 8 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
+   }
+
+   if value & 16 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
+   }
+
+   if value & 32 != 0 {
+      names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
+   }
+
+   if value & 33554432 != 0 {
+      names["VSS_VOLSNAP_ATTR_TXF_RECOVERY"] = true
+   }
+
+   if value & 4 != 0 {
+      names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
+   }
+
+   if value & 65536 != 0 {
+      names["VSS_VOLSNAP_ATTR_HARDWARE_ASSISTED"] = true
+   }
+
+   if value & 524288 != 0 {
+      names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
+   }
+
+   if value & 8388608 != 0 {
+      names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
 func (self *VSS_STORE_INFORMATION) DebugString() string {
     result := fmt.Sprintf("struct VSS_STORE_INFORMATION @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("AttributeFlags: %v\n", self.AttributeFlags().DebugString())
-    result += fmt.Sprintf("ShadowCopyGUID: {\n%v}\n", self.ShadowCopyGUID().DebugString())
-    result += fmt.Sprintf("ShadowCopySetGUID: {\n%v}\n", self.ShadowCopySetGUID().DebugString())
-    result += fmt.Sprintf("SnapshotContext: %#0x\n", self.SnapshotContext())
+    result += fmt.Sprintf("  ShadowCopyGUID: {\n%v}\n", indent(self.ShadowCopyGUID().DebugString()))
+    result += fmt.Sprintf("  ShadowCopySetGUID: {\n%v}\n", indent(self.ShadowCopySetGUID().DebugString()))
+    result += fmt.Sprintf("  SnapshotContext: %#0x\n", self.SnapshotContext())
+    result += fmt.Sprintf("  AttributeFlags: %v\n", self.AttributeFlags().DebugString())
     return result
 }
 
@@ -1570,47 +1581,47 @@ func (self *VSS_VOLUME_HEADER) Size() int {
     return 0
 }
 
-func (self *VSS_VOLUME_HEADER) CatalogOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CatalogOffset + self.Offset))
-}
-
-func (self *VSS_VOLUME_HEADER) CurrentOffset() int64 {
-    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CurrentOffset + self.Offset))
-}
-
 func (self *VSS_VOLUME_HEADER) Identifier() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_Identifier + self.Offset)
-}
-
-func (self *VSS_VOLUME_HEADER) MaxSize() uint64 {
-    return ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_MaxSize + self.Offset)
-}
-
-func (self *VSS_VOLUME_HEADER) RecordType() uint32 {
-   return ParseUint32(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_RecordType + self.Offset)
-}
-
-func (self *VSS_VOLUME_HEADER) ShadowVolumeGUID() *GUID {
-    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_ShadowVolumeGUID + self.Offset)
 }
 
 func (self *VSS_VOLUME_HEADER) Version() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_Version + self.Offset)
 }
 
+func (self *VSS_VOLUME_HEADER) RecordType() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_RecordType + self.Offset)
+}
+
+func (self *VSS_VOLUME_HEADER) CurrentOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CurrentOffset + self.Offset))
+}
+
+func (self *VSS_VOLUME_HEADER) CatalogOffset() int64 {
+    return int64(ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_CatalogOffset + self.Offset))
+}
+
+func (self *VSS_VOLUME_HEADER) MaxSize() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_MaxSize + self.Offset)
+}
+
 func (self *VSS_VOLUME_HEADER) VolumeGUID() *GUID {
     return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_VolumeGUID + self.Offset)
 }
+
+func (self *VSS_VOLUME_HEADER) ShadowVolumeGUID() *GUID {
+    return self.Profile.GUID(self.Reader, self.Profile.Off_VSS_VOLUME_HEADER_ShadowVolumeGUID + self.Offset)
+}
 func (self *VSS_VOLUME_HEADER) DebugString() string {
     result := fmt.Sprintf("struct VSS_VOLUME_HEADER @ %#x:\n", self.Offset)
-    result += fmt.Sprintf("CatalogOffset: %#0x\n", self.CatalogOffset())
-    result += fmt.Sprintf("CurrentOffset: %#0x\n", self.CurrentOffset())
-    result += fmt.Sprintf("Identifier: {\n%v}\n", self.Identifier().DebugString())
-    result += fmt.Sprintf("MaxSize: %#0x\n", self.MaxSize())
-    result += fmt.Sprintf("RecordType: %#0x\n", self.RecordType())
-    result += fmt.Sprintf("ShadowVolumeGUID: {\n%v}\n", self.ShadowVolumeGUID().DebugString())
-    result += fmt.Sprintf("Version: %#0x\n", self.Version())
-    result += fmt.Sprintf("VolumeGUID: {\n%v}\n", self.VolumeGUID().DebugString())
+    result += fmt.Sprintf("  Identifier: {\n%v}\n", indent(self.Identifier().DebugString()))
+    result += fmt.Sprintf("  Version: %#0x\n", self.Version())
+    result += fmt.Sprintf("  RecordType: %#0x\n", self.RecordType())
+    result += fmt.Sprintf("  CurrentOffset: %#0x\n", self.CurrentOffset())
+    result += fmt.Sprintf("  CatalogOffset: %#0x\n", self.CatalogOffset())
+    result += fmt.Sprintf("  MaxSize: %#0x\n", self.MaxSize())
+    result += fmt.Sprintf("  VolumeGUID: {\n%v}\n", indent(self.VolumeGUID().DebugString()))
+    result += fmt.Sprintf("  ShadowVolumeGUID: {\n%v}\n", indent(self.ShadowVolumeGUID().DebugString()))
     return result
 }
 
