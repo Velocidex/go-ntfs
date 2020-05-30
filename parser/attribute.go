@@ -215,7 +215,7 @@ func (self *ReaderRun) Decompress(reader io.ReaderAt, cluster_size int64) ([]byt
 	Printf("Decompress %v\n", self)
 	compressed := make([]byte, self.CompressedLength*cluster_size)
 	n, err := reader.ReadAt(compressed, self.TargetOffset*cluster_size)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return compressed, err
 	}
 	compressed = compressed[:n]
@@ -523,7 +523,7 @@ func DecodeSTANDARD_INDEX_HEADER(
 	// Read the entire data into a buffer.
 	buffer := make([]byte, length)
 	n, err := reader.ReadAt(buffer, offset)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 	buffer = buffer[:n]
@@ -535,7 +535,7 @@ func DecodeSTANDARD_INDEX_HEADER(
 	if fixup_count > 0 {
 		fixup_table := make([]byte, fixup_count*2)
 		_, err = reader.ReadAt(fixup_table, fixup_offset)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 

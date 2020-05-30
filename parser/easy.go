@@ -118,6 +118,8 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	var index_attribute *NTFS_ATTRIBUTE
 	var is_dir bool
 
+	var birth_time time.Time
+
 	// Walk all the attributes collecting the imporant things.
 	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
 		switch attr.Type().Name {
@@ -127,6 +129,13 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 		case "$FILE_NAME":
 			// Separate the filenames into LFN and other file names.
 			file_name := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
+
+			// The birth of an MFT is determined by the
+			// $FILE_NAME streams File_modified attribute
+			// since it can not modified using normal
+			// APIs.
+			birth_time = file_name.File_modified().Time
+
 			switch file_name.NameType().Name {
 			case "POSIX", "Win32", "DOS+Win32":
 				win32_name = file_name
@@ -186,6 +195,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
+			Btime:    birth_time,
 			Name:     win32_name.Name(),
 			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,
@@ -215,6 +225,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
+			Btime:    birth_time,
 			Name:     win32_name.Name() + ads,
 			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,

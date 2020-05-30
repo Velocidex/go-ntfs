@@ -5,14 +5,28 @@ import (
 	"io"
 )
 
+func new_file_info(record *INDEX_RECORD_ENTRY) *FileInfo {
+	filename := record.File()
+	return &FileInfo{
+		MFTId:         fmt.Sprintf("%d", record.MftReference()),
+		Mtime:         filename.Mft_modified().Time,
+		Atime:         filename.File_accessed().Time,
+		Ctime:         filename.Created().Time,
+		Btime:         filename.File_modified().Time,
+		Size:          int64(filename.FilenameSize()),
+		AllocatedSize: int64(filename.Allocated_size()),
+		Name:          filename.Name(),
+		NameType:      filename.NameType().Name,
+	}
+}
+
 func ExtractI30ListFromStream(
 	ntfs *NTFSContext,
 	reader io.ReaderAt,
 	stream_size int64) []*FileInfo {
 	result := []*FileInfo{}
 
-	add_record := func(
-		slack bool, record *INDEX_RECORD_ENTRY) {
+	add_record := func(slack bool, record *INDEX_RECORD_ENTRY) {
 		if !record.IsValid() {
 			return
 		}
@@ -21,21 +35,10 @@ func ExtractI30ListFromStream(
 		if slack {
 			slack_offset = record.Offset
 		}
-
-		filename := record.File()
-		result = append(result, &FileInfo{
-			MFTId:         fmt.Sprintf("%d", record.MftReference()),
-			Mtime:         filename.Mft_modified().Time,
-			Atime:         filename.File_accessed().Time,
-			Ctime:         filename.Created().Time,
-			Btime:         filename.File_modified().Time,
-			Size:          int64(filename.FilenameSize()),
-			AllocatedSize: int64(filename.Allocated_size()),
-			Name:          filename.Name(),
-			NameType:      filename.NameType().Name,
-			IsSlack:       slack,
-			SlackOffset:   slack_offset,
-		})
+		fi := new_file_info(record)
+		fi.IsSlack = slack
+		fi.SlackOffset = slack_offset
+		result = append(result, fi)
 	}
 
 	for i := int64(0); i < stream_size; i += 0x1000 {
@@ -61,7 +64,17 @@ func ExtractI30ListFromStream(
 func ExtractI30List(ntfs *NTFSContext, mft_entry *MFT_ENTRY) []*FileInfo {
 	results := []*FileInfo{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		switch attr.Type().Name {
+		name := attr.Type().Name
+
+		switch name {
+
+		case "$INDEX_ROOT":
+			index_root := ntfs.Profile.INDEX_ROOT(
+				attr.Data(ntfs), 0)
+			for _, record := range index_root.Node().GetRecords(ntfs) {
+				results = append(results, new_file_info(record))
+			}
+
 		case "$INDEX_ALLOCATION":
 			attr_reader := attr.Data(ntfs)
 			results = append(results,
