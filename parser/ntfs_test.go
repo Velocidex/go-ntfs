@@ -52,6 +52,7 @@ func TestNTFS(t *testing.T) {
 	assert.Equal(attr, int64(128))
 	assert.Equal(id, int64(5))
 
+	// Test resident file.
 	buf := make([]byte, 3000000)
 	reader, err := parser.GetDataForPath(ntfs_ctx,
 		"Folder A/Folder B/Hello world text document.txt")
@@ -60,6 +61,7 @@ func TestNTFS(t *testing.T) {
 	n, _ := reader.ReadAt(buf, 0)
 	result["04 Hello world.txt"] = fmt.Sprintf("%v: %s", n, string(buf[:n]))
 
+	// Test ADS
 	reader, err = parser.GetDataForPath(ntfs_ctx,
 		"Folder A/Folder B/Hello world text document.txt:goodbye.txt")
 	assert.NoError(err, "GetDataForPath ADS")
@@ -68,6 +70,7 @@ func TestNTFS(t *testing.T) {
 	result["05 Hello world.txt:goodbye.txt"] = fmt.Sprintf(
 		"%v: %s", n, string(buf[:n]))
 
+	// Test a compressed file with multiple VCN runs
 	reader, err = parser.GetDataForPath(ntfs_ctx, "ones.bin")
 	assert.NoError(err, "Open compressed ones.bin")
 
@@ -76,6 +79,11 @@ func TestNTFS(t *testing.T) {
 	h.Write(buf[:n])
 	result["06 Compressed ones.bin hash"] = fmt.Sprintf(
 		"%v: %s", n, hex.EncodeToString(h.Sum(nil)))
+
+	for idx, rng := range reader.Ranges() {
+		result[fmt.Sprintf("07 Compressed ones runs %03d", idx)] =
+			fmt.Sprintf("Range %v-%v sparse %v\n", rng.Offset, rng.Length, rng.IsSparse)
+	}
 
 	result_json, _ := json.MarshalIndent(result, "", " ")
 	goldie.Assert(t, "TestNTFS", result_json)

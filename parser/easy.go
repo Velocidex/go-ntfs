@@ -2,6 +2,7 @@
 package parser
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -79,7 +80,7 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) 
 	}
 }
 
-func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
+func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	// Check for ADS in the path.
 	parts := strings.Split(path, ":")
 	switch len(parts) {
@@ -102,11 +103,13 @@ func GetDataForPath(ntfs *NTFSContext, path string) (io.ReaderAt, error) {
 	}
 
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Name == "$DATA" &&
+		if attr.Type().Value == 128 &&
 			attr.Name() == parts[1] {
-			return attr.Data(ntfs), nil
+			return OpenStream(ntfs, mft_entry,
+				128, attr.Attribute_id())
 		}
 	}
+
 	return nil, errors.New("File not found.")
 }
 
@@ -263,4 +266,114 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 		result = append(result, Stat(ntfs, node_mft)...)
 	}
 	return result
+}
+
+// Get all VCNs having the same type and ID
+func getAllVCNs(ntfs *NTFSContext,
+	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) []*NTFS_ATTRIBUTE {
+	result := []*NTFS_ATTRIBUTE{}
+	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
+		if attr.Type().Value == attr_type &&
+			attr.Attribute_id() == attr_id {
+			result = append(result, attr)
+		}
+	}
+	return result
+}
+
+func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
+	start, length, compression_unit_size int64) MappedReader {
+	if self.Resident().Name == "RESIDENT" {
+		buf := make([]byte, self.Content_size())
+		n, _ := self.Reader.ReadAt(
+			buf,
+			self.Offset+int64(self.Content_offset()))
+		buf = buf[:n]
+
+		return MappedReader{
+			FileOffset:  0,
+			Length:      int64(n),
+			ClusterSize: 1,
+			Reader:      bytes.NewReader(buf),
+		}
+
+		// Stream is compressed
+	} else if self.Flags().IsSet("COMPRESSED") {
+		return MappedReader{
+			ClusterSize: 1,
+			FileOffset:  start,
+			Length:      length,
+			Reader: NewCompressedRangeReader(self.RunList(),
+				ntfs.ClusterSize,
+				ntfs.DiskReader,
+				compression_unit_size),
+		}
+	}
+
+	return MappedReader{
+		FileOffset:  start,
+		Length:      length,
+		ClusterSize: 1,
+		Reader: NewRangeReader(
+			self.RunList(), ntfs.DiskReader,
+			ntfs.ClusterSize, compression_unit_size),
+	}
+}
+
+// Open the full stream. Note - In NTFS a stream can be composed of
+// multiple VCN attributes: All VCN substreams have the same attribute
+// type and id but different start and end VCNs. This function finds
+// all related attributes and wraps them in a RangeReader to appear as
+// a single stream. This function is what you need when you want to
+// read the full file.
+func OpenStream(ntfs *NTFSContext,
+	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) (RangeReaderAt, error) {
+
+	result := &RangeReader{}
+
+	size := int64(0)
+	compression_unit_size := int64(0)
+
+	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
+		if attr.Type().Value != attr_type {
+			continue
+		}
+
+		// An attr id of 0 means take the first ID of the required type.
+		if attr_id == 0 {
+			attr_id = attr.Attribute_id()
+		}
+
+		if attr.Attribute_id() != attr_id {
+			continue
+		}
+
+		start := int64(attr.Runlist_vcn_start()) * ntfs.ClusterSize
+		end := int64(attr.Runlist_vcn_end()+1) * ntfs.ClusterSize
+
+		// Actual_size is only set on the first stream.
+		if size == 0 {
+			size = int64(attr.Actual_size())
+		}
+
+		// Cap the length of the stream at the file's
+		// actual size (the size may not be cluster
+		// aligned but Runlist_vcn_end() always refers
+		// to the last cluster number).
+		if end > size {
+			end = size
+		}
+
+		// Compression_unit_size is only set on the first stream.
+		if compression_unit_size == 0 {
+			compression_unit_size = int64(
+				1 << uint64(attr.Compression_unit_size()))
+		}
+
+		reader := attr.getVCNReader(ntfs, start, end-start,
+			compression_unit_size)
+		result.runs = append(result.runs, reader)
+	}
+
+	return result, nil
 }

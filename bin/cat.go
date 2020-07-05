@@ -10,7 +10,7 @@ import (
 
 var (
 	cat_command = app.Command(
-		"cat", "List files.")
+		"cat", "Dump file stream.")
 
 	cat_command_file_arg = cat_command.Arg(
 		"file", "The image file to inspect",
@@ -19,6 +19,10 @@ var (
 	cat_command_arg = cat_command.Arg(
 		"path", "The path to extract to an MFT entry.",
 	).Default("/").String()
+
+	cat_command_offset = cat_command.Flag(
+		"offset", "The offset to start reading.",
+	).Int64()
 
 	cat_command_output_file = cat_command.Flag(
 		"out", "Write to this file",
@@ -39,10 +43,9 @@ func doCAT() {
 		attr_type = 128 // $DATA
 	}
 
-	attribute, err := mft_entry.GetAttribute(ntfs_ctx, attr_type, attr_id)
-	kingpin.FatalIfError(err, "Can not open attribute")
-
-	data := attribute.Data(ntfs_ctx)
+	data, err := parser.OpenStream(ntfs_ctx, mft_entry,
+		uint64(attr_type), uint16(attr_id))
+	kingpin.FatalIfError(err, "Can not open stream")
 
 	var fd io.WriteCloser = os.Stdout
 	if *cat_command_output_file != nil {
@@ -51,7 +54,7 @@ func doCAT() {
 	}
 
 	buf := make([]byte, 1024*1024)
-	offset := int64(0)
+	offset := *cat_command_offset
 	for {
 		n, _ := data.ReadAt(buf, offset)
 		if n == 0 {

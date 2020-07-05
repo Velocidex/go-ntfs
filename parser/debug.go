@@ -19,6 +19,23 @@ func Debug(arg interface{}) {
 	spew.Dump(arg)
 }
 
+type Debugger interface {
+	DebugString() string
+}
+
+func DebugString(arg interface{}, indent string) string {
+	debugger, ok := arg.(Debugger)
+	if ok {
+		lines := strings.Split(debugger.DebugString(), "\n")
+		for idx, line := range lines {
+			lines[idx] = indent + line
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	return ""
+}
+
 func Printf(fmt_str string, args ...interface{}) {
 	if debug {
 		fmt.Printf(fmt_str, args...)
