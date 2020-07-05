@@ -60,8 +60,8 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 		}
 	} else {
 		initialized_size := int64(self.Initialized_size())
-		runs := []MappedReader{
-			MappedReader{
+		runs := []*MappedReader{
+			&MappedReader{
 				FileOffset:   0,
 				TargetOffset: 0,
 				Length:       initialized_size,
@@ -75,7 +75,7 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 
 		actual_size := int64(self.Actual_size())
 		if actual_size > initialized_size {
-			runs = append(runs, MappedReader{
+			runs = append(runs, &MappedReader{
 				FileOffset:   initialized_size,
 				TargetOffset: 0,
 				ClusterSize:  1, // Sizes are in units of bytes
@@ -217,7 +217,8 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 	return result
 }
 
-// A reader mapping from file space to target space.
+// A reader mapping from file space to target space. A ReadAt in file
+// space will be mapped to a ReadAt in target space.
 type MappedReader struct {
 	FileOffset       int64 // Address in the file this range begins
 	TargetOffset     int64 // Address in the target reader the range is mapped to.
@@ -229,7 +230,20 @@ type MappedReader struct {
 }
 
 func (self *MappedReader) ReadAt(buff []byte, off int64) (int, error) {
-	return self.Reader.ReadAt(buff, off)
+	// Figure out where to read from in target space.
+	buff_offset := off - self.FileOffset
+
+	// How much is actually available to read
+	to_read := self.FileOffset + self.Length - off
+	if to_read > int64(len(buff)) {
+		to_read = int64(len(buff))
+	}
+
+	if to_read < 0 {
+		return 0, io.EOF
+	}
+
+	return self.Reader.ReadAt(buff[:to_read], buff_offset)
 }
 
 func (self MappedReader) DebugString() string {
@@ -277,7 +291,7 @@ func (self *MappedReader) Decompress(reader io.ReaderAt, cluster_size int64) ([]
 // mapping between filespace to another reader at a specific offset in
 // the file address space.
 type RangeReader struct {
-	runs []MappedReader
+	runs []*MappedReader
 }
 
 // Combine the ranges from all the Mapped readers.
@@ -301,8 +315,8 @@ func (self *RangeReader) DebugString() string {
 
 // Convert the NTFS relative runlist into an absolute run list.
 func MakeMappedReader(runs []Run, disk_reader io.ReaderAt,
-	cluster_size, compression_unit_size int64) []MappedReader {
-	reader_runs := []MappedReader{}
+	cluster_size, compression_unit_size int64) []*MappedReader {
+	reader_runs := []*MappedReader{}
 	file_offset := int64(0)
 	target_offset := int64(0)
 
@@ -311,7 +325,7 @@ func MakeMappedReader(runs []Run, disk_reader io.ReaderAt,
 
 		// Sparse run.
 		if run.RelativeUrnOffset == 0 {
-			reader_runs = append(reader_runs, MappedReader{
+			reader_runs = append(reader_runs, &MappedReader{
 				FileOffset:   file_offset,
 				TargetOffset: 0,
 				Length:       run.Length,
@@ -320,9 +334,11 @@ func MakeMappedReader(runs []Run, disk_reader io.ReaderAt,
 				Reader:       &NullReader{},
 			})
 
+			file_offset += run.Length
+
 			// Compressed run
 		} else if run.Length < compression_unit_size {
-			reader_runs = append(reader_runs, MappedReader{
+			reader_runs = append(reader_runs, &MappedReader{
 				FileOffset:   file_offset,
 				TargetOffset: target_offset,
 				Length:       run.Length,
@@ -330,10 +346,11 @@ func MakeMappedReader(runs []Run, disk_reader io.ReaderAt,
 				IsSparse:     false,
 				Reader:       disk_reader,
 			})
-			file_offset += compression_unit_size
+			//file_offset += compression_unit_size
+			file_offset += run.Length
 
 		} else {
-			reader_runs = append(reader_runs, MappedReader{
+			reader_runs = append(reader_runs, &MappedReader{
 				FileOffset:   file_offset,
 				TargetOffset: target_offset,
 				Length:       run.Length,
@@ -341,7 +358,7 @@ func MakeMappedReader(runs []Run, disk_reader io.ReaderAt,
 				IsSparse:     false,
 				Reader:       disk_reader,
 			})
-			file_offset += run.Length + 1
+			file_offset += run.Length
 		}
 
 	}
@@ -352,74 +369,121 @@ func NewCompressedRangeReader(runs []Run,
 	cluster_size int64,
 	disk_reader io.ReaderAt,
 	compression_unit_size int64) *RangeReader {
-	reader_runs := MakeMappedReader(
-		runs, disk_reader, cluster_size, compression_unit_size)
 
-	normalized_reader_runs := []MappedReader{}
+	result := &RangeReader{}
 
-	// Break runs up into compression units.
-	for i := 0; i < len(reader_runs); i++ {
-		run := reader_runs[i]
-		if run.Length == 0 {
-			continue
-		}
+	reader_runs := MakeMappedReader(runs, disk_reader,
+		cluster_size, compression_unit_size)
 
-		if run.Length >= compression_unit_size {
-			reader_run := MappedReader{
-				FileOffset:   run.FileOffset,
-				TargetOffset: run.TargetOffset,
-				Length:       run.Length - run.Length%compression_unit_size,
-				IsSparse:     false,
-				ClusterSize:  cluster_size,
-				Reader:       disk_reader,
-			}
-
-			normalized_reader_runs = append(normalized_reader_runs, reader_run)
-			run = MappedReader{
-				FileOffset:   reader_run.FileOffset + reader_run.Length,
-				TargetOffset: reader_run.TargetOffset + reader_run.Length,
-				Length:       run.Length - reader_run.Length,
-				IsSparse:     false,
-				ClusterSize:  cluster_size,
-				Reader:       disk_reader,
-			}
-		}
-
-		if run.Length == 0 {
-			continue
-		}
-
-		// This is a compressed run which is part of the
-		// compression_unit_size. It is followed by a sparse
-		// run. We convert this run to a single compressed run
-		// and swallow the sparse run that follows it. eg:
-		// [{0 474540 47 0} {47 0 1 0} {48 474588 1213 0} {1261 0 3 0}] Normalizes to:
-		// [{0 474540 32 0} {32 474572 16 15} {48 474588 1200 0} {1248 475788 16 13}]
-		if i+1 < len(reader_runs) &&
-			reader_runs[i+1].Length+run.Length >= compression_unit_size &&
-			reader_runs[i+1].TargetOffset == 0 {
-
-			normalized_reader_runs = append(normalized_reader_runs, MappedReader{
-				FileOffset:   run.FileOffset,
-				TargetOffset: run.TargetOffset,
-
-				// Take up the entire compression unit
-				Length:           compression_unit_size,
-				CompressedLength: run.Length,
-				ClusterSize:      cluster_size,
-				IsSparse:         false,
-				Reader:           disk_reader,
-			})
-			reader_runs[i+1].Length -= compression_unit_size - run.Length
-		}
-
+	for idx := 0; idx < len(reader_runs); {
+		consumed_runs := consumeRuns(reader_runs, idx, cluster_size,
+			disk_reader, compression_unit_size, result)
+		idx += consumed_runs
 	}
 
-	Printf("compression_unit_size: %v\nRunlist: %v\n"+
-		"Normalized runlist %v to:\nNormal runlist %v\n",
-		compression_unit_size, runs,
-		reader_runs, normalized_reader_runs)
-	return &RangeReader{runs: normalized_reader_runs}
+	return result
+}
+
+// Consider the
+func consumeRuns(runs []*MappedReader, idx int, cluster_size int64,
+	disk_reader io.ReaderAt,
+	compression_unit_size int64, result *RangeReader) int {
+
+	// Should never happen but here for safety.
+	if len(runs) == 0 {
+		return 1
+	}
+
+	// Consider the first run.
+	run := runs[idx]
+
+	// Ignore this run since it has no length.
+	if run.Length == 0 {
+		return 1
+	}
+
+	// Only one run left - it can not be compressed but may be
+	// sparse.
+	if len(runs) == 1 {
+		result.runs = append(result.runs, &MappedReader{
+			FileOffset:   run.FileOffset,
+			TargetOffset: run.TargetOffset,
+
+			// Take up the entire compression unit
+			Length:      run.Length,
+			ClusterSize: cluster_size,
+			IsSparse:    run.TargetOffset == 0,
+			Reader:      disk_reader,
+		})
+
+		// Consume one run.
+		return 1
+	}
+
+	// Break up a run larger than compression size into a regular
+	// run and a potentially compressed run.
+	if run.Length >= compression_unit_size {
+		// Insert a run which is whole compression_unit_size
+		// as large as possible.
+		new_run := &MappedReader{
+			FileOffset:   run.FileOffset,
+			TargetOffset: run.TargetOffset,
+			Length:       run.Length - run.Length%compression_unit_size,
+			IsSparse:     run.TargetOffset == 0,
+			ClusterSize:  cluster_size,
+			Reader:       disk_reader,
+		}
+
+		result.runs = append(result.runs, new_run)
+
+		// Adjust the size of the next run.
+		run.FileOffset = new_run.FileOffset + new_run.Length
+		run.TargetOffset = new_run.TargetOffset + new_run.Length
+		run.Length = run.Length - new_run.Length
+
+		// Reconsider this run again.
+		return 0
+	}
+
+	// The first run is smaller than compression_unit_size - if
+	// the next run is sparse then the pair of runs represent a
+	// compression pair.
+	next_run := runs[idx+1]
+
+	if next_run.TargetOffset == 0 {
+		// Insert a compression run.
+		result.runs = append(result.runs, &MappedReader{
+			FileOffset:   run.FileOffset,
+			TargetOffset: run.TargetOffset,
+
+			// Take up the entire compression unit
+			Length:           compression_unit_size,
+			CompressedLength: run.Length,
+			ClusterSize:      cluster_size,
+			IsSparse:         false,
+			Reader:           disk_reader,
+		})
+
+		// Reduce the length of the next run by the
+		// compression size.
+		next_run.Length -= (compression_unit_size - run.Length)
+		next_run.FileOffset = run.FileOffset + compression_unit_size
+		return 1
+	}
+
+	result.runs = append(result.runs, &MappedReader{
+		FileOffset:   run.FileOffset,
+		TargetOffset: run.TargetOffset,
+
+		// Take up the entire compression unit
+		Length:           run.Length,
+		CompressedLength: 0,
+		ClusterSize:      cluster_size,
+		IsSparse:         false,
+		Reader:           disk_reader,
+	})
+
+	return 1
 }
 
 func NewRangeReader(runs []Run, disk_reader io.ReaderAt,
@@ -482,8 +546,11 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 	for j := 0; j < len(self.runs) && buf_idx < len(buf); j++ {
 		run := self.runs[j]
 
+		// Start of run in bytes
 		run_file_offset := run.FileOffset * run.ClusterSize
-		run_length := run.Length * run.ClusterSize
+		run_length := (run.Length + 1) * run.ClusterSize
+
+		// End of run in bytes
 		run_end_file_offset := run_file_offset + run_length
 
 		// This run can provide us with some data.
@@ -510,9 +577,7 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 	}
 
 	if buf_idx == 0 {
-		Printf("Could not find runs for offset %d: %v. Cluster size %d\n",
-			file_offset, self.runs, self.runs[0].ClusterSize)
-		return buf_idx, io.EOF
+		return 0, io.EOF
 	}
 
 	return buf_idx, nil
@@ -560,13 +625,19 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		attr_list_entry := self.Profile.ATTRIBUTE_LIST_ENTRY(
 			self.Reader, self.Offset+offset)
 
+		Printf("ATTRIBUTE_LIST_ENTRY %v\n",
+			attr_list_entry.DebugString())
+
 		// The attribute_list_entry points to a different MFT
 		// entry than the one we are working on now. We need
 		// to fetch it from there.
 		if ntfs.RootMFT != nil &&
 			attr_list_entry.MftReference() != uint64(mft_entry.Record_number()) {
+
+			Printf("Fetching from MFT Entry %v\n", attr_list_entry.MftReference())
 			attr, err := attr_list_entry.GetAttribute(ntfs)
 			if err != nil {
+				Printf("Error %v\n", err)
 				break
 			}
 			result = append(result, attr)

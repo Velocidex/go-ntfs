@@ -70,9 +70,9 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) 
 
 	switch len(components) {
 	case 1:
-		return components[0], 128, -1, nil
+		return components[0], 128, 0, nil
 	case 2:
-		return components[0], components[1], -1, nil
+		return components[0], components[1], 0, nil
 	case 3:
 		return components[0], components[1], components[2], nil
 	default:
@@ -282,7 +282,8 @@ func getAllVCNs(ntfs *NTFSContext,
 }
 
 func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
-	start, length, compression_unit_size int64) MappedReader {
+	start, length, compression_unit_size int64) *MappedReader {
+
 	if self.Resident().Name == "RESIDENT" {
 		buf := make([]byte, self.Content_size())
 		n, _ := self.Reader.ReadAt(
@@ -290,7 +291,7 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 			self.Offset+int64(self.Content_offset()))
 		buf = buf[:n]
 
-		return MappedReader{
+		return &MappedReader{
 			FileOffset:  0,
 			Length:      int64(n),
 			ClusterSize: 1,
@@ -299,7 +300,7 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 
 		// Stream is compressed
 	} else if self.Flags().IsSet("COMPRESSED") {
-		return MappedReader{
+		return &MappedReader{
 			ClusterSize: 1,
 			FileOffset:  start,
 			Length:      length,
@@ -310,7 +311,7 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 		}
 	}
 
-	return MappedReader{
+	return &MappedReader{
 		FileOffset:  start,
 		Length:      length,
 		ClusterSize: 1,
@@ -329,6 +330,8 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 func OpenStream(ntfs *NTFSContext,
 	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) (RangeReaderAt, error) {
 
+	attr_id_found := false
+
 	result := &RangeReader{}
 
 	size := int64(0)
@@ -340,8 +343,9 @@ func OpenStream(ntfs *NTFSContext,
 		}
 
 		// An attr id of 0 means take the first ID of the required type.
-		if attr_id == 0 {
+		if attr_id == 0 && !attr_id_found {
 			attr_id = attr.Attribute_id()
+			attr_id_found = true
 		}
 
 		if attr.Attribute_id() != attr_id {
@@ -350,6 +354,7 @@ func OpenStream(ntfs *NTFSContext,
 
 		start := int64(attr.Runlist_vcn_start()) * ntfs.ClusterSize
 		end := int64(attr.Runlist_vcn_end()+1) * ntfs.ClusterSize
+		length := end - start
 
 		// Actual_size is only set on the first stream.
 		if size == 0 {
@@ -370,7 +375,7 @@ func OpenStream(ntfs *NTFSContext,
 				1 << uint64(attr.Compression_unit_size()))
 		}
 
-		reader := attr.getVCNReader(ntfs, start, end-start,
+		reader := attr.getVCNReader(ntfs, start, length,
 			compression_unit_size)
 		result.runs = append(result.runs, reader)
 	}

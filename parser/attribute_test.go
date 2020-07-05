@@ -8,7 +8,7 @@ import (
 
 type testCase struct {
 	input []Run
-	out   []MappedReader
+	out   []*MappedReader
 }
 
 type readerTestCase struct {
@@ -23,22 +23,22 @@ var (
 			{0, 1},
 			{48, 1213},
 			{0, 3},
-		}, out: []MappedReader{
-			{0, 474540, 32, 0x400, 0, false, nil},
-			{32, 474572, 16, 0x400, 15, false, nil},
-			{48, 474588, 1200, 0x400, 0, false, nil},
-			{1248, 475788, 16, 0x400, 13, false, nil},
+		}, out: []*MappedReader{
+			&MappedReader{0, 474540, 32, 0x400, 0, false, nil},
+			&MappedReader{32, 474572, 16, 0x400, 15, false, nil},
+			&MappedReader{48, 474588, 1200, 0x400, 0, false, nil},
+			&MappedReader{1248, 475788, 16, 0x400, 13, false, nil},
 		}},
 		// A compressed run followed by a sparse run longer
 		// than compression size.
 		{input: []Run{
 			{1940823, 2},
 			{0, 30}, // This is really {0, 14}, {0, 16} merged together.
-		}, out: []MappedReader{
+		}, out: []*MappedReader{
 
 			// A compressed run followed by sparse run.
-			{0, 1940823, 16, 0x400, 2, false, nil},
-			{16, 0, 16, 0x400, 0, false, nil},
+			&MappedReader{0, 1940823, 16, 0x400, 2, false, nil},
+			&MappedReader{16, 0, 16, 0x400, 0, true, nil},
 		}},
 	}
 
@@ -64,7 +64,7 @@ var (
 
 			// A compressed run followed by sparse run.
 			{0, 16 * 0x400, false},
-			{16 * 0x400, 16 * 0x400, false},
+			{16 * 0x400, 16 * 0x400, true},
 		}},
 	}
 )
@@ -72,7 +72,7 @@ var (
 func TestNewCompressedRunReader(t *testing.T) {
 	for _, testcase := range TestCases {
 		runs := NewCompressedRangeReader(
-			testcase.input, 1024, nil, 16)
+			testcase.input, 0x400, nil, 16)
 		assert.Equal(t, testcase.out, runs.runs)
 	}
 }
