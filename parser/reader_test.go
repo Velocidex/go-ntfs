@@ -26,3 +26,53 @@ func TestReader(t *testing.T) {
 	assert.Equal(t, c, 3)
 	assert.Equal(t, buf, []byte{0x64, 0x00, 0x00})
 }
+
+func TestRangeReader(t *testing.T) {
+	reader := RangeReader{
+		runs: []*MappedReader{&MappedReader{
+			FileOffset:  10,
+			Length:      5,
+			ClusterSize: 1,
+
+			// Reader is actually longer than the mapping region.
+			Reader: bytes.NewReader([]byte("0123456789")),
+		}},
+	}
+
+	buf := make([]byte, 100)
+
+	// Should read from 12 to 15 *only* because this is the mapped range.
+	c, err := reader.ReadAt(buf, 12)
+	assert.NoError(t, err)
+	assert.Equal(t, c, 3)
+	assert.Equal(t, string(buf[:c]), "234")
+}
+
+func TestMappedReader(t *testing.T) {
+	reader := MappedReader{
+		FileOffset:  10,
+		Length:      5,
+		ClusterSize: 1,
+
+		// Reader is actually longer than the mapping region.
+		Reader: bytes.NewReader([]byte("0123456789")),
+	}
+
+	buf := make([]byte, 100)
+
+	// Should read from 12 to 15 *only* because this is the mapped range.
+	c, err := reader.ReadAt(buf, 12)
+	assert.NoError(t, err)
+	assert.Equal(t, c, 3)
+	assert.Equal(t, string(buf[:c]), "234")
+
+	// Very short buffer
+	buf = make([]byte, 2)
+
+	// Should read from 12 to 14 *only* because this is the mapped range.
+	c, err = reader.ReadAt(buf, 12)
+	assert.NoError(t, err)
+	assert.Equal(t, c, 2)
+	assert.Equal(t, string(buf[:c]), "23")
+
+}

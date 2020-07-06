@@ -82,7 +82,11 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 							symbol_length, symbol_offset, pointer)
 						start_offset := len(out) - symbol_offset
 						for j := 0; j < symbol_length+1; j++ {
-							out = append(out, out[start_offset+j])
+							idx := start_offset + j
+							if idx < 0 || idx >= len(out) {
+								return nil, errors.New("Decompression error - shift is too large")
+							}
+							out = append(out, out[idx])
 						}
 					} else {
 						LZNT1Printf("%d: Symbol %#x (%d)\n", i, in[i], len(out))
