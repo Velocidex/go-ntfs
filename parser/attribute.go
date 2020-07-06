@@ -74,10 +74,13 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 		}
 
 		actual_size := int64(self.Actual_size())
+
+		// Run contains a sparse part after the initialized_size.
 		if actual_size > initialized_size {
 			runs = append(runs, &MappedReader{
 				FileOffset:   initialized_size,
 				TargetOffset: 0,
+				IsSparse:     true,
 				ClusterSize:  1, // Sizes are in units of bytes
 				Length:       actual_size - initialized_size,
 				Reader:       &NullReader{}})
@@ -389,13 +392,15 @@ func consumeRuns(runs []*MappedReader, idx int, cluster_size int64,
 	disk_reader io.ReaderAt,
 	compression_unit_size int64, result *RangeReader) int {
 
+	runs = runs[idx:]
+
 	// Should never happen but here for safety.
 	if len(runs) == 0 {
 		return 1
 	}
 
 	// Consider the first run.
-	run := runs[idx]
+	run := runs[0]
 
 	// Ignore this run since it has no length.
 	if run.Length == 0 {
@@ -405,7 +410,7 @@ func consumeRuns(runs []*MappedReader, idx int, cluster_size int64,
 	// Only one run left - it can not be compressed but may be
 	// sparse.
 	if len(runs) == 1 {
-		result.runs = append(result.runs, &MappedReader{
+		reader_run := &MappedReader{
 			FileOffset:   run.FileOffset,
 			TargetOffset: run.TargetOffset,
 
@@ -414,7 +419,14 @@ func consumeRuns(runs []*MappedReader, idx int, cluster_size int64,
 			ClusterSize: cluster_size,
 			IsSparse:    run.TargetOffset == 0,
 			Reader:      disk_reader,
-		})
+		}
+
+		// Sparse runs read from the null reader.
+		if reader_run.IsSparse {
+			reader_run.Reader = &NullReader{}
+		}
+
+		result.runs = append(result.runs, reader_run)
 
 		// Consume one run.
 		return 1
@@ -448,7 +460,7 @@ func consumeRuns(runs []*MappedReader, idx int, cluster_size int64,
 	// The first run is smaller than compression_unit_size - if
 	// the next run is sparse then the pair of runs represent a
 	// compression pair.
-	next_run := runs[idx+1]
+	next_run := runs[1]
 
 	if next_run.TargetOffset == 0 {
 		// Insert a compression run.
@@ -546,11 +558,11 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 	for j := 0; j < len(self.runs) && buf_idx < len(buf); j++ {
 		run := self.runs[j]
 
-		// Start of run in bytes
+		// Start of run in bytes in file address space
 		run_file_offset := run.FileOffset * run.ClusterSize
-		run_length := (run.Length + 1) * run.ClusterSize
+		run_length := run.Length * run.ClusterSize
 
-		// End of run in bytes
+		// End of run in bytes in file address space.
 		run_end_file_offset := run_file_offset + run_length
 
 		// This run can provide us with some data.

@@ -113,6 +113,16 @@ func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	return nil, errors.New("File not found.")
 }
 
+func RangeSize(rng RangeReaderAt) int64 {
+	runs := rng.Ranges()
+	if len(runs) == 0 {
+		return 0
+	}
+
+	last_run := runs[len(runs)-1]
+	return last_run.Offset + last_run.Length
+}
+
 func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	var si *STANDARD_INFORMATION
 	var other_file_names []*FILE_NAME
@@ -311,6 +321,14 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 		}
 	}
 
+	// If the attribute is not fully initialized, trim the mapping
+	// to the initialized range. For example, the attribute might
+	// contain 32 clusters, but only 16 clusters are initialized.
+	initialized_size := int64(self.Initialized_size())
+	if length > initialized_size {
+		length = initialized_size
+	}
+
 	return &MappedReader{
 		FileOffset:  start,
 		Length:      length,
@@ -354,7 +372,6 @@ func OpenStream(ntfs *NTFSContext,
 
 		start := int64(attr.Runlist_vcn_start()) * ntfs.ClusterSize
 		end := int64(attr.Runlist_vcn_end()+1) * ntfs.ClusterSize
-		length := end - start
 
 		// Actual_size is only set on the first stream.
 		if size == 0 {
@@ -375,9 +392,25 @@ func OpenStream(ntfs *NTFSContext,
 				1 << uint64(attr.Compression_unit_size()))
 		}
 
+		length := end - start
+
 		reader := attr.getVCNReader(ntfs, start, length,
 			compression_unit_size)
 		result.runs = append(result.runs, reader)
+
+		// If the returns mapping does not cover the entire
+		// range we need, add a pad mapping to the end so we
+		// do not have gaps.
+		if reader.Length < end-start {
+			pad := &MappedReader{
+				ClusterSize: 1,
+				FileOffset:  reader.FileOffset + reader.Length,
+				Length:      end - start - reader.Length,
+				IsSparse:    true,
+				Reader:      &NullReader{},
+			}
+			result.runs = append(result.runs, pad)
+		}
 	}
 
 	return result, nil

@@ -38,7 +38,7 @@ var (
 
 			// A compressed run followed by sparse run.
 			&MappedReader{0, 1940823, 16, 0x400, 2, false, nil},
-			&MappedReader{16, 0, 16, 0x400, 0, true, nil},
+			&MappedReader{16, 0, 16, 0x400, 0, true, &NullReader{}},
 		}},
 	}
 
