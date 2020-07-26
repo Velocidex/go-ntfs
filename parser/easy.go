@@ -370,6 +370,16 @@ func OpenStream(ntfs *NTFSContext,
 			continue
 		}
 
+		if attr.Resident().Name == "RESIDENT" {
+			buf := make([]byte, attr.Content_size())
+			n, _ := attr.Reader.ReadAt(
+				buf,
+				attr.Offset+int64(attr.Content_offset()))
+			buf = buf[:n]
+
+			return &RangeReaderBuffer{bytes.NewReader(buf), buf}, nil
+		}
+
 		start := int64(attr.Runlist_vcn_start()) * ntfs.ClusterSize
 		end := int64(attr.Runlist_vcn_end()+1) * ntfs.ClusterSize
 
