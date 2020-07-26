@@ -22,17 +22,6 @@ type RangeReaderAt interface {
 	Ranges() []Range
 }
 
-type RangeReaderBuffer struct {
-	*bytes.Reader
-	buff []byte
-}
-
-func (self *RangeReaderBuffer) Ranges() []Range {
-	return []Range{
-		{Length: int64(len(self.buff))},
-	}
-}
-
 type LimitedReader struct {
 	RangeReaderAt
 	N int64
