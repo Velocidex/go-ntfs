@@ -370,16 +370,6 @@ func OpenStream(ntfs *NTFSContext,
 			continue
 		}
 
-		if attr.Resident().Name == "RESIDENT" {
-			buf := make([]byte, attr.Content_size())
-			n, _ := attr.Reader.ReadAt(
-				buf,
-				attr.Offset+int64(attr.Content_offset()))
-			buf = buf[:n]
-
-			return &RangeReaderBuffer{bytes.NewReader(buf), buf}, nil
-		}
-
 		start := int64(attr.Runlist_vcn_start()) * ntfs.ClusterSize
 		end := int64(attr.Runlist_vcn_end()+1) * ntfs.ClusterSize
 
@@ -411,7 +401,7 @@ func OpenStream(ntfs *NTFSContext,
 		// If the returns mapping does not cover the entire
 		// range we need, add a pad mapping to the end so we
 		// do not have gaps.
-		if reader.Length < end-start {
+		if attr.Resident().Name != "RESIDENT" && reader.Length < end-start {
 			pad := &MappedReader{
 				ClusterSize: 1,
 				FileOffset:  reader.FileOffset + reader.Length,
