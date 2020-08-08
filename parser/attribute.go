@@ -256,7 +256,49 @@ func (self MappedReader) DebugString() string {
 		self.Reader, DebugString(self.Reader, "  "))
 }
 
+// Trim the delegate ranges to our own mapping length.
 func (self *MappedReader) Ranges() []Range {
+	result := []Range{}
+
+	offset := self.FileOffset * self.ClusterSize
+	end_offset := offset + self.Length*self.ClusterSize
+
+	for _, run := range self._Ranges() {
+		if run.Offset > offset {
+			result = append(result, Range{
+				Offset:   offset,
+				Length:   run.Offset - offset,
+				IsSparse: true,
+			})
+			offset = run.Offset
+		}
+
+		if run.Offset+run.Length > end_offset {
+			result = append(result, Range{
+				Offset:   offset,
+				Length:   end_offset - run.Offset,
+				IsSparse: run.IsSparse,
+			})
+			return result
+		}
+
+		result = append(result, run)
+		offset += run.Length
+	}
+
+	if end_offset > offset {
+		// Pad to the end of our mapped range.
+		result = append(result, Range{
+			Offset:   offset,
+			Length:   end_offset - offset,
+			IsSparse: true,
+		})
+	}
+
+	return result
+}
+
+func (self *MappedReader) _Ranges() []Range {
 	// If the delegate can tell us more about its ranges then pass
 	// it on otherwise we consider the entire run a single range.
 	delegate, ok := self.Reader.(RangeReaderAt)
@@ -301,7 +343,9 @@ type RangeReader struct {
 func (self *RangeReader) Ranges() []Range {
 	result := make([]Range, 0, len(self.runs))
 	for _, run := range self.runs {
-		result = append(result, run.Ranges()...)
+		if run.Length > 0 {
+			result = append(result, run.Ranges()...)
+		}
 	}
 	return result
 }
