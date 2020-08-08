@@ -1,8 +1,10 @@
 package parser
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/sebdah/goldie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,4 +85,37 @@ func TestReaderRanges(t *testing.T) {
 			testcase.input, 1024, nil, 16)
 		assert.Equal(t, testcase.out, runs.Ranges())
 	}
+}
+
+func TestMappedReaderRanges(t *testing.T) {
+	// Mapped reader contains two real runs with gaps:
+	// 0-100 sparse,
+	// 100-300 read,
+	// 300-500 sparse,
+	// 500-500 real  - last region is clipped because the mapping length ins 1000.
+	mapped_reader := &MappedReader{
+		FileOffset:   0,
+		TargetOffset: 0,
+		Length:       1000,
+		ClusterSize:  1000,
+		Reader: &RangeReader{
+			runs: []*MappedReader{
+				{
+					FileOffset:   100,
+					TargetOffset: 100,
+					ClusterSize:  1000,
+					Length:       200,
+				},
+				{
+					FileOffset:   500,
+					TargetOffset: 500,
+					ClusterSize:  1000,
+					Length:       1000,
+				},
+			},
+		},
+	}
+
+	result_json, _ := json.MarshalIndent(mapped_reader.Ranges(), " ", " ")
+	goldie.Assert(t, "TestMappedReaderRanges", result_json)
 }
