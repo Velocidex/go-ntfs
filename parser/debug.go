@@ -25,7 +25,7 @@ type Debugger interface {
 
 func DebugString(arg interface{}, indent string) string {
 	debugger, ok := arg.(Debugger)
-	if ok {
+	if debug && ok {
 		lines := strings.Split(debugger.DebugString(), "\n")
 		for idx, line := range lines {
 			lines[idx] = indent + line

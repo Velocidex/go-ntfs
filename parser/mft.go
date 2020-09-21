@@ -50,6 +50,53 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 	return result
 }
 
+// See https://github.com/CCXLabs/CCXDigger/issues/13
+
+// It is possible that an attribute list is pointing to an mft entry
+// which also contains an attribute list. The second attribute list
+// may also point to another entry inside the first MFT entry. This
+// causes an infinite loop.
+
+// Previous versions of the code erroneously called
+// EnumerateAttributes to resolve a foreign attribute reference but
+// this is not strictly correct because a foreign reference is never
+// indirect and so never should traverse ATTRIBUTE_LISTs recursively
+// anyway.
+
+// The GetDirectAttribute() function looks for an exact attribute and
+// type inside an MFT entry without following any attribute
+// lists. This breaks the recursion and is a more correct approach.
+
+// Search the MFT entry for a contained attribute - does not expand
+// ATTRIBUTE_LISTs. This version is suitable to be called from within
+// an ATTRIBUTE_LIST expansion.
+func (self *MFT_ENTRY) GetDirectAttribute(
+	ntfs *NTFSContext, attr_type uint64, attr_id uint16) (*NTFS_ATTRIBUTE, error) {
+	offset := int64(self.Attribute_offset())
+
+	for {
+		// Instantiate the attribute over the fixed up address space.
+		attribute := self.Profile.NTFS_ATTRIBUTE(self.Reader, offset)
+
+		// Reached the end of the MFT entry.
+		mft_size := int64(self.Mft_entry_size())
+		attribute_size := int64(attribute.Length())
+		if attribute_size == 0 ||
+			attribute_size+offset > mft_size {
+			break
+		}
+
+		if attribute.Type().Value == attr_type &&
+			attribute.Attribute_id() == attr_id {
+			return attribute, nil
+		}
+
+		// Go to the next attribute.
+		offset += int64(attribute.Length())
+	}
+	return nil, errors.New("No attribute found.")
+}
+
 // Open the MFT entry specified by a path name. Walks all directory
 // indexes in the path to find the right MFT entry.
 func (self *MFT_ENTRY) Open(ntfs *NTFSContext, filename string) (*MFT_ENTRY, error) {

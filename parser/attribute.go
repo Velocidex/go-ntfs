@@ -681,16 +681,18 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		attr_list_entry := self.Profile.ATTRIBUTE_LIST_ENTRY(
 			self.Reader, self.Offset+offset)
 
-		Printf("ATTRIBUTE_LIST_ENTRY %v\n",
-			attr_list_entry.DebugString())
+		Printf("%v ATTRIBUTE_LIST_ENTRY %v\n", mft_entry.Record_number(),
+			DebugString(attr_list_entry, ""))
 
 		// The attribute_list_entry points to a different MFT
 		// entry than the one we are working on now. We need
 		// to fetch it from there.
+		mft_ref := attr_list_entry.MftReference()
 		if ntfs.RootMFT != nil &&
-			attr_list_entry.MftReference() != uint64(mft_entry.Record_number()) {
+			mft_ref != uint64(mft_entry.Record_number()) {
 
-			Printf("Fetching from MFT Entry %v\n", attr_list_entry.MftReference())
+			Printf("While working on %v - Fetching from MFT Entry %v\n",
+				mft_entry.Record_number(), mft_ref)
 			attr, err := attr_list_entry.GetAttribute(ntfs)
 			if err != nil {
 				Printf("Error %v\n", err)
@@ -723,14 +725,13 @@ func (self *ATTRIBUTE_LIST_ENTRY) GetAttribute(
 	if err != nil {
 		return nil, err
 	}
-	for _, attr := range mft.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == uint64(mytype) &&
-			attr.Attribute_id() == uint16(myid) {
-			return attr, nil
-		}
+	res, err := mft.GetDirectAttribute(ntfs, mytype, uint16(myid))
+	if err != nil {
+		Printf("MFT %v not found in target\n", mft.Record_number())
+	} else {
+		Printf("Found %v\n", DebugString(res, "  "))
 	}
-
-	return nil, errors.New("No attribute found.")
+	return res, err
 }
 
 // The STANDARD_INDEX_HEADER has a second layer of fixups.
