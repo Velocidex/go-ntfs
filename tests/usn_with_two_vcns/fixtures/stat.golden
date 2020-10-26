@@ -1,0 +1,67 @@
+{
+  "FullPath": "$UsnJrnl",
+  "MFTID": 68310,
+  "Size": 6352113880,
+  "Allocated": true,
+  "IsDir": false,
+  "SI_Times": {
+   "CreateTime": "2017-06-15T01:05:51.5053972Z",
+   "FileModifiedTime": "2017-06-15T01:05:51.5053972Z",
+   "MFTModifiedTime": "2017-06-15T01:05:51.5053972Z",
+   "AccessedTime": "2017-06-15T01:05:51.5053972Z"
+  },
+  "Filenames": [
+   {
+    "Times": {
+     "CreateTime": "2017-06-15T01:05:51.5053972Z",
+     "FileModifiedTime": "2017-06-15T01:05:51.5053972Z",
+     "MFTModifiedTime": "2017-06-15T01:05:51.5053972Z",
+     "AccessedTime": "2017-06-15T01:05:51.5053972Z"
+    },
+    "Type": "POSIX",
+    "Name": "$UsnJrnl"
+   }
+  ],
+  "Attributes": [
+   {
+    "Type": "$STANDARD_INFORMATION",
+    "TypeId": 16,
+    "Id": 0,
+    "Inode": "68310-16-0",
+    "Size": 72,
+    "Name": ""
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 0,
+    "Inode": "68310-128-0",
+    "Size": 6352113880,
+    "Name": "$J"
+   },
+   {
+    "Type": "$ATTRIBUTE_LIST",
+    "TypeId": 32,
+    "Id": 8,
+    "Inode": "68310-32-8",
+    "Size": 168,
+    "Name": ""
+   },
+   {
+    "Type": "$FILE_NAME",
+    "TypeId": 48,
+    "Id": 1,
+    "Inode": "68310-48-1",
+    "Size": 82,
+    "Name": ""
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 142,
+    "Inode": "68310-128-142",
+    "Size": 32,
+    "Name": "$Max"
+   }
+  ]
+ }

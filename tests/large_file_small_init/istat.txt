@@ -1,0 +1,73 @@
+MFT Entry Header Values:
+Entry: 46        Sequence: 8
+$LogFile Sequence Number: 1204000289
+Allocated File
+Links: 2
+
+$STANDARD_INFORMATION Attribute Values:
+Flags: Archive
+Owner ID: 0
+Security ID: 717  (S-1-5-18)
+Last User Journal Update Sequence Number: 307421504
+Created:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+File Modified:	2020-10-25 04:42:16.132935200 (Pacific Daylight Time)
+MFT Modified:	2020-10-25 04:42:16.132935200 (Pacific Daylight Time)
+Accessed:	2020-10-25 04:42:16.132935200 (Pacific Daylight Time)
+
+$FILE_NAME Attribute Values:
+Flags: Archive
+Name: {02D4B~1.CRM
+Parent MFT Entry: 3178 	Sequence: 1
+Allocated Size: 0   	Actual Size: 0
+Created:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+File Modified:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+MFT Modified:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+Accessed:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+
+$FILE_NAME Attribute Values:
+Flags: Archive
+Name: {02D4B3F1-FD88-11D1-960D-00805FC79235}.{F85EE870-A618-4F0C-9A11-D3EA5053C054}.crmlog
+Parent MFT Entry: 3178 	Sequence: 1
+Allocated Size: 0   	Actual Size: 0
+Created:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+File Modified:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+MFT Modified:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+Accessed:	2020-10-25 04:42:16.117305500 (Pacific Daylight Time)
+
+Attributes: 
+Type: $STANDARD_INFORMATION (16-0)   Name: N/A   Resident   size: 72
+Type: $FILE_NAME (48-3)   Name: N/A   Resident   size: 90
+Type: $FILE_NAME (48-2)   Name: N/A   Resident   size: 234
+Type: $DATA (128-4)   Name: N/A   Non-Resident   size: 1048576  init_size: 4096
+69787 69788 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 

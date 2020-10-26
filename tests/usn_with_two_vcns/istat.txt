@@ -1,0 +1,106 @@
+MFT Entry Header Values:
+Entry: 68310        Sequence: 2
+$LogFile Sequence Number: 9630139543
+Allocated File
+Links: 1
+
+$STANDARD_INFORMATION Attribute Values:
+Flags: Hidden, System, Archive, Sparse
+Owner ID: 0
+Security ID: 257  (S-1-5-18)
+Created:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+File Modified:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+MFT Modified:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+Accessed:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+
+$FILE_NAME Attribute Values:
+Flags: Hidden, System, Archive
+Name: $UsnJrnl
+Parent MFT Entry: 11 	Sequence: 11
+Allocated Size: 0   	Actual Size: 0
+Created:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+File Modified:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+MFT Modified:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+Accessed:	2017-06-15 11:05:51.505397200 (AUS Eastern Standard Time)
+
+$ATTRIBUTE_LIST Attribute Values:
+Type: 16-0 	MFT Entry: 68310 	VCN: 0
+Type: 48-1 	MFT Entry: 68310 	VCN: 0
+Type: 128-0 	MFT Entry: 205870 	VCN: 0
+Type: 128-0 	MFT Entry: 230981 	VCN: 44544
+Type: 128-142 	MFT Entry: 68310 	VCN: 0
+
+Attributes: 
+Type: $STANDARD_INFORMATION (16-0)   Name: N/A   Resident   size: 72
+Type: $ATTRIBUTE_LIST (32-8)   Name: N/A   Resident   size: 168
+Type: $FILE_NAME (48-1)   Name: N/A   Resident   size: 82
+Type: $DATA (128-142)   Name: $Max   Resident   size: 32
+Type: $DATA (128-143)   Name: $J   Non-Resident, Sparse   size: 6352128616  init_size: 6352128616
+  Starting address: X, length: 44544  Sparse
+  Starting address: X, length: 1496432  Sparse
+  Starting address: 6815248, length: 18  
+  Starting address: 6700438, length: 80  
+  Starting address: 7241728, length: 112  
+  Starting address: 1247560, length: 168  
+  Starting address: 6403674, length: 90  
+  Starting address: 395692, length: 124  
+  Starting address: 1397172, length: 128  
+  Starting address: 4832524, length: 180  
+  Starting address: 6729020, length: 78  
+  Starting address: 6943248, length: 126  
+  Starting address: 10366380, length: 128  
+  Starting address: 10620074, length: 128  
+  Starting address: 8441520, length: 128  
+  Starting address: 8455164, length: 128  
+  Starting address: 10161476, length: 128  
+  Starting address: 11824283, length: 329  
+  Starting address: 5655540, length: 55  
+  Starting address: 7280528, length: 128  
+  Starting address: 10305592, length: 128  
+  Starting address: 7170396, length: 128  
+  Starting address: 8668822, length: 128  
+  Starting address: 8455020, length: 128  
+  Starting address: 9333842, length: 128  
+  Starting address: 7332290, length: 128  
+  Starting address: 11242485, length: 128  
+  Starting address: 8486600, length: 160  
+  Starting address: 7776836, length: 96  
+  Starting address: 4039352, length: 128  
+  Starting address: 4032904, length: 128  
+  Starting address: 3844536, length: 128  
+  Starting address: 3725528, length: 128  
+  Starting address: 4504800, length: 171  
+  Starting address: 8422350, length: 85  
+  Starting address: 7191892, length: 128  
+  Starting address: 9370577, length: 128  
+  Starting address: 7757580, length: 128  
+  Starting address: 7300285, length: 128  
+  Starting address: 4375191, length: 309  
+  Starting address: 7241902, length: 78  
+  Starting address: 8588853, length: 125  
+  Starting address: 11393496, length: 136  
+  Starting address: 7165883, length: 121  
+  Starting address: 7036895, length: 255  
+  Starting address: 4826968, length: 128  
+  Starting address: 3946604, length: 1280  
+  Starting address: 11469896, length: 148  
+  Starting address: 7042460, length: 110  
+  Starting address: 6298386, length: 128  
+  Starting address: 11331662, length: 130  
+  Starting address: 5751372, length: 125  
+  Starting address: 7042593, length: 159  
+  Starting address: 4445308, length: 140  
+  Starting address: 7757484, length: 96  
+  Starting address: 10369787, length: 117  
+  Starting address: 3998421, length: 139  
+  Starting address: 2570938, length: 118  
+  Starting address: 1391152, length: 128  
+  Starting address: 4097876, length: 128  
+  Starting address: 4793156, length: 128  
+  Starting address: 5117240, length: 126  
+  Starting address: 5225660, length: 128  
+  Starting address: 4260016, length: 288  
+  Starting address: 4838210, length: 96  
+  Starting address: 4122104, length: 128  
+  Starting address: 3145508, length: 128  
+  Starting address: 2706080, length: 29  

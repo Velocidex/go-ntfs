@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 	"www.velocidex.com/golang/go-ntfs/parser"
@@ -10,6 +11,10 @@ import (
 var (
 	runs_command = app.Command(
 		"runs", "Display sparse runs.")
+
+	record_directory = app.Flag(
+		"record", "Path to read/write recorded data").
+		Default("").String()
 
 	runs_command_file_arg = runs_command.Arg(
 		"file", "The image file to inspect",
@@ -20,8 +25,19 @@ var (
 	).Default("/").String()
 )
 
+func getReader(reader io.ReaderAt) io.ReaderAt {
+	if *record_directory == "" {
+		return reader
+	}
+
+	// Create a recorder
+	parser.Printf("Will record to dir %v\n", *record_directory)
+	return parser.NewRecorder(*record_directory, reader)
+}
+
 func doRuns() {
-	reader, _ := parser.NewPagedReader(*runs_command_file_arg, 1024, 10000)
+	reader, _ := parser.NewPagedReader(
+		getReader(*runs_command_file_arg), 1024, 10000)
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
@@ -41,7 +57,8 @@ func doRuns() {
 	fmt.Println(parser.DebugString(data, ""))
 
 	for _, rng := range data.Ranges() {
-		fmt.Printf("Range %v-%v sparse %v\n", rng.Offset, rng.Length, rng.IsSparse)
+		fmt.Printf("Range %v-%v sparse %v\n",
+			rng.Offset, rng.Offset+rng.Length, rng.IsSparse)
 	}
 
 }

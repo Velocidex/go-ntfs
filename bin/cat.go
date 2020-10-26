@@ -30,7 +30,8 @@ var (
 )
 
 func doCAT() {
-	reader, _ := parser.NewPagedReader(*cat_command_file_arg, 1024, 10000)
+	reader, _ := parser.NewPagedReader(
+		getReader(*cat_command_file_arg), 1024, 10000)
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
