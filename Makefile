@@ -4,7 +4,7 @@ all:
 
 windows:
 	GOOS=windows GOARCH=amd64 \
-            go build \
+            go build -ldflags="-s -w" \
 	    -o ntfs.exe ./bin/*.go
 
 generate:

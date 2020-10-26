@@ -250,9 +250,10 @@ func (self *MappedReader) ReadAt(buff []byte, off int64) (int, error) {
 }
 
 func (self MappedReader) DebugString() string {
-	return fmt.Sprintf("Mapping %v -> %v with %T\n%v",
+	return fmt.Sprintf("Mapping %v -> %v (length %v) with %T\n%v",
 		self.FileOffset*self.ClusterSize,
 		self.Length*self.ClusterSize+self.FileOffset*self.ClusterSize,
+		self.Length*self.ClusterSize,
 		self.Reader, DebugString(self.Reader, "  "))
 }
 

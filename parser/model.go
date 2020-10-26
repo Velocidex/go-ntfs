@@ -86,6 +86,12 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 			result.Size = attr.DataSize()
 		}
 
+		// Only show the first VCN - additional VCN are just
+		// part of the original stream.
+		if !attr.IsResident() && attr.Runlist_vcn_start() != 0 {
+			continue
+		}
+
 		result.Attributes = append(result.Attributes, &Attribute{
 			Type:   attr_type.Name,
 			TypeId: attr_type.Value,

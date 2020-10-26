@@ -12,9 +12,6 @@ var (
 	stat_command = app.Command(
 		"stat", "inspect the boot record.")
 
-	stat_command_detailed = stat_command.Flag(
-		"verbose", "Show verbose information").Bool()
-
 	stat_command_i30 = stat_command.Flag(
 		"i30", "Carve out $I30 entries").Bool()
 
@@ -28,7 +25,8 @@ var (
 )
 
 func doSTAT() {
-	reader, _ := parser.NewPagedReader(*stat_command_file_arg, 1024, 10000)
+	reader, _ := parser.NewPagedReader(
+		getReader(*stat_command_file_arg), 1024, 10000)
 
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
@@ -36,7 +34,7 @@ func doSTAT() {
 	mft_entry, err := GetMFTEntry(ntfs_ctx, *stat_command_arg)
 	kingpin.FatalIfError(err, "Can not open path")
 
-	if *stat_command_detailed {
+	if *verbose_flag {
 		fmt.Println(mft_entry.Display(ntfs_ctx))
 
 	} else {

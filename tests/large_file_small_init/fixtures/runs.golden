@@ -1,0 +1,18 @@
+Will record to dir large_file_small_init
+Cache miss for 0 (400) (0)
+Cache miss for c0000000 (400) (1)
+Cache miss for c000b800 (400) (2)
+RangeReader with 2 runs:
+Run 0 (*parser.MappedReader):
+  Mapping 0 -> 4096 (length 4096) with *parser.RangeReader
+    RangeReader with 1 runs:
+    Run 0 (*parser.MappedReader):
+      Mapping 0 -> 1048576 (length 1048576) with *parser.PagedReader
+      
+    
+Run 1 (*parser.MappedReader):
+  Mapping 4096 -> 1048576 (length 1044480) with *parser.NullReader
+  
+
+Range 0-4096 sparse false
+Range 4096-1048576 sparse true

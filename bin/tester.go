@@ -19,10 +19,22 @@ var (
 	test_command_file_arg = test_command.Arg(
 		"file", "The image file to inspect",
 	).Required().File()
+
+	test_command_icat_path = test_command.Flag(
+		"icat_path", "Path to the icat binary").
+		Default("icat").String()
+
+	test_command_start_id = test_command.Flag(
+		"start", "First MFT ID to test").Default("0").Int64()
+
+	test_command_max_size = test_command.Flag(
+		"max_size", "Skip testing files of this size").
+		Default("104857600").Int64()
 )
 
 func calcHashWithTSK(inode string) (string, int64, error) {
-	command := exec.Command("icat", (*test_command_file_arg).Name(), inode)
+	command := exec.Command(*test_command_icat_path,
+		(*test_command_file_arg).Name(), inode)
 	stdout_pipe, err := command.StdoutPipe()
 	if err != nil {
 		return "", 0, err
@@ -74,7 +86,7 @@ func doTest() {
 
 	buffer := make([]byte, 1024*1024)
 
-	for i := int64(0); i < parser.RangeSize(mft_stream)/ntfs_ctx.RecordSize; i++ {
+	for i := int64(*test_command_start_id); i < parser.RangeSize(mft_stream)/ntfs_ctx.RecordSize; i++ {
 		mft_entry, err := ntfs_ctx.GetMFT(i)
 		if err != nil {
 			continue
@@ -97,7 +109,7 @@ func doTest() {
 			}
 
 			size := parser.RangeSize(reader)
-			if size > 100*1024*1024 {
+			if size > *test_command_max_size {
 				continue
 			}
 

@@ -25,7 +25,7 @@ type Debugger interface {
 
 func DebugString(arg interface{}, indent string) string {
 	debugger, ok := arg.(Debugger)
-	if debug && ok {
+	if NTFS_DEBUG != nil && *NTFS_DEBUG && ok {
 		lines := strings.Split(debugger.DebugString(), "\n")
 		for idx, line := range lines {
 			lines[idx] = indent + line
@@ -37,7 +37,7 @@ func DebugString(arg interface{}, indent string) string {
 }
 
 func Printf(fmt_str string, args ...interface{}) {
-	if debug {
+	if NTFS_DEBUG != nil && *NTFS_DEBUG {
 		fmt.Printf(fmt_str, args...)
 	}
 }
@@ -48,12 +48,18 @@ func LZNT1Printf(fmt_str string, args ...interface{}) {
 	}
 }
 
+// Turns on debugging programmatically
+func SetDebug() {
+	yes := true
+	NTFS_DEBUG = &yes
+}
+
 func DebugPrint(fmt_str string, v ...interface{}) {
 	if NTFS_DEBUG == nil {
 		// os.Environ() seems very expensive in Go so we cache
 		// it.
 		for _, x := range os.Environ() {
-			if strings.HasPrefix(x, "NTFS_DEBUG=") {
+			if strings.HasPrefix(x, "NTFS_DEBUG=1") {
 				value := true
 				NTFS_DEBUG = &value
 				break

@@ -12,6 +12,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.3 // indirect
 	github.com/olekukonko/tablewriter v0.0.0-20180912035003-be2c049b30cc
 	github.com/sebdah/goldie v0.0.0-20180424091453-8784dd1ab561
+	github.com/sebdah/goldie/v2 v2.5.1
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
