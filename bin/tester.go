@@ -30,6 +30,10 @@ var (
 	test_command_max_size = test_command.Flag(
 		"max_size", "Skip testing files of this size").
 		Default("104857600").Int64()
+
+	test_command_min_size = test_command.Flag(
+		"min_size", "Skip testing files smaller then this size").
+		Default("1024").Int64()
 )
 
 func calcHashWithTSK(inode string) (string, int64, error) {
@@ -109,7 +113,8 @@ func doTest() {
 			}
 
 			size := parser.RangeSize(reader)
-			if size > *test_command_max_size {
+			if size > *test_command_max_size ||
+				size < *test_command_min_size {
 				continue
 			}
 

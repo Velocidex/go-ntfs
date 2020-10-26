@@ -18,4 +18,5 @@ jobs:
 
     - name: Test
       run: |
+        make
         go test -v ./...
