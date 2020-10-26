@@ -96,6 +96,7 @@ func (self *NTFSTestSuite) TestUSNWith2VCNs() {
 	// Make sure we write the right length of data.
 	cmd = exec.Command(self.binary, "--record", record_dir,
 		"stat", self.binary, "68310")
+	cmd.Env = append(os.Environ(), "TZ=Z")
 	out, err = cmd.CombinedOutput()
 	assert.NoError(self.T(), err)
 	g.Assert(self.T(), "stat", out)

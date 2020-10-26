@@ -5,18 +5,18 @@
   "Allocated": true,
   "IsDir": false,
   "SI_Times": {
-   "CreateTime": "2017-06-15T11:05:51.5053972+10:00",
-   "FileModifiedTime": "2017-06-15T11:05:51.5053972+10:00",
-   "MFTModifiedTime": "2017-06-15T11:05:51.5053972+10:00",
-   "AccessedTime": "2017-06-15T11:05:51.5053972+10:00"
+   "CreateTime": "2017-06-15T01:05:51.5053972Z",
+   "FileModifiedTime": "2017-06-15T01:05:51.5053972Z",
+   "MFTModifiedTime": "2017-06-15T01:05:51.5053972Z",
+   "AccessedTime": "2017-06-15T01:05:51.5053972Z"
   },
   "Filenames": [
    {
     "Times": {
-     "CreateTime": "2017-06-15T11:05:51.5053972+10:00",
-     "FileModifiedTime": "2017-06-15T11:05:51.5053972+10:00",
-     "MFTModifiedTime": "2017-06-15T11:05:51.5053972+10:00",
-     "AccessedTime": "2017-06-15T11:05:51.5053972+10:00"
+     "CreateTime": "2017-06-15T01:05:51.5053972Z",
+     "FileModifiedTime": "2017-06-15T01:05:51.5053972Z",
+     "MFTModifiedTime": "2017-06-15T01:05:51.5053972Z",
+     "AccessedTime": "2017-06-15T01:05:51.5053972Z"
     },
     "Type": "POSIX",
     "Name": "$UsnJrnl"
