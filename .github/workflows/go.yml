@@ -19,4 +19,11 @@ jobs:
     - name: Test
       run: |
         make
+        make windows
         go test -v ./...
+
+    - name: StoreBinaries
+      uses: actions/upload-artifact@v2
+      with:
+        name: Binaries
+        path: ntfs*
