@@ -8,8 +8,6 @@ import (
 	"path"
 	"strings"
 	"time"
-
-	lru "github.com/hashicorp/golang-lru"
 )
 
 func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE {
@@ -319,7 +317,6 @@ func ParseMFTFile(
 	go func() {
 		defer close(output)
 
-		cache, _ := lru.New(1000)
 		ntfs := &NTFSContext{
 			DiskReader:  &NullReader{},
 			Profile:     NewNTFSProfile(),
@@ -363,8 +360,7 @@ func ParseMFTFile(
 				continue
 			}
 
-			full_path, err := getFullPathWithCache(ntfs, mft_entry,
-				file_names, cache)
+			full_path, err := getFullPathWithCache(ntfs, mft_entry, file_names)
 			if err != nil {
 				continue
 			}
@@ -405,8 +401,7 @@ func ParseMFTFile(
 
 func getFullPathWithCache(ntfs *NTFSContext,
 	mft_entry *MFT_ENTRY,
-	file_names []*FILE_NAME,
-	cache *lru.Cache) (string, error) {
+	file_names []*FILE_NAME) (string, error) {
 	var full_path string
 
 	id := mft_entry.Record_number()
@@ -415,7 +410,7 @@ func getFullPathWithCache(ntfs *NTFSContext,
 
 	// Get the parents full path from cache if possible
 	parent_mft_id := int64(file_names[0].MftReference())
-	full_path_any, pres := cache.Get(parent_mft_id)
+	full_path_any, pres := ntfs.lru.Get(int(parent_mft_id))
 	if !pres {
 		parent_mft_entry, err := ntfs.GetMFT(parent_mft_id)
 		if err != nil {
@@ -427,7 +422,7 @@ func getFullPathWithCache(ntfs *NTFSContext,
 		if err != nil {
 			full_path = "<unknown>"
 		}
-		cache.Add(parent_mft_id, full_path)
+		ntfs.lru.Add(int(parent_mft_id), full_path)
 	} else {
 		full_path = full_path_any.(string)
 	}

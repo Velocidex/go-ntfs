@@ -77,6 +77,10 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 	}
 }
 
+func (self *PagedReader) Flush() {
+	self.lru.Purge()
+}
+
 func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedReader, error) {
 	// By default 10mb cache.
 	cache, err := NewLRU(cache_size, nil)
@@ -89,4 +93,9 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 		pagesize: pagesize,
 		lru:      cache,
 	}, nil
+}
+
+// Invalidate the disk cache
+type Flusher interface {
+	Flush()
 }

@@ -21,8 +21,8 @@ var (
 	).Required().File()
 
 	runs_command_arg = runs_command.Arg(
-		"path", "The path to extract to an MFT entry.",
-	).Default("/").String()
+		"mft_id", "An inode in MFT notation e.g. 43-128-0.",
+	).Required().String()
 )
 
 func getReader(reader io.ReaderAt) io.ReaderAt {
@@ -43,9 +43,7 @@ func doRuns() {
 
 	// Access by mft id (e.g. 1234-128-6)
 	mft_id, attr_type, attr_id, err := parser.ParseMFTId(*runs_command_arg)
-	if err != nil {
-		attr_type = 128 // $DATA
-	}
+	kingpin.FatalIfError(err, "Can not ParseMFTId")
 
 	mft_entry, err := ntfs_ctx.GetMFT(mft_id)
 	kingpin.FatalIfError(err, "Can not open path")
