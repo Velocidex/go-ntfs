@@ -141,6 +141,21 @@ type NTFSProfile struct {
     Off_STANDARD_INFORMATION_Sid int64
     Off_STANDARD_INFORMATION_Quota int64
     Off_STANDARD_INFORMATION_Usn int64
+    Off_USN_RECORD_V2_RecordLength int64
+    Off_USN_RECORD_V2_MajorVersion int64
+    Off_USN_RECORD_V2_MinorVersion int64
+    Off_USN_RECORD_V2_FileReferenceNumberSequence int64
+    Off_USN_RECORD_V2_FileReferenceNumberID int64
+    Off_USN_RECORD_V2_ParentFileReferenceNumberSequence int64
+    Off_USN_RECORD_V2_ParentFileReferenceNumberID int64
+    Off_USN_RECORD_V2_Usn int64
+    Off_USN_RECORD_V2_TimeStamp int64
+    Off_USN_RECORD_V2_Reason int64
+    Off_USN_RECORD_V2_SourceInfo int64
+    Off_USN_RECORD_V2_SecurityId int64
+    Off_USN_RECORD_V2_FileAttributes int64
+    Off_USN_RECORD_V2_FileNameLength int64
+    Off_USN_RECORD_V2_FileNameOffset int64
     Off_VSS_CATALOG_ENTRY_1_EntryType int64
     Off_VSS_CATALOG_ENTRY_2_EntryType int64
     Off_VSS_CATALOG_ENTRY_2_VolumeSize int64
@@ -184,7 +199,7 @@ type NTFSProfile struct {
 
 func NewNTFSProfile() *NTFSProfile {
     // Specific offsets can be tweaked to cater for slight version mismatches.
-    self := &NTFSProfile{0,4,6,7,8,16,24,0,6,8,16,24,32,40,48,56,60,64,65,66,0,4,6,8,0,4,8,0,6,8,10,12,16,0,4,8,12,16,0,4,6,8,16,18,20,22,24,28,32,40,44,0,4,8,9,10,12,14,16,20,16,24,32,34,40,48,56,3,11,13,40,48,56,64,68,72,510,0,4,8,9,10,14,16,20,0,4,6,8,16,24,0,8,16,24,32,36,40,44,48,52,56,64,0,0,8,16,48,0,8,16,32,40,48,56,64,72,0,16,20,24,32,40,0,16,20,24,32,40,48,16,32,48,56,0,16,20,24,48,56,64,80}
+    self := &NTFSProfile{0,4,6,7,8,16,24,0,6,8,16,24,32,40,48,56,60,64,65,66,0,4,6,8,0,4,8,0,6,8,10,12,16,0,4,8,12,16,0,4,6,8,16,18,20,22,24,28,32,40,44,0,4,8,9,10,12,14,16,20,16,24,32,34,40,48,56,3,11,13,40,48,56,64,68,72,510,0,4,8,9,10,14,16,20,0,4,6,8,16,24,0,8,16,24,32,36,40,44,48,52,56,64,0,4,6,8,8,16,16,24,32,40,44,48,52,56,58,0,0,8,16,48,0,8,16,32,40,48,56,64,72,0,16,20,24,32,40,0,16,20,24,32,40,48,16,32,48,56,0,16,20,24,48,56,64,80}
     return self
 }
 
@@ -234,6 +249,10 @@ func (self *NTFSProfile) STANDARD_INDEX_HEADER(reader io.ReaderAt, offset int64)
 
 func (self *NTFSProfile) STANDARD_INFORMATION(reader io.ReaderAt, offset int64) *STANDARD_INFORMATION {
     return &STANDARD_INFORMATION{Reader: reader, Offset: offset, Profile: self}
+}
+
+func (self *NTFSProfile) USN_RECORD_V2(reader io.ReaderAt, offset int64) *USN_RECORD_V2 {
+    return &USN_RECORD_V2{Reader: reader, Offset: offset, Profile: self}
 }
 
 func (self *NTFSProfile) VSS_CATALOG_ENTRY_1(reader io.ReaderAt, offset int64) *VSS_CATALOG_ENTRY_1 {
@@ -363,16 +382,8 @@ func (self *FILE_NAME) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 2 != 0 {
-      names["HIDDEN"] = true
-   }
-
-   if value & 4 != 0 {
-      names["SYSTEM"] = true
-   }
-
-   if value & 512 != 0 {
-      names["SPARSE"] = true
+   if value & 1024 != 0 {
+      names["REPARSE_POINT"] = true
    }
 
    if value & 4096 != 0 {
@@ -383,24 +394,36 @@ func (self *FILE_NAME) Flags() *Flags {
       names["READ_ONLY"] = true
    }
 
-   if value & 32 != 0 {
-      names["ARCHIVE"] = true
+   if value & 4 != 0 {
+      names["SYSTEM"] = true
    }
 
    if value & 64 != 0 {
       names["DEVICE"] = true
    }
 
-   if value & 128 != 0 {
-      names["NORMAL"] = true
-   }
-
    if value & 256 != 0 {
       names["TEMPORARY"] = true
    }
 
-   if value & 1024 != 0 {
-      names["REPARSE_POINT"] = true
+   if value & 512 != 0 {
+      names["SPARSE"] = true
+   }
+
+   if value & 16384 != 0 {
+      names["ENCRYPTED"] = true
+   }
+
+   if value & 2 != 0 {
+      names["HIDDEN"] = true
+   }
+
+   if value & 32 != 0 {
+      names["ARCHIVE"] = true
+   }
+
+   if value & 128 != 0 {
+      names["NORMAL"] = true
    }
 
    if value & 2048 != 0 {
@@ -409,10 +432,6 @@ func (self *FILE_NAME) Flags() *Flags {
 
    if value & 8192 != 0 {
       names["NOT_INDEXED"] = true
-   }
-
-   if value & 16384 != 0 {
-      names["ENCRYPTED"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1132,32 +1151,8 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 4 != 0 {
-      names["SYSTEM"] = true
-   }
-
-   if value & 8192 != 0 {
-      names["NOT_INDEXED"] = true
-   }
-
-   if value & 16384 != 0 {
-      names["ENCRYPTED"] = true
-   }
-
-   if value & 256 != 0 {
-      names["TEMPORARY"] = true
-   }
-
-   if value & 512 != 0 {
-      names["SPARSE"] = true
-   }
-
-   if value & 1024 != 0 {
-      names["REPARSE_POINT"] = true
-   }
-
-   if value & 1 != 0 {
-      names["READ_ONLY"] = true
+   if value & 4096 != 0 {
+      names["OFFLINE"] = true
    }
 
    if value & 2 != 0 {
@@ -1176,12 +1171,36 @@ func (self *STANDARD_INFORMATION) Flags() *Flags {
       names["NORMAL"] = true
    }
 
+   if value & 256 != 0 {
+      names["TEMPORARY"] = true
+   }
+
+   if value & 1024 != 0 {
+      names["REPARSE_POINT"] = true
+   }
+
    if value & 2048 != 0 {
       names["COMPRESSED"] = true
    }
 
-   if value & 4096 != 0 {
-      names["OFFLINE"] = true
+   if value & 8192 != 0 {
+      names["NOT_INDEXED"] = true
+   }
+
+   if value & 16384 != 0 {
+      names["ENCRYPTED"] = true
+   }
+
+   if value & 1 != 0 {
+      names["READ_ONLY"] = true
+   }
+
+   if value & 4 != 0 {
+      names["SYSTEM"] = true
+   }
+
+   if value & 512 != 0 {
+      names["SPARSE"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1229,6 +1248,278 @@ func (self *STANDARD_INFORMATION) DebugString() string {
     result += fmt.Sprintf("  Sid: %#0x\n", self.Sid())
     result += fmt.Sprintf("  Quota: %#0x\n", self.Quota())
     result += fmt.Sprintf("  Usn: %#0x\n", self.Usn())
+    return result
+}
+
+type USN_RECORD_V2 struct {
+    Reader io.ReaderAt
+    Offset int64
+    Profile *NTFSProfile
+}
+
+func (self *USN_RECORD_V2) Size() int {
+    return 4
+}
+
+func (self *USN_RECORD_V2) RecordLength() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_USN_RECORD_V2_RecordLength + self.Offset)
+}
+
+func (self *USN_RECORD_V2) MajorVersion() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_USN_RECORD_V2_MajorVersion + self.Offset)
+}
+
+func (self *USN_RECORD_V2) MinorVersion() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_USN_RECORD_V2_MinorVersion + self.Offset)
+}
+
+func (self *USN_RECORD_V2) FileReferenceNumberSequence() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_USN_RECORD_V2_FileReferenceNumberSequence + self.Offset)
+   return (uint64(value) & 0x7fffffffffffffff) >> 0x30
+}
+
+func (self *USN_RECORD_V2) FileReferenceNumberID() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_USN_RECORD_V2_FileReferenceNumberID + self.Offset)
+   return (uint64(value) & 0xffffffffffff) >> 0x0
+}
+
+func (self *USN_RECORD_V2) ParentFileReferenceNumberSequence() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_USN_RECORD_V2_ParentFileReferenceNumberSequence + self.Offset)
+   return (uint64(value) & 0x7fffffffffffffff) >> 0x30
+}
+
+func (self *USN_RECORD_V2) ParentFileReferenceNumberID() uint64 {
+   value := ParseUint64(self.Reader, self.Profile.Off_USN_RECORD_V2_ParentFileReferenceNumberID + self.Offset)
+   return (uint64(value) & 0xffffffffffff) >> 0x0
+}
+
+func (self *USN_RECORD_V2) Usn() uint64 {
+    return ParseUint64(self.Reader, self.Profile.Off_USN_RECORD_V2_Usn + self.Offset)
+}
+
+func (self *USN_RECORD_V2) TimeStamp() *WinFileTime {
+    return self.Profile.WinFileTime(self.Reader, self.Profile.Off_USN_RECORD_V2_TimeStamp + self.Offset)
+}
+
+func (self *USN_RECORD_V2) Reason() *Flags {
+   value := ParseUint32(self.Reader, self.Profile.Off_USN_RECORD_V2_Reason + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & (1 << 1) != 0 {
+      names["DATA_EXTEND"] = true
+   }
+
+   if value & (1 << 10) != 0 {
+      names["EA_CHANGE"] = true
+   }
+
+   if value & (1 << 6) != 0 {
+      names["NAMED_DATA_TRUNCATION"] = true
+   }
+
+   if value & (1 << 8) != 0 {
+      names["FILE_CREATE"] = true
+   }
+
+   if value & (1 << 13) != 0 {
+      names["RENAME_NEW_NAME"] = true
+   }
+
+   if value & (1 << 17) != 0 {
+      names["COMPRESSION_CHANGE"] = true
+   }
+
+   if value & (1 << 2) != 0 {
+      names["DATA_TRUNCATION"] = true
+   }
+
+   if value & (1 << 4) != 0 {
+      names["NAMED_DATA_OVERWRITE"] = true
+   }
+
+   if value & (1 << 15) != 0 {
+      names["BASIC_INFO_CHANGE"] = true
+   }
+
+   if value & (1 << 20) != 0 {
+      names["REPARSE_POINT_CHANGE"] = true
+   }
+
+   if value & (1 << 31) != 0 {
+      names["CLOSE"] = true
+   }
+
+   if value & (1 << 5) != 0 {
+      names["NAMED_DATA_EXTEND"] = true
+   }
+
+   if value & (1 << 12) != 0 {
+      names["RENAME_OLD_NAME"] = true
+   }
+
+   if value & (1 << 11) != 0 {
+      names["SECURITY_CHANGE"] = true
+   }
+
+   if value & (1 << 14) != 0 {
+      names["INDEXABLE_CHANGE"] = true
+   }
+
+   if value & (1 << 16) != 0 {
+      names["HARD_LINK_CHANGE"] = true
+   }
+
+   if value & (1 << 18) != 0 {
+      names["ENCRYPTION_CHANGE"] = true
+   }
+
+   if value & (1 << 19) != 0 {
+      names["OBJECT_ID_CHANGE"] = true
+   }
+
+   if value & (1 << 21) != 0 {
+      names["STREAM_CHANGE"] = true
+   }
+
+   if value & (1 << 0) != 0 {
+      names["DATA_OVERWRITE"] = true
+   }
+
+   if value & (1 << 9) != 0 {
+      names["FILE_DELETE"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
+
+func (self *USN_RECORD_V2) SourceInfo() *Flags {
+   value := ParseUint32(self.Reader, self.Profile.Off_USN_RECORD_V2_SourceInfo + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & (1 << 1) != 0 {
+      names["AUXILIARY_DATA"] = true
+   }
+
+   if value & (1 << 2) != 0 {
+      names["REPLICATION_MANAGEMENT"] = true
+   }
+
+   if value & (1 << 0) != 0 {
+      names["DATA_MANAGEMENT"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
+
+func (self *USN_RECORD_V2) SecurityId() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_USN_RECORD_V2_SecurityId + self.Offset)
+}
+
+func (self *USN_RECORD_V2) FileAttributes() *Flags {
+   value := ParseUint32(self.Reader, self.Profile.Off_USN_RECORD_V2_FileAttributes + self.Offset)
+   names := make(map[string]bool)
+
+
+   if value & (1 << 7) != 0 {
+      names["NORMAL"] = true
+   }
+
+   if value & (1 << 13) != 0 {
+      names["NOT_CONTENT_INDEXED"] = true
+   }
+
+   if value & (1 << 15) != 0 {
+      names["INTEGRITY_STREAM"] = true
+   }
+
+   if value & (1 << 0) != 0 {
+      names["READONLY"] = true
+   }
+
+   if value & (1 << 2) != 0 {
+      names["SYSTEM"] = true
+   }
+
+   if value & (1 << 4) != 0 {
+      names["DIRECTORY"] = true
+   }
+
+   if value & (1 << 5) != 0 {
+      names["ARCHIVE"] = true
+   }
+
+   if value & (1 << 10) != 0 {
+      names["REPARSE_POINT"] = true
+   }
+
+   if value & (1 << 11) != 0 {
+      names["COMPRESSED"] = true
+   }
+
+   if value & (1 << 14) != 0 {
+      names["ENCRYPTED"] = true
+   }
+
+   if value & (1 << 12) != 0 {
+      names["OFFLINE"] = true
+   }
+
+   if value & (1 << 16) != 0 {
+      names["VIRTUAL"] = true
+   }
+
+   if value & (1 << 1) != 0 {
+      names["HIDDEN"] = true
+   }
+
+   if value & (1 << 6) != 0 {
+      names["DEVICE"] = true
+   }
+
+   if value & (1 << 8) != 0 {
+      names["TEMPORARY"] = true
+   }
+
+   if value & (1 << 9) != 0 {
+      names["SPARSE_FILE"] = true
+   }
+
+   if value & (1 << 17) != 0 {
+      names["NO_SCRUB_DATA"] = true
+   }
+
+   return &Flags{Value: uint64(value), Names: names}
+}
+
+
+func (self *USN_RECORD_V2) FileNameLength() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_USN_RECORD_V2_FileNameLength + self.Offset)
+}
+
+func (self *USN_RECORD_V2) FileNameOffset() uint16 {
+   return ParseUint16(self.Reader, self.Profile.Off_USN_RECORD_V2_FileNameOffset + self.Offset)
+}
+func (self *USN_RECORD_V2) DebugString() string {
+    result := fmt.Sprintf("struct USN_RECORD_V2 @ %#x:\n", self.Offset)
+    result += fmt.Sprintf("  RecordLength: %#0x\n", self.RecordLength())
+    result += fmt.Sprintf("  MajorVersion: %#0x\n", self.MajorVersion())
+    result += fmt.Sprintf("  MinorVersion: %#0x\n", self.MinorVersion())
+    result += fmt.Sprintf("  FileReferenceNumberSequence: %#0x\n", self.FileReferenceNumberSequence())
+    result += fmt.Sprintf("  FileReferenceNumberID: %#0x\n", self.FileReferenceNumberID())
+    result += fmt.Sprintf("  ParentFileReferenceNumberSequence: %#0x\n", self.ParentFileReferenceNumberSequence())
+    result += fmt.Sprintf("  ParentFileReferenceNumberID: %#0x\n", self.ParentFileReferenceNumberID())
+    result += fmt.Sprintf("  Usn: %#0x\n", self.Usn())
+    result += fmt.Sprintf("  TimeStamp: {\n%v}\n", indent(self.TimeStamp().DebugString()))
+    result += fmt.Sprintf("  Reason: %v\n", self.Reason().DebugString())
+    result += fmt.Sprintf("  SourceInfo: %v\n", self.SourceInfo().DebugString())
+    result += fmt.Sprintf("  SecurityId: %#0x\n", self.SecurityId())
+    result += fmt.Sprintf("  FileAttributes: %v\n", self.FileAttributes().DebugString())
+    result += fmt.Sprintf("  FileNameLength: %#0x\n", self.FileNameLength())
+    result += fmt.Sprintf("  FileNameOffset: %#0x\n", self.FileNameOffset())
     return result
 }
 
@@ -1487,20 +1778,28 @@ func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
    names := make(map[string]bool)
 
 
-   if value & 1 != 0 {
-      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
+   if value & 8388608 != 0 {
+      names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
    }
 
-   if value & 2097152 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
+   if value & 2 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTORECOVERY"] = true
    }
 
-   if value & 16777216 != 0 {
-      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   if value & 4 != 0 {
+      names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
+   }
+
+   if value & 16 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
    }
 
    if value & 64 != 0 {
       names["VSS_VOLSNAP_ATTR_NOT_SURFACED"] = true
+   }
+
+   if value & 128 != 0 {
+      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
    }
 
    if value & 131072 != 0 {
@@ -1511,40 +1810,32 @@ func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
       names["VSS_VOLSNAP_ATTR_PLEX"] = true
    }
 
-   if value & 1048576 != 0 {
-      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
-   }
-
-   if value & 128 != 0 {
-      names["VSS_VOLSNAP_ATTR_NOT_TRANSACTED"] = true
-   }
-
-   if value & 4194304 != 0 {
-      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
-   }
-
-   if value & 2 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_AUTORECOVERY"] = true
-   }
-
-   if value & 8 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
-   }
-
-   if value & 16 != 0 {
-      names["VSS_VOLSNAP_ATTR_NO_WRITERS"] = true
+   if value & 1 != 0 {
+      names["VSS_VOLSNAP_ATTR_PERSISTENT"] = true
    }
 
    if value & 32 != 0 {
       names["VSS_VOLSNAP_ATTR_TRANSPORTABLE"] = true
    }
 
+   if value & 2097152 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_REMOTELY"] = true
+   }
+
+   if value & 4194304 != 0 {
+      names["VSS_VOLSNAP_ATTR_AUTORECOVER"] = true
+   }
+
+   if value & 16777216 != 0 {
+      names["VSS_VOLSNAP_ATTR_DELAYED_POSTSNAPSHOT"] = true
+   }
+
    if value & 33554432 != 0 {
       names["VSS_VOLSNAP_ATTR_TXF_RECOVERY"] = true
    }
 
-   if value & 4 != 0 {
-      names["VSS_VOLSNAP_ATTR_CLIENT_ACCESSIBLE"] = true
+   if value & 8 != 0 {
+      names["VSS_VOLSNAP_ATTR_NO_AUTO_RELEASE"] = true
    }
 
    if value & 65536 != 0 {
@@ -1555,8 +1846,8 @@ func (self *VSS_STORE_INFORMATION) AttributeFlags() *Flags {
       names["VSS_VOLSNAP_ATTR_IMPORTED"] = true
    }
 
-   if value & 8388608 != 0 {
-      names["VSS_VOLSNAP_ATTR_ROLLBACK_RECOVERY"] = true
+   if value & 1048576 != 0 {
+      names["VSS_VOLSNAP_ATTR_EXPOSED_LOCALLY"] = true
    }
 
    return &Flags{Value: uint64(value), Names: names}
@@ -1653,6 +1944,14 @@ func (self Flags) DebugString() string {
 
 func (self Flags) IsSet(flag string) bool {
     result, _ := self.Names[flag]
+    return result
+}
+
+func (self Flags) Values() []string {
+    result := make([]string, 0, len(self.Names))
+    for k, _ := range self.Names {
+       result = append(result, k)
+    }
     return result
 }
 

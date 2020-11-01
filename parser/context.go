@@ -12,6 +12,11 @@ type NTFSContext struct {
 	Profile     *NTFSProfile
 	ClusterSize int64
 	RecordSize  int64
+	lru         *LRU
+}
+
+func (self *NTFSContext) Purge() {
+	self.lru.Purge()
 }
 
 func (self *NTFSContext) GetRecordSize() int64 {

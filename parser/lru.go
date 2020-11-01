@@ -23,6 +23,9 @@ type LRU struct {
 	onEvict   EvictCallback
 
 	mu sync.Mutex
+
+	hits int64
+	miss int64
 }
 
 // entry is used to hold a value in the evictList
@@ -91,8 +94,10 @@ func (c *LRU) Get(key int) (value interface{}, ok bool) {
 
 	if ent, ok := c.items[key]; ok {
 		c.evictList.MoveToFront(ent)
+		c.hits++
 		return ent.Value.(*entry).value, true
 	}
+	c.miss++
 	return
 }
 
