@@ -317,11 +317,13 @@ func ParseMFTFile(
 	go func() {
 		defer close(output)
 
+		cache, _ := NewLRU(1000, nil)
 		ntfs := &NTFSContext{
 			DiskReader:  &NullReader{},
 			Profile:     NewNTFSProfile(),
 			ClusterSize: cluster_size,
 			RecordSize:  record_size,
+			lru:         cache,
 		}
 
 		ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(reader, 0)
