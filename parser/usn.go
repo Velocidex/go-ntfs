@@ -82,21 +82,25 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 	return nil
 }
 
+// Resolve the file to a full path
 func (self *USN_RECORD) FullPath() string {
-	// Resolve the FileReferenceNumberID to an MFT entry.
-	mft_id := self.USN_RECORD_V2.FileReferenceNumberID()
-	mft_entry, err := self.context.GetMFT(int64(mft_id))
+	// Since this record could have mean a file deletion event
+	// then resolving the actual MFT entry to a full path is less
+	// reliable. It is more reliable to resolve the parent path,
+	// and then add the USN record name to it.
+	parent_mft_id := self.USN_RECORD_V2.ParentFileReferenceNumberID()
+	parent_mft_entry, err := self.context.GetMFT(int64(parent_mft_id))
 	if err != nil {
 		return ""
 	}
 
-	file_names := mft_entry.FileName(self.context)
+	file_names := parent_mft_entry.FileName(self.context)
 	if len(file_names) == 0 {
 		return ""
 	}
 
-	full_path, _ := getFullPathWithCache(self.context, mft_entry, file_names)
-	return full_path
+	parent_full_path, _ := getFullPathWithCache(self.context, parent_mft_entry, file_names)
+	return parent_full_path + "/" + self.Filename()
 }
 
 func (self *USN_RECORD) Reason() []string {
@@ -238,13 +242,25 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 	go func() {
 		defer close(output)
 
-		usn, err := getLastUSN(ctx, ntfs_ctx)
-		if err != nil {
-			return
+		start_offset := int64(0)
+
+		for {
+			usn, err := getLastUSN(ctx, ntfs_ctx)
+			if err == nil && usn != nil {
+				start_offset = usn.Offset
+				break
+			}
+
+			// Keep waiting here until we are able to get the last USN entry.
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second):
+			}
 		}
 
-		start_offset := usn.Offset
 		for {
+			DebugPrint("Checking usn from %#08x\n", start_offset)
 			for record := range ParseUSN(ctx, ntfs_ctx, start_offset) {
 				if record.Offset > start_offset {
 					select {
@@ -269,7 +285,6 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 			if ok {
 				flusher.Flush()
 			}
-
 		}
 	}()
 
