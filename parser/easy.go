@@ -17,6 +17,8 @@ type FileInfo struct {
 	Atime         time.Time `json:"Atime,omitempty"`
 	Ctime         time.Time `json:"Ctime,omitempty"`
 	Btime         time.Time `json:"Btime,omitempty"` // Birth time.
+	FNBtime       time.Time `json:"FNBtime,omitempty"`
+	FNMtime       time.Time `json:"FNBtime,omitempty"`
 	Name          string    `json:"Name,omitempty"`
 	NameType      string    `json:"NameType,omitempty"`
 	ExtraNames    []string  `json:"ExtraNames,omitempty"`
@@ -133,7 +135,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	var index_attribute *NTFS_ATTRIBUTE
 	var is_dir bool
 
-	var birth_time time.Time
+	var fn_birth_time, fn_mtime time.Time
 
 	// Walk all the attributes collecting the imporant things.
 	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
@@ -149,7 +151,8 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			// $FILE_NAME streams File_modified attribute
 			// since it can not modified using normal
 			// APIs.
-			birth_time = file_name.File_modified().Time
+			fn_birth_time = file_name.Created().Time
+			fn_mtime = file_name.Created().Time
 
 			switch file_name.NameType().Name {
 			case "POSIX", "Win32", "DOS+Win32":
@@ -210,7 +213,9 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
-			Btime:    birth_time,
+			Btime:    si.Create_time().Time,
+			FNBtime:  fn_birth_time,
+			FNMtime:  fn_mtime,
 			Name:     win32_name.Name(),
 			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,
@@ -240,7 +245,9 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
-			Btime:    birth_time,
+			Btime:    si.Create_time().Time,
+			FNBtime:  fn_birth_time,
+			FNMtime:  fn_mtime,
 			Name:     win32_name.Name() + ads,
 			NameType: win32_name.NameType().Name,
 			IsDir:    is_dir,
