@@ -154,18 +154,24 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 
 		mft_id, attr_id, err := getUSNStream(ntfs_ctx)
 		if err != nil {
+			DebugPrint("ParseUSN error: %v", err)
 			return
 		}
 
 		mft_entry, err := ntfs_ctx.GetMFT(mft_id)
 		if err != nil {
+			DebugPrint("ParseUSN error: %v", err)
 			return
 		}
 
 		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id)
 		if err != nil {
+			DebugPrint("ParseUSN error: %v", err)
 			return
 		}
+
+		count := 0
+		defer DebugPrint("Skipped %v entries\n", count)
 
 		for _, rng := range data.Ranges() {
 			run_end := rng.Offset + rng.Length
@@ -174,6 +180,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 			}
 
 			if starting_offset > run_end {
+				count++
 				continue
 			}
 
@@ -227,9 +234,14 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 	last_range := ranges[len(ranges)-1]
 	var result *USN_RECORD
 
+	DebugPrint("Staring to parse USN in offset for seek %v\n", last_range.Offset)
+	count := 0
 	for record := range ParseUSN(ctx, ntfs_ctx, last_range.Offset) {
 		result = record
+		count++
 	}
+	DebugPrint("Parsed %v USN records\n", count)
+
 	if result == nil {
 		return nil, errors.New("No ranges found!")
 	}
@@ -255,11 +267,12 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Second):
+			case <-time.After(time.Duration(period) * time.Second):
 			}
 		}
 
 		for {
+			count := 0
 			DebugPrint("Checking usn from %#08x\n", start_offset)
 			for record := range ParseUSN(ctx, ntfs_ctx, start_offset) {
 				if record.Offset > start_offset {
@@ -268,11 +281,13 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 						return
 
 					case output <- record:
+						count++
 					}
 					start_offset = record.Offset
 				}
 
 			}
+			DebugPrint("Emitted %v events\n", count)
 
 			select {
 			case <-ctx.Done():
