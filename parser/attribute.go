@@ -41,7 +41,7 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 	compression_unit_size := int64(1 << uint64(self.Compression_unit_size()))
 
 	if self.Resident().Name == "RESIDENT" {
-		buf := make([]byte, self.Content_size())
+		buf := make([]byte, CapUint32(self.Content_size(), 16*1024))
 		n, _ := self.Reader.ReadAt(
 			buf,
 			self.Offset+int64(self.Content_offset()))
@@ -93,7 +93,8 @@ func (self *NTFS_ATTRIBUTE) Data(ntfs *NTFSContext) io.ReaderAt {
 func (self *NTFS_ATTRIBUTE) Name() string {
 	length := int64(self.name_length()) * 2
 	result := ParseUTF16String(self.Reader,
-		self.Offset+int64(self.name_offset()), length)
+		self.Offset+int64(self.name_offset()),
+		CapInt64(length, MAX_ATTR_NAME_LENGTH))
 	return result
 }
 
@@ -122,14 +123,7 @@ func (self *NTFS_ATTRIBUTE) PrintStats(ntfs *NTFSContext) string {
 	}
 
 	length := self.Actual_size()
-	if length > 100 {
-		length = 100
-	}
-	if length < 0 {
-		length = 0
-	}
-
-	b := make([]byte, length)
+	b := make([]byte, CapUint64(length, 100))
 	reader := self.Data(ntfs)
 	n, _ := reader.ReadAt(b, 0)
 	b = b[:n]
@@ -161,7 +155,7 @@ func (self *NTFS_ATTRIBUTE) RunList() []Run {
 
 	// Read the entire attribute into memory. This makes it easier
 	// to parse the runlist.
-	buffer := make([]byte, attr_length)
+	buffer := make([]byte, CapUint32(attr_length, MAX_RUNLIST_SIZE))
 	n, _ := self.Reader.ReadAt(buffer, runlist_offset)
 	buffer = buffer[:n]
 
@@ -322,7 +316,8 @@ func (self *MappedReader) _Ranges() []Range {
 
 func (self *MappedReader) Decompress(reader io.ReaderAt, cluster_size int64) ([]byte, error) {
 	Printf("Decompress %v\n", self)
-	compressed := make([]byte, self.CompressedLength*cluster_size)
+	compressed := make([]byte,
+		CapInt64(self.CompressedLength*cluster_size, MAX_DECOMPRESSED_FILE))
 	n, err := reader.ReadAt(compressed, self.TargetOffset*cluster_size)
 	if err != nil && err != io.EOF {
 		return compressed, err
@@ -641,8 +636,9 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 }
 
 func (self *FILE_NAME) Name() string {
-	return ParseUTF16String(self.Reader, self.Offset+self.Profile.Off_FILE_NAME_name,
-		int64(self._length_of_name())*2)
+	return ParseUTF16String(self.Reader,
+		self.Offset+self.Profile.Off_FILE_NAME_name,
+		CapInt64(int64(self._length_of_name())*2, MAX_ATTR_NAME_LENGTH))
 }
 
 func (self *INDEX_NODE_HEADER) GetRecords(ntfs *NTFSContext) []*INDEX_RECORD_ENTRY {
@@ -741,7 +737,7 @@ func DecodeSTANDARD_INDEX_HEADER(
 	*STANDARD_INDEX_HEADER, error) {
 
 	// Read the entire data into a buffer.
-	buffer := make([]byte, length)
+	buffer := make([]byte, CapInt64(length, MAX_IDX_SIZE))
 	n, err := reader.ReadAt(buffer, offset)
 	if err != nil && err != io.EOF {
 		return nil, err

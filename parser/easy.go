@@ -309,7 +309,7 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 
 	// Handle resident attributes specifically.
 	if self.Resident().Name == "RESIDENT" {
-		buf := make([]byte, self.Content_size())
+		buf := make([]byte, CapUint32(self.Content_size(), MAX_MFT_ENTRY_SIZE))
 		n, _ := self.Reader.ReadAt(
 			buf,
 			self.Offset+int64(self.Content_offset()))

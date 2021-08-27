@@ -48,3 +48,38 @@ func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (string, error) {
 	}
 	return path.Join(result...), nil
 }
+
+func CapUint64(v uint64, max uint64) uint64 {
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func CapUint32(v uint32, max uint32) uint32 {
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func CapUint16(v uint16, max uint16) uint16 {
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func CapInt64(v int64, max int64) int64 {
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func CapInt32(v int32, max int32) int32 {
+	if v > max {
+		return max
+	}
+	return v
+}

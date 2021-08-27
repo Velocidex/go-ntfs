@@ -23,8 +23,9 @@ func (self *USN_RECORD) DebugString() string {
 }
 
 func (self *USN_RECORD) Filename() string {
-	return ParseUTF16String(self.Reader, self.Offset+int64(self.FileNameOffset()),
-		int64(self.FileNameLength()))
+	return ParseUTF16String(self.Reader,
+		self.Offset+int64(self.FileNameOffset()),
+		CapInt64(int64(self.FileNameLength()), MAX_FILENAME_LENGTH))
 }
 
 func (self *USN_RECORD) Validate() bool {
@@ -55,10 +56,7 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 	// over it. If the record is valid we return it.
 	for offset := self.Offset + length; offset <= max_offset; {
 		to_read := max_offset - offset
-		if to_read > 1024 {
-			to_read = 1024
-		}
-		data := make([]byte, to_read)
+		data := make([]byte, CapInt64(to_read, MAX_USN_RECORD_SCAN_SIZE))
 
 		n, err := self.Reader.ReadAt(data, offset)
 		if err != nil || n == 0 {
