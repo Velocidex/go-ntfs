@@ -29,7 +29,7 @@ func (self *NTFS_BOOT_SECTOR) RecordSize() int64 {
 func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 	// Read the entire MFT entry into the buffer and then apply
 	// the fixup table. (Maxsize uint16)
-	buffer := make([]byte, mft.Mft_entry_allocated())
+	buffer := make([]byte, CapUint16(mft.Mft_entry_allocated(), MAX_MFT_ENTRY_SIZE))
 	_, err := mft.Reader.ReadAt(buffer, mft.Offset)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 		return bytes.NewReader(buffer), nil
 	}
 
-	fixup_table := make([]byte, fixup_count*2)
+	fixup_table := make([]byte, CapInt64(fixup_count*2, MAX_MFT_ENTRY_SIZE))
 	_, err = mft.Reader.ReadAt(fixup_table, fixup_offset)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 	sector_idx := 0
 	for idx := 2; idx < len(fixup_table); idx += 2 {
 		fixup_offset := (sector_idx+1)*512 - 2
-		if fixup_offset + 1 >= len(buffer) ||
+		if fixup_offset+1 >= len(buffer) ||
 			buffer[fixup_offset] != fixup_magic[0] ||
 			buffer[fixup_offset+1] != fixup_magic[1] {
 			return nil, errors.New(fmt.Sprintf("Fixup error with MFT %d",
