@@ -21,7 +21,7 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 	}
 
 	offset := int64(self.Attribute_offset())
-	result := []*NTFS_ATTRIBUTE{}
+	result := make([]*NTFS_ATTRIBUTE, 0, 16)
 
 	for {
 		// Instantiate the attribute over the fixed up address space.
@@ -338,17 +338,6 @@ type MFTHighlight struct {
 	LastAccess0x30       time.Time
 
 	LogFileSeqNum uint64
-
-	mft_entry *MFT_ENTRY
-	ntfs      *NTFSContext
-}
-
-func (self *MFTHighlight) _FullPath() string {
-	full_path, err := GetFullPath(self.ntfs, self.mft_entry)
-	if err != nil {
-		return ""
-	}
-	return full_path
 }
 
 func ParseMFTFile(
@@ -362,7 +351,9 @@ func ParseMFTFile(
 	go func() {
 		defer close(output)
 
-		ntfs := newNTFSContext(&NullReader{})
+		ntfs := newNTFSContext(&NullReader{}, "NullReader")
+		defer ntfs.Close()
+
 		ntfs.RootMFT = &MFT_ENTRY{Reader: reader, Profile: ntfs.Profile}
 		ntfs.ClusterSize = cluster_size
 		ntfs.RecordSize = record_size
@@ -421,6 +412,11 @@ func ParseMFTFile(
 				continue
 			}
 
+			full_path, err := GetFullPath(ntfs, mft_entry)
+			if err != nil {
+				continue
+			}
+
 			mft_id := mft_entry.Record_number()
 
 			row := &MFTHighlight{
@@ -429,6 +425,7 @@ func ParseMFTFile(
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
+				FullPath:             full_path,
 				FileName:             longest_filename,
 				FileNames:            file_name_strings,
 				FileNameTypes:        strings.Join(file_name_types, ","),
@@ -446,9 +443,6 @@ func ParseMFTFile(
 				LastAccess0x10:       si.File_accessed_time().Time,
 				LastAccess0x30:       file_names[0].File_accessed().Time,
 				LogFileSeqNum:        mft_entry.Logfile_sequence_number(),
-
-				mft_entry: mft_entry,
-				ntfs:      ntfs,
 			}
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30) ||
@@ -456,7 +450,6 @@ func ParseMFTFile(
 			row.uSecZeros = row.Created0x10.Unix()*1000000 ==
 				row.Created0x10.UnixMicro()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
-			row.FullPath = row._FullPath()
 
 			// Check for cancellations.
 			select {
@@ -474,6 +467,7 @@ func ParseMFTFile(
 					file_names = append(file_names, name+":"+ads_name)
 				}
 				new_row.FileNames = file_names
+				row.FullPath += ":" + ads_name
 				select {
 				case <-ctx.Done():
 					return

@@ -5,15 +5,21 @@ import (
 	"os"
 	"strings"
 
+	debug_runtime "runtime/debug"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
 var (
-	debug       = true
+	debug       = false
 	LZNT1_debug = false
 
 	NTFS_DEBUG *bool
 )
+
+func PrintStack() {
+	debug_runtime.PrintStack()
+}
 
 func Debug(arg interface{}) {
 	spew.Dump(arg)
@@ -34,6 +40,12 @@ func DebugString(arg interface{}, indent string) string {
 	}
 
 	return ""
+}
+
+func Printf(fmt_str string, args ...interface{}) {
+	if NTFS_DEBUG != nil && *NTFS_DEBUG {
+		fmt.Printf(fmt_str, args...)
+	}
 }
 
 func LZNT1Printf(fmt_str string, args ...interface{}) {

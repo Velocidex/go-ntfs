@@ -86,7 +86,7 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 	DebugPrint("Creating cache of size %v\n", cache_size)
 
 	// By default 10mb cache.
-	cache, err := NewLRU(cache_size, nil)
+	cache, err := NewLRU(cache_size, nil, "NewPagedReader")
 	if err != nil {
 		return nil, err
 	}

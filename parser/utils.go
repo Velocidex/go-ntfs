@@ -42,6 +42,11 @@ func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 		return "/", nil
 	}
 
+	full_path_any, pres := ntfs.full_path_lru.Get(int(id))
+	if pres {
+		return full_path_any.(string), nil
+	}
+
 	file_names := mft_entry.FileName(ntfs)
 	if len(file_names) == 0 {
 		return "/", fmt.Errorf("Entry %v has no filename", id)
@@ -72,6 +77,9 @@ func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 
 	// Cache for next time.
 	mft_entry.full_path = &full_path
+	if mft_entry.IsDir(ntfs) {
+		ntfs.full_path_lru.Add(int(id), full_path)
+	}
 	return full_path, nil
 }
 

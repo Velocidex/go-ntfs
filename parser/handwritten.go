@@ -9,7 +9,7 @@ import (
 // These are hand written parsers for often used structs.
 
 type NTFS_ATTRIBUTE struct {
-	b       []byte
+	b       [64]byte
 	Reader  io.ReaderAt
 	Offset  int64
 	Profile *NTFSProfile
@@ -23,8 +23,7 @@ func NewNTFS_ATTRIBUTE(Reader io.ReaderAt,
 		Profile: Profile,
 	}
 
-	result.b = make([]byte, 64)
-	_, err := Reader.ReadAt(result.b, Offset)
+	_, err := Reader.ReadAt(result.b[:], Offset)
 	if err != nil {
 		return result
 	}
