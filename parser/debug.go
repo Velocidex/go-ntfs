@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	debug       = false
+	debug       = true
 	LZNT1_debug = false
 
 	NTFS_DEBUG *bool

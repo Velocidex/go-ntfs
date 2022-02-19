@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -28,7 +29,10 @@ func newNTFSContext(image io.ReaderAt) *NTFSContext {
 }
 
 func (self *NTFSContext) Close() {
-	DebugPrint(STATS.DebugString())
+	if debug {
+		fmt.Printf(STATS.DebugString())
+		fmt.Println(self.mft_entry_lru.DebugString())
+	}
 	self.mft_entry_lru.Purge()
 }
 

@@ -317,6 +317,7 @@ type MFTHighlight struct {
 	ParentEntryNumber    uint64
 	ParentSequenceNumber uint16
 	FullPath             string
+	FileName             string
 	FileNames            []string
 	FileNameTypes        string
 	FileSize             int64
@@ -337,6 +338,17 @@ type MFTHighlight struct {
 	LastAccess0x30       time.Time
 
 	LogFileSeqNum uint64
+
+	mft_entry *MFT_ENTRY
+	ntfs      *NTFSContext
+}
+
+func (self *MFTHighlight) _FullPath() string {
+	full_path, err := GetFullPath(self.ntfs, self.mft_entry)
+	if err != nil {
+		return ""
+	}
+	return full_path
 }
 
 func ParseMFTFile(
@@ -365,6 +377,7 @@ func ParseMFTFile(
 			var file_names []*FILE_NAME
 			var file_name_types []string
 			var file_name_strings []string
+			var longest_filename string
 
 			var si *STANDARD_INFORMATION
 			var size int64
@@ -386,11 +399,14 @@ func ParseMFTFile(
 					}
 
 				case "$FILE_NAME":
-					res := ntfs.Profile.FILE_NAME(
-						attr.Data(ntfs), 0)
+					res := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
 					file_names = append(file_names, res)
 					file_name_types = append(file_name_types, res.NameType().Name)
-					file_name_strings = append(file_name_strings, res.Name())
+					fn := res.Name()
+					file_name_strings = append(file_name_strings, fn)
+					if len(fn) > len(longest_filename) {
+						longest_filename = fn
+					}
 
 				case "$STANDARD_INFORMATION":
 					si = ntfs.Profile.STANDARD_INFORMATION(
@@ -405,10 +421,6 @@ func ParseMFTFile(
 				continue
 			}
 
-			full_path, err := GetFullPath(ntfs, mft_entry)
-			if err != nil {
-				continue
-			}
 			mft_id := mft_entry.Record_number()
 
 			row := &MFTHighlight{
@@ -417,7 +429,7 @@ func ParseMFTFile(
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
-				FullPath:             full_path,
+				FileName:             longest_filename,
 				FileNames:            file_name_strings,
 				FileNameTypes:        strings.Join(file_name_types, ","),
 				FileSize:             size,
@@ -434,13 +446,17 @@ func ParseMFTFile(
 				LastAccess0x10:       si.File_accessed_time().Time,
 				LastAccess0x30:       file_names[0].File_accessed().Time,
 				LogFileSeqNum:        mft_entry.Logfile_sequence_number(),
+
+				mft_entry: mft_entry,
+				ntfs:      ntfs,
 			}
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30) ||
 				row.LastModified0x10.Before(row.LastModified0x30)
-			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
-				row.Created0x10.UnixNano()
+			row.uSecZeros = row.Created0x10.Unix()*1000000 ==
+				row.Created0x10.UnixMicro()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
+			row.FullPath = row._FullPath()
 
 			// Check for cancellations.
 			select {
@@ -458,7 +474,6 @@ func ParseMFTFile(
 					file_names = append(file_names, name+":"+ads_name)
 				}
 				new_row.FileNames = file_names
-				new_row.FullPath += ":" + ads_name
 				select {
 				case <-ctx.Done():
 					return

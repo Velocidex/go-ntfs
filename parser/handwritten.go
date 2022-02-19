@@ -204,6 +204,9 @@ type MFT_ENTRY struct {
 	attributes *[]*NTFS_ATTRIBUTE
 	filenames  *[]*FILE_NAME
 
+	// List of parents
+	parents []int
+
 	is_dir *bool
 
 	full_path *string

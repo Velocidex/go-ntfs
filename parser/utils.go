@@ -21,40 +21,58 @@ func get_longest_name(file_names []*FILE_NAME) string {
 // Traverse the mft entry and attempt to find its owner until the
 // root. We return the full path of the MFT entry.
 func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (string, error) {
-	result := []string{}
-	seen := make(map[uint32]bool)
-	var err error
+	seen := []uint64{}
+	return getFullPath(ntfs, mft_entry, seen)
+}
 
-	for {
-		id := mft_entry.Record_number()
-		seen[id] = true
+func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
+	seen []uint64) (string, error) {
 
-		file_names := mft_entry.FileName(ntfs)
-		if len(file_names) == 0 {
-			return path.Join(result...), errors.New(fmt.Sprintf(
-				"Entry %v has no filename", id))
-		}
-		longest_name := get_longest_name(file_names)
-		result = append([]string{longest_name}, result...)
+	if len(seen) > 10 {
+		return "/", errors.New("Directory too deep")
+	}
 
-		mft_entry, err = ntfs.GetMFT(int64(file_names[0].MftReference()))
-		if err != nil {
-			return path.Join(result...), errors.New(fmt.Sprintf(
-				"Entry %v has invalid parent", id))
-		}
+	// If the path is already cached, return it.
+	if mft_entry.full_path != nil {
+		return *mft_entry.full_path, nil
+	}
 
-		if mft_entry.full_path != nil {
-			new_full_path := path.Join(*mft_entry.full_path, longest_name)
-			mft_entry.full_path = &new_full_path
-			return new_full_path, nil
-		}
+	id := mft_entry.Record_number()
+	if id == 5 {
+		return "/", nil
+	}
 
-		_, pres := seen[mft_entry.Record_number()]
-		if pres || len(result) > 20 {
-			break
+	file_names := mft_entry.FileName(ntfs)
+	if len(file_names) == 0 {
+		return "/", fmt.Errorf("Entry %v has no filename", id)
+	}
+	parent_id := file_names[0].MftReference()
+	// Check if the parent id is already seen
+	for _, s := range seen {
+		if s == parent_id {
+			// Detected a loop
+			return "/", nil
 		}
 	}
-	return path.Join(result...), nil
+	seen = append(seen, parent_id)
+
+	// Get the parent entry
+	parent_mft_entry, err := ntfs.GetMFT(int64(parent_id))
+	if err != nil {
+		return "/", fmt.Errorf("Can not get Parent MFT %v", id)
+	}
+
+	parent_path, err := getFullPath(ntfs, parent_mft_entry, seen)
+	if err != nil {
+		return "/", err
+	}
+
+	longest_name := get_longest_name(file_names)
+	full_path := path.Join(parent_path, longest_name)
+
+	// Cache for next time.
+	mft_entry.full_path = &full_path
+	return full_path, nil
 }
 
 func CapUint64(v uint64, max uint64) uint64 {

@@ -9,6 +9,7 @@ package parser
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -85,6 +86,15 @@ func (c *LRU) Add(key int, value interface{}) (evicted bool) {
 		c.removeOldest()
 	}
 	return evict
+}
+
+func (c *LRU) Touch(key int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if ent, ok := c.items[key]; ok {
+		c.evictList.MoveToFront(ent)
+	}
 }
 
 // Get looks up a key's value from the cache.
@@ -184,6 +194,14 @@ func (c *LRU) Len() int {
 	defer c.mu.Unlock()
 
 	return c.evictList.Len()
+}
+
+func (c *LRU) DebugString() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return fmt.Sprintf("MFT Entry LRU hit %d miss %d (%f)\n",
+		c.hits, c.miss, float64(c.hits)/float64(c.miss))
 }
 
 // removeOldest removes the oldest item from the cache.
