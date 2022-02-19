@@ -34,13 +34,21 @@ func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (string, error) {
 			return path.Join(result...), errors.New(fmt.Sprintf(
 				"Entry %v has no filename", id))
 		}
-		result = append([]string{get_longest_name(file_names)}, result...)
+		longest_name := get_longest_name(file_names)
+		result = append([]string{longest_name}, result...)
 
 		mft_entry, err = ntfs.GetMFT(int64(file_names[0].MftReference()))
 		if err != nil {
 			return path.Join(result...), errors.New(fmt.Sprintf(
 				"Entry %v has invalid parent", id))
 		}
+
+		if mft_entry.full_path != nil {
+			new_full_path := path.Join(*mft_entry.full_path, longest_name)
+			mft_entry.full_path = &new_full_path
+			return new_full_path, nil
+		}
+
 		_, pres := seen[mft_entry.Record_number()]
 		if pres || len(result) > 20 {
 			break

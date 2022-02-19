@@ -36,12 +36,6 @@ func DebugString(arg interface{}, indent string) string {
 	return ""
 }
 
-func Printf(fmt_str string, args ...interface{}) {
-	if NTFS_DEBUG != nil && *NTFS_DEBUG {
-		fmt.Printf(fmt_str, args...)
-	}
-}
-
 func LZNT1Printf(fmt_str string, args ...interface{}) {
 	if LZNT1_debug {
 		fmt.Printf(fmt_str, args...)

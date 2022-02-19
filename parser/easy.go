@@ -32,12 +32,7 @@ type FileInfo struct {
 }
 
 func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
-	cache, _ := NewLRU(1000, nil)
-	ntfs := &NTFSContext{
-		DiskReader: image,
-		Profile:    NewNTFSProfile(),
-		lru:        cache,
-	}
+	ntfs := newNTFSContext(image)
 
 	// NTFS Parsing starts with the boot record.
 	ntfs.Boot = &NTFS_BOOT_SECTOR{Reader: image,

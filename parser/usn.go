@@ -97,7 +97,7 @@ func (self *USN_RECORD) FullPath() string {
 		return ""
 	}
 
-	parent_full_path, _ := getFullPathWithCache(self.context, parent_mft_entry, file_names)
+	parent_full_path, _ := GetFullPath(self.context, parent_mft_entry)
 	return parent_full_path + "/" + self.Filename()
 }
 
@@ -248,6 +248,11 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 
 func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_RECORD {
 	output := make(chan *USN_RECORD)
+
+	// Default 30 second watch frequency.
+	if period == 0 {
+		period = 30
+	}
 
 	go func() {
 		defer close(output)

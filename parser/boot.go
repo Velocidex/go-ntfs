@@ -27,6 +27,8 @@ func (self *NTFS_BOOT_SECTOR) RecordSize() int64 {
 // MFT_ENTRY from disk into a buffer and perfoms the fixups. We then
 // return an MFT_ENTRY instantiated over this fixed up buffer.
 func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
+	STATS.Inc_FixUpDiskMFTEntry()
+
 	// Read the entire MFT entry into the buffer and then apply
 	// the fixup table. (Maxsize uint16)
 	buffer := make([]byte, CapUint16(mft.Mft_entry_allocated(), MAX_MFT_ENTRY_SIZE))
