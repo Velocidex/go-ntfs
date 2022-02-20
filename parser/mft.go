@@ -467,7 +467,7 @@ func ParseMFTFile(
 					file_names = append(file_names, name+":"+ads_name)
 				}
 				new_row.FileNames = file_names
-				row.FullPath += ":" + ads_name
+				new_row.FullPath += ":" + ads_name
 				select {
 				case <-ctx.Done():
 					return
