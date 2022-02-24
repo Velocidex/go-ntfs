@@ -315,7 +315,7 @@ func (self *MappedReader) _Ranges() []Range {
 }
 
 func (self *MappedReader) Decompress(reader io.ReaderAt, cluster_size int64) ([]byte, error) {
-	Printf("Decompress %v\n", self)
+	DebugPrint("Decompress %v\n", self)
 	compressed := make([]byte,
 		CapInt64(self.CompressedLength*cluster_size, MAX_DECOMPRESSED_FILE))
 	n, err := reader.ReadAt(compressed, self.TargetOffset*cluster_size)
@@ -562,7 +562,7 @@ func (self *RangeReader) readFromARun(
 		if err != nil {
 			return 0, err
 		}
-		Printf("Decompressed %d from %v\n", len(decompressed), run)
+		DebugPrint("Decompressed %d from %v\n", len(decompressed), run)
 
 		i := 0
 		for {
@@ -594,8 +594,12 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 	int, error) {
 	buf_idx := 0
 
+	// Empirically we find this is rarely > 10 so a linear search is
+	// fast enough.
+	run_length := len(self.runs)
+
 	// Find the run which covers the required offset.
-	for j := 0; j < len(self.runs) && buf_idx < len(buf); j++ {
+	for j := 0; j < run_length && buf_idx < len(buf); j++ {
 		run := self.runs[j]
 
 		// Start of run in bytes in file address space
@@ -614,12 +618,12 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 
 			n, err := self.readFromARun(j, buf[buf_idx:], run_offset)
 			if err != nil {
-				Printf("Reading run %v returned error %v\n", self.runs[j], err)
+				DebugPrint("Reading run %v returned error %v\n", self.runs[j], err)
 				return buf_idx, err
 			}
 
 			if n == 0 {
-				Printf("Reading run %v returned no data\n", self.runs[j])
+				DebugPrint("Reading run %v returned no data\n", self.runs[j])
 				return buf_idx, io.EOF
 			}
 
@@ -678,7 +682,7 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		attr_list_entry := self.Profile.ATTRIBUTE_LIST_ENTRY(
 			self.Reader, self.Offset+offset)
 
-		Printf("%v ATTRIBUTE_LIST_ENTRY %v\n", mft_entry.Record_number(),
+		DebugPrint("%v ATTRIBUTE_LIST_ENTRY %v\n", mft_entry.Record_number(),
 			DebugString(attr_list_entry, ""))
 
 		// The attribute_list_entry points to a different MFT
@@ -688,11 +692,11 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		if ntfs.RootMFT != nil &&
 			mft_ref != uint64(mft_entry.Record_number()) {
 
-			Printf("While working on %v - Fetching from MFT Entry %v\n",
+			DebugPrint("While working on %v - Fetching from MFT Entry %v\n",
 				mft_entry.Record_number(), mft_ref)
 			attr, err := attr_list_entry.GetAttribute(ntfs)
 			if err != nil {
-				Printf("Error %v\n", err)
+				DebugPrint("Error %v\n", err)
 				break
 			}
 			result = append(result, attr)
@@ -724,9 +728,9 @@ func (self *ATTRIBUTE_LIST_ENTRY) GetAttribute(
 	}
 	res, err := mft.GetDirectAttribute(ntfs, mytype, uint16(myid))
 	if err != nil {
-		Printf("MFT %v not found in target\n", mft.Record_number())
+		DebugPrint("MFT %v not found in target\n", mft.Record_number())
 	} else {
-		Printf("Found %v\n", DebugString(res, "  "))
+		DebugPrint("Found %v\n", DebugString(res, "  "))
 	}
 	return res, err
 }

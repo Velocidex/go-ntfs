@@ -1,4 +1,5 @@
 Will record to dir large_file_small_init
+Creating cache of size 10000
 Cache miss for 0 (400) (0)
 Cache miss for c0000000 (400) (1)
 Cache miss for c000b800 (400) (2)

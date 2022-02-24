@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	debug_runtime "runtime/debug"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -14,6 +16,10 @@ var (
 
 	NTFS_DEBUG *bool
 )
+
+func PrintStack() {
+	debug_runtime.PrintStack()
+}
 
 func Debug(arg interface{}) {
 	spew.Dump(arg)

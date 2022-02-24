@@ -10,9 +10,18 @@ import (
 	"time"
 )
 
+var (
+	notAvailableError = errors.New("Not available")
+)
+
 func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE {
+	if self.attributes != nil {
+		STATS.MFT_ENTRY_attributes++
+		return *self.attributes
+	}
+
 	offset := int64(self.Attribute_offset())
-	result := []*NTFS_ATTRIBUTE{}
+	result := make([]*NTFS_ATTRIBUTE, 0, 16)
 
 	for {
 		// Instantiate the attribute over the fixed up address space.
@@ -45,6 +54,7 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 		offset += int64(attribute.Length())
 	}
 
+	self.attributes = &result
 	return result
 }
 
@@ -161,6 +171,11 @@ func (self *MFT_ENTRY) StandardInformation(ntfs *NTFSContext) (
 
 // Extract the $FILE_NAME attribute from the MFT.
 func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
+	if self.filenames != nil {
+		STATS.MFT_ENTRY_filenames++
+		return *self.filenames
+	}
+
 	result := []*FILE_NAME{}
 
 	for _, attr := range self.EnumerateAttributes(ntfs) {
@@ -170,6 +185,7 @@ func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
 		}
 	}
 
+	self.filenames = &result
 	return result
 }
 
@@ -189,13 +205,20 @@ func (self *MFT_ENTRY) GetAttribute(ntfs *NTFSContext,
 }
 
 func (self *MFT_ENTRY) IsDir(ntfs *NTFSContext) bool {
+	if self.is_dir != nil {
+		return *self.is_dir
+	}
+
+	result := false
 	for _, attr := range self.EnumerateAttributes(ntfs) {
 		switch attr.Type().Name {
 		case "$INDEX_ROOT", "$INDEX_ALLOCATION":
-			return true
+			result = true
 		}
 	}
-	return false
+
+	self.is_dir = &result
+	return result
 }
 
 func (self *MFT_ENTRY) Dir(ntfs *NTFSContext) []*INDEX_RECORD_ENTRY {
@@ -251,7 +274,7 @@ type MapReader struct {
 }
 
 func (self *MapReader) partialRead(buf []byte, offset int64) (int, error) {
-	Printf("MapReader.partialRead %v @ %v\n", len(buf), offset)
+	DebugPrint("MapReader.partialRead %v @ %v\n", len(buf), offset)
 
 	if len(buf) > 0 {
 		for _, run := range self.Runs {
@@ -289,13 +312,22 @@ func (self *MapReader) ReadAt(buf []byte, offset int64) (int, error) {
 
 type MFTHighlight struct {
 	EntryNumber          int64
+	SequenceNumber       uint16
 	InUse                bool
 	ParentEntryNumber    uint64
+	ParentSequenceNumber uint16
 	FullPath             string
 	FileName             string
+	FileNames            []string
+	FileNameTypes        string
 	FileSize             int64
 	ReferenceCount       int64
 	IsDir                bool
+	HasADS               bool
+	SI_Lt_FN             bool
+	uSecZeros            bool
+	Copied               bool
+	SIFlags              string
 	Created0x10          time.Time
 	Created0x30          time.Time
 	LastModified0x10     time.Time
@@ -304,6 +336,8 @@ type MFTHighlight struct {
 	LastRecordChange0x30 time.Time
 	LastAccess0x10       time.Time
 	LastAccess0x30       time.Time
+
+	LogFileSeqNum uint64
 }
 
 func ParseMFTFile(
@@ -317,26 +351,29 @@ func ParseMFTFile(
 	go func() {
 		defer close(output)
 
-		cache, _ := NewLRU(1000, nil)
-		ntfs := &NTFSContext{
-			DiskReader:  &NullReader{},
-			Profile:     NewNTFSProfile(),
-			ClusterSize: cluster_size,
-			RecordSize:  record_size,
-			lru:         cache,
-		}
+		ntfs := newNTFSContext(&NullReader{}, "NullReader")
+		defer ntfs.Close()
+
+		ntfs.RootMFT = &MFT_ENTRY{Reader: reader, Profile: ntfs.Profile}
+		ntfs.ClusterSize = cluster_size
+		ntfs.RecordSize = record_size
 
 		ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(reader, 0)
-
-		for i := int64(0); i < size; i += record_size {
-			mft_entry, err := getMFT_ENTRY(ntfs, reader, i)
+		for id := int64(0); id < size/record_size+1; id++ {
+			mft_entry, err := ntfs.GetMFT(id)
 			if err != nil {
 				continue
 			}
 
 			var file_names []*FILE_NAME
+			var file_name_types []string
+			var file_name_strings []string
+			var longest_filename string
+
 			var si *STANDARD_INFORMATION
 			var size int64
+			ads := []string{}
+			si_flags := ""
 
 			for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 				attr_type := attr.Type()
@@ -345,14 +382,27 @@ func ParseMFTFile(
 					if size == 0 {
 						size = attr.DataSize()
 					}
+
+					// Check if the stream has ADS
+					attr_name := attr.Name()
+					if attr_name != "" {
+						ads = append(ads, attr_name)
+					}
+
 				case "$FILE_NAME":
-					res := ntfs.Profile.FILE_NAME(
-						attr.Data(ntfs), 0)
+					res := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
 					file_names = append(file_names, res)
+					file_name_types = append(file_name_types, res.NameType().Name)
+					fn := res.Name()
+					file_name_strings = append(file_name_strings, fn)
+					if len(fn) > len(longest_filename) {
+						longest_filename = fn
+					}
 
 				case "$STANDARD_INFORMATION":
 					si = ntfs.Profile.STANDARD_INFORMATION(
 						attr.Data(ntfs), 0)
+					si_flags = si.Flags().DebugString()
 				}
 			}
 			if len(file_names) == 0 {
@@ -362,22 +412,28 @@ func ParseMFTFile(
 				continue
 			}
 
-			full_path, err := getFullPathWithCache(ntfs, mft_entry, file_names)
+			full_path, err := GetFullPath(ntfs, mft_entry)
 			if err != nil {
 				continue
 			}
 
 			mft_id := mft_entry.Record_number()
 
-			output <- &MFTHighlight{
+			row := &MFTHighlight{
 				EntryNumber:          int64(mft_id),
+				SequenceNumber:       mft_entry.Sequence_value(),
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
+				ParentSequenceNumber: file_names[0].Seq_num(),
 				FullPath:             full_path,
-				FileName:             get_longest_name(file_names),
+				FileName:             longest_filename,
+				FileNames:            file_name_strings,
+				FileNameTypes:        strings.Join(file_name_types, ","),
 				FileSize:             size,
 				ReferenceCount:       int64(mft_entry.Link_count()),
 				IsDir:                mft_entry.Flags().IsSet("DIRECTORY"),
+				HasADS:               len(ads) > 0,
+				SIFlags:              si_flags,
 				Created0x10:          si.Create_time().Time,
 				Created0x30:          file_names[0].Created().Time,
 				LastModified0x10:     si.File_altered_time().Time,
@@ -386,61 +442,41 @@ func ParseMFTFile(
 				LastRecordChange0x30: file_names[0].Mft_modified().Time,
 				LastAccess0x10:       si.File_accessed_time().Time,
 				LastAccess0x30:       file_names[0].File_accessed().Time,
+				LogFileSeqNum:        mft_entry.Logfile_sequence_number(),
 			}
+
+			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30) ||
+				row.LastModified0x10.Before(row.LastModified0x30)
+			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
+				row.Created0x10.UnixNano()
+			row.Copied = row.Created0x10.After(row.LastModified0x10)
 
 			// Check for cancellations.
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				continue
+
+			case output <- row:
+			}
+
+			// Duplicate ADS names so we can easily search on them.
+			for _, ads_name := range ads {
+				new_row := *row
+				file_names := []string{}
+				for _, name := range new_row.FileNames {
+					file_names = append(file_names, name+":"+ads_name)
+				}
+				new_row.FileNames = file_names
+				row.FullPath += ":" + ads_name
+				select {
+				case <-ctx.Done():
+					return
+
+				case output <- &new_row:
+				}
 			}
 		}
 	}()
 
 	return output
-}
-
-func getFullPathWithCache(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY,
-	file_names []*FILE_NAME) (string, error) {
-	var full_path string
-
-	id := mft_entry.Record_number()
-
-	my_name := get_longest_name(file_names)
-
-	// Get the parents full path from cache if possible
-	parent_mft_id := int64(file_names[0].MftReference())
-	full_path_any, pres := ntfs.lru.Get(int(parent_mft_id))
-	if !pres {
-		parent_mft_entry, err := ntfs.GetMFT(parent_mft_id)
-		if err != nil {
-			return "", errors.New(fmt.Sprintf(
-				"Entry %v has invalid parent", id))
-		}
-
-		full_path, err = GetFullPath(ntfs, parent_mft_entry)
-		if err != nil {
-			full_path = "<unknown>"
-		}
-		ntfs.lru.Add(int(parent_mft_id), full_path)
-	} else {
-		full_path = full_path_any.(string)
-	}
-
-	return path.Join(full_path, my_name), nil
-}
-
-func getMFT_ENTRY(ctx *NTFSContext,
-	reader io.ReaderAt, id int64) (*MFT_ENTRY, error) {
-	disk_mft := ctx.Profile.MFT_ENTRY(reader, id)
-
-	// Uninitialized entries will have invalid fixups.
-	fixed_up_reader, err := FixUpDiskMFTEntry(disk_mft)
-	if err != nil {
-		return nil, err
-	}
-
-	return ctx.Profile.MFT_ENTRY(fixed_up_reader, 0), nil
 }
