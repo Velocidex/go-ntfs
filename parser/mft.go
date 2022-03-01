@@ -16,7 +16,7 @@ var (
 
 func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE {
 	if self.attributes != nil {
-		STATS.MFT_ENTRY_attributes++
+		STATS.Inc_MFT_ENTRY_attributes()
 		return *self.attributes
 	}
 
@@ -172,7 +172,7 @@ func (self *MFT_ENTRY) StandardInformation(ntfs *NTFSContext) (
 // Extract the $FILE_NAME attribute from the MFT.
 func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
 	if self.filenames != nil {
-		STATS.MFT_ENTRY_filenames++
+		STATS.Inc_MFT_ENTRY_filenames()
 		return *self.filenames
 	}
 
