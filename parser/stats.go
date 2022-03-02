@@ -79,3 +79,17 @@ func (self *Stats) Inc_FILE_NAME() {
 
 	self.FILE_NAME++
 }
+
+func (self *Stats) Inc_MFT_ENTRY_attributes() {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	self.MFT_ENTRY_attributes++
+}
+
+func (self *Stats) Inc_MFT_ENTRY_filenames() {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	self.MFT_ENTRY_filenames++
+}
