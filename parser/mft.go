@@ -15,10 +15,14 @@ var (
 )
 
 func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE {
+	self.mu.Lock()
 	if self.attributes != nil {
 		STATS.Inc_MFT_ENTRY_attributes()
-		return *self.attributes
+		result := *self.attributes
+		self.mu.Unlock()
+		return result
 	}
+	self.mu.Unlock()
 
 	offset := int64(self.Attribute_offset())
 	result := make([]*NTFS_ATTRIBUTE, 0, 16)
@@ -54,7 +58,9 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 		offset += int64(attribute.Length())
 	}
 
+	self.mu.Lock()
 	self.attributes = &result
+	self.mu.Unlock()
 	return result
 }
 
@@ -347,6 +353,11 @@ func ParseMFTFile(
 	cluster_size int64,
 	record_size int64) chan *MFTHighlight {
 	output := make(chan *MFTHighlight)
+
+	if record_size == 0 {
+		close(output)
+		return output
+	}
 
 	go func() {
 		defer close(output)

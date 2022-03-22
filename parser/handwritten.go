@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"sync"
 )
 
 // These are hand written parsers for often used structs.
@@ -195,6 +196,8 @@ func (self *NTFS_ATTRIBUTE) DebugString() string {
 
 // MFT_ENTRY with a bit of caching.
 type MFT_ENTRY struct {
+	mu sync.Mutex
+
 	Reader  io.ReaderAt
 	Offset  int64
 	Profile *NTFSProfile
