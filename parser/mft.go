@@ -456,8 +456,7 @@ func ParseMFTFile(
 				LogFileSeqNum:        mft_entry.Logfile_sequence_number(),
 			}
 
-			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30) ||
-				row.LastModified0x10.Before(row.LastModified0x30)
+			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30)
 			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
 				row.Created0x10.UnixNano()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
