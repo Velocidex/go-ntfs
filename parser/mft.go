@@ -379,7 +379,8 @@ func ParseMFTFile(
 			var file_names []*FILE_NAME
 			var file_name_types []string
 			var file_name_strings []string
-			var longest_filename string
+			var display_filename string
+			var display_filename_type string
 
 			var si *STANDARD_INFORMATION
 			var size int64
@@ -406,8 +407,15 @@ func ParseMFTFile(
 					file_name_types = append(file_name_types, res.NameType().Name)
 					fn := res.Name()
 					file_name_strings = append(file_name_strings, fn)
-					if len(fn) > len(longest_filename) {
-						longest_filename = fn
+
+					// Set Filename to Win32 entry, else use largest of non preferred
+					if res.NameType().Name == "Win32" || res.NameType().Name == "DOS+Win32" {
+						display_filename = fn
+						display_filename_type = res.NameType().Name
+					} else if len(display_filename_type) == 0 {
+						if len(fn) > len(display_filename) {
+							display_filename = fn
+						}
 					}
 
 				case "$STANDARD_INFORMATION":
@@ -437,7 +445,7 @@ func ParseMFTFile(
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
 				FullPath:             full_path,
-				FileName:             longest_filename,
+				FileName:             display_filename,
 				FileNames:            file_name_strings,
 				FileNameTypes:        strings.Join(file_name_types, ","),
 				FileSize:             size,
@@ -458,7 +466,7 @@ func ParseMFTFile(
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30)
 			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
-				row.Created0x10.UnixNano() || 
+				row.Created0x10.UnixNano() ||
 				row.LastModified0x10.Unix()*1000000000 == row.LastModified0x10.UnixNano()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
 

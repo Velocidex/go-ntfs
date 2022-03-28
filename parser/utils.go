@@ -6,12 +6,20 @@ import (
 	"path"
 )
 
-func get_longest_name(file_names []*FILE_NAME) string {
+func get_display_name(file_names []*FILE_NAME) string {
 	result := ""
+	result_type := ""
+
 	for _, fn := range file_names {
 		name := fn.Name()
-		if len(result) < len(name) {
+
+		if fn.NameType().Name == "Win32" || fn.NameType().Name == "DOS+Win32" {
 			result = name
+			result_type = fn.NameType().Name
+		} else if len(result_type) == 0 {
+			if len(name) > len(result) {
+				name = result
+			}
 		}
 	}
 
@@ -51,14 +59,14 @@ func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	if len(file_names) == 0 {
 		return "/", fmt.Errorf("Entry %v has no filename", id)
 	}
-	longest_name := get_longest_name(file_names)
+	display_name := get_display_name(file_names)
 
 	parent_id := file_names[0].MftReference()
 	// Check if the parent id is already seen
 	for _, s := range seen {
 		if s == parent_id {
 			// Detected a loop
-			return "/" + longest_name, nil
+			return "/" + display_name, nil
 		}
 	}
 	seen = append(seen, parent_id)
@@ -66,15 +74,15 @@ func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	// Get the parent entry
 	parent_mft_entry, err := ntfs.GetMFT(int64(parent_id))
 	if err != nil {
-		return "/" + longest_name, fmt.Errorf("Can not get Parent MFT %v", id)
+		return "/" + display_name, fmt.Errorf("Can not get Parent MFT %v", id)
 	}
 
 	parent_path, err := getFullPath(ntfs, parent_mft_entry, seen)
 	if err != nil {
-		return "/" + longest_name, err
+		return "/" + display_name, err
 	}
 
-	full_path := path.Join(parent_path, longest_name)
+	full_path := path.Join(parent_path, display_name)
 
 	// Cache for next time.
 	mft_entry.full_path = &full_path
