@@ -7,23 +7,19 @@ import (
 )
 
 func get_display_name(file_names []*FILE_NAME) string {
-	result := ""
-	result_type := ""
-
+	short_name := ""
 	for _, fn := range file_names {
 		name := fn.Name()
-
-		if fn.NameType().Name == "Win32" || fn.NameType().Name == "DOS+Win32" {
-			result = name
-			result_type = fn.NameType().Name
-		} else if len(result_type) == 0 {
-			if len(name) > len(result) {
-				name = result
-			}
+		name_type := fn.NameType().Name
+		switch name_type {
+		case "Win32", "DOS+Win32", "POSIX":
+			return name
+		default:
+			short_name = name
 		}
 	}
 
-	return result
+	return short_name
 }
 
 // Traverse the mft entry and attempt to find its owner until the
