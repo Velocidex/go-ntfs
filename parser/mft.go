@@ -322,8 +322,7 @@ type MFTHighlight struct {
 	InUse                bool
 	ParentEntryNumber    uint64
 	ParentSequenceNumber uint16
-	FullPath             string
-	FileName             string
+	Components           []string
 	FileNames            []string
 	FileNameTypes        string
 	FileSize             int64
@@ -344,6 +343,10 @@ type MFTHighlight struct {
 	LastAccess0x30       time.Time
 
 	LogFileSeqNum uint64
+}
+
+func (self *MFTHighlight) FullPath() string {
+	return "/" + path.Join(self.Components...)
 }
 
 func ParseMFTFile(
@@ -419,7 +422,7 @@ func ParseMFTFile(
 				continue
 			}
 
-			full_path, err := GetFullPath(ntfs, mft_entry)
+			components, err := GetComponents(ntfs, mft_entry)
 			if err != nil {
 				continue
 			}
@@ -432,8 +435,7 @@ func ParseMFTFile(
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
-				FullPath:             full_path,
-				FileName:             get_display_name(file_names),
+				Components:           components,
 				FileNames:            file_name_strings,
 				FileNameTypes:        strings.Join(file_name_types, ","),
 				FileSize:             size,
@@ -470,13 +472,17 @@ func ParseMFTFile(
 			for _, ads_name := range ads {
 				new_row := *row
 				file_names := []string{}
+				// Convert all the names to have an ADS at the end
+				// (long name + ":" + ads, short name + ":" + ads
+				// etc).
 				for _, name := range new_row.FileNames {
 					file_names = append(file_names, name+":"+ads_name)
 				}
 				new_row.FileNames = file_names
-				new_row.FullPath += ":" + ads_name
-				new_row.FileName +=  ":" + ads_name
 				new_row.IsDir = false
+
+				// Update the ADS
+				new_row.Components = setADS(row.Components, ads_name)
 
 				select {
 				case <-ctx.Done():

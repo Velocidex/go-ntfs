@@ -211,7 +211,7 @@ type MFT_ENTRY struct {
 
 	is_dir *bool
 
-	full_path *string
+	components []string
 }
 
 func (self *MFT_ENTRY) Size() int {
