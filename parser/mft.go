@@ -379,7 +379,6 @@ func ParseMFTFile(
 			var file_names []*FILE_NAME
 			var file_name_types []string
 			var file_name_strings []string
-			var longest_filename string
 
 			var si *STANDARD_INFORMATION
 			var size int64
@@ -406,9 +405,6 @@ func ParseMFTFile(
 					file_name_types = append(file_name_types, res.NameType().Name)
 					fn := res.Name()
 					file_name_strings = append(file_name_strings, fn)
-					if len(fn) > len(longest_filename) {
-						longest_filename = fn
-					}
 
 				case "$STANDARD_INFORMATION":
 					si = ntfs.Profile.STANDARD_INFORMATION(
@@ -437,7 +433,7 @@ func ParseMFTFile(
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
 				FullPath:             full_path,
-				FileName:             longest_filename,
+				FileName:             get_display_name(file_names),
 				FileNames:            file_name_strings,
 				FileNameTypes:        strings.Join(file_name_types, ","),
 				FileSize:             size,
@@ -458,7 +454,7 @@ func ParseMFTFile(
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30)
 			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
-				row.Created0x10.UnixNano() || 
+				row.Created0x10.UnixNano() ||
 				row.LastModified0x10.Unix()*1000000000 == row.LastModified0x10.UnixNano()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
 
