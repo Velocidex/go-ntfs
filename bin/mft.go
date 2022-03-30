@@ -64,12 +64,7 @@ func doMFTFromImage() {
 
 	for item := range parser.ParseMFTFile(context.Background(),
 		mft_reader, st.Size(), ntfs_ctx.ClusterSize, ntfs_ctx.RecordSize) {
-		filename := ""
-		if len(item.Components) > 0 {
-			filename = item.Components[len(item.Components)-1]
-		}
-
-		if len(filename_filter.FindStringIndex(filename)) == 0 {
+		if len(filename_filter.FindStringIndex(item.FileName())) == 0 {
 			continue
 		}
 

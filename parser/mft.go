@@ -322,9 +322,9 @@ type MFTHighlight struct {
 	InUse                bool
 	ParentEntryNumber    uint64
 	ParentSequenceNumber uint16
-	Components           []string
+	components           []string
 	FileNames            []string
-	FileNameTypes        string
+	_FileNameTypes       []string
 	FileSize             int64
 	ReferenceCount       int64
 	IsDir                bool
@@ -343,10 +343,47 @@ type MFTHighlight struct {
 	LastAccess0x30       time.Time
 
 	LogFileSeqNum uint64
+
+	// Hold on to these for delayed lazy evaluation.
+	ntfs_ctx  *NTFSContext
+	mft_entry *MFT_ENTRY
+	ads_name  string
 }
 
 func (self *MFTHighlight) FullPath() string {
-	return "/" + path.Join(self.Components...)
+	return "/" + path.Join(self.Components()...)
+}
+
+func (self *MFTHighlight) FileNameTypes() string {
+	return strings.Join(self._FileNameTypes, ",")
+}
+
+func (self *MFTHighlight) FileName() string {
+	short_name := ""
+	for idx, name := range self.FileNames {
+		name_type := self._FileNameTypes[idx]
+		switch name_type {
+		case "Win32", "DOS+Win32", "POSIX":
+			return name
+		default:
+			short_name = name
+		}
+	}
+
+	return short_name
+}
+
+func (self *MFTHighlight) Components() []string {
+	if len(self.components) > 0 {
+		return self.components
+	}
+
+	self.components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
+	if self.ads_name != "" {
+		self.components = setADS(self.components, self.ads_name)
+	}
+
+	return self.components
 }
 
 func ParseMFTFile(
@@ -422,11 +459,6 @@ func ParseMFTFile(
 				continue
 			}
 
-			components, err := GetComponents(ntfs, mft_entry)
-			if err != nil {
-				continue
-			}
-
 			mft_id := mft_entry.Record_number()
 
 			row := &MFTHighlight{
@@ -435,9 +467,9 @@ func ParseMFTFile(
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
-				Components:           components,
+				//Components:           components,
 				FileNames:            file_name_strings,
-				FileNameTypes:        strings.Join(file_name_types, ","),
+				_FileNameTypes:       file_name_types,
 				FileSize:             size,
 				ReferenceCount:       int64(mft_entry.Link_count()),
 				IsDir:                mft_entry.Flags().IsSet("DIRECTORY"),
@@ -452,6 +484,9 @@ func ParseMFTFile(
 				LastAccess0x10:       si.File_accessed_time().Time,
 				LastAccess0x30:       file_names[0].File_accessed().Time,
 				LogFileSeqNum:        mft_entry.Logfile_sequence_number(),
+
+				ntfs_ctx:  ntfs,
+				mft_entry: mft_entry,
 			}
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30)
@@ -480,9 +515,7 @@ func ParseMFTFile(
 				}
 				new_row.FileNames = file_names
 				new_row.IsDir = false
-
-				// Update the ADS
-				new_row.Components = setADS(row.Components, ads_name)
+				new_row.ads_name = ads_name
 
 				select {
 				case <-ctx.Done():
