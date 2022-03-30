@@ -38,6 +38,7 @@ func doLS() {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{
 		"MFT Id",
+		"FullPath",
 		"Size",
 		"Mtime",
 		"IsDir",
@@ -48,8 +49,15 @@ func doLS() {
 	defer table.Render()
 
 	for _, info := range parser.ListDir(ntfs_ctx, dir) {
+
+		child_entry, err := GetMFTEntry(ntfs_ctx, info.MFTId)
+		kingpin.FatalIfError(err, "Can not open child %v", info.Name)
+
+		full_path, _ := parser.GetFullPath(ntfs_ctx, child_entry)
+
 		table.Append([]string{
 			info.MFTId,
+			full_path,
 			fmt.Sprintf("%v", info.Size),
 			fmt.Sprintf("%v", info.Mtime.In(time.UTC)),
 			fmt.Sprintf("%v", info.IsDir),

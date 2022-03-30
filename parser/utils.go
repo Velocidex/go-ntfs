@@ -25,35 +25,42 @@ func get_display_name(file_names []*FILE_NAME) string {
 // Traverse the mft entry and attempt to find its owner until the
 // root. We return the full path of the MFT entry.
 func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (string, error) {
-	seen := []uint64{}
-	return getFullPath(ntfs, mft_entry, seen)
+	components, err := GetComponents(ntfs, mft_entry)
+	return "/" + path.Join(components...), err
 }
 
-func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
-	seen []uint64) (string, error) {
+// Traverse the mft entry and attempt to find its owner until the
+// root. We return the full path of the MFT entry.
+func GetComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY) ([]string, error) {
+	seen := []uint64{}
+	return getComponents(ntfs, mft_entry, seen)
+}
+
+func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
+	seen []uint64) ([]string, error) {
 
 	if len(seen) > 10 {
-		return "/", errors.New("Directory too deep")
+		return nil, errors.New("Directory too deep")
 	}
 
 	// If the path is already cached, return it.
-	if mft_entry.full_path != nil {
-		return *mft_entry.full_path, nil
+	if len(mft_entry.components) > 0 {
+		return mft_entry.components, nil
 	}
 
 	id := mft_entry.Record_number()
 	if id == 5 {
-		return "/", nil
+		return nil, nil
 	}
 
-	full_path_any, pres := ntfs.full_path_lru.Get(int(id))
+	components_any, pres := ntfs.full_path_lru.Get(int(id))
 	if pres {
-		return full_path_any.(string), nil
+		return components_any.([]string), nil
 	}
 
 	file_names := mft_entry.FileName(ntfs)
 	if len(file_names) == 0 {
-		return "/", fmt.Errorf("Entry %v has no filename", id)
+		return nil, fmt.Errorf("Entry %v has no filename", id)
 	}
 	display_name := get_display_name(file_names)
 
@@ -62,30 +69,31 @@ func getFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	for _, s := range seen {
 		if s == parent_id {
 			// Detected a loop
-			return "/" + display_name, nil
+			return []string{display_name}, nil
 		}
 	}
 	seen = append(seen, parent_id)
 
-	// Get the parent entry
+	// Get the parent entry - either from cache or reparse it.
 	parent_mft_entry, err := ntfs.GetMFT(int64(parent_id))
 	if err != nil {
-		return "/" + display_name, fmt.Errorf("Can not get Parent MFT %v", id)
+		return []string{display_name}, fmt.Errorf("Can not get Parent MFT %v", id)
 	}
 
-	parent_path, err := getFullPath(ntfs, parent_mft_entry, seen)
+	parent_path_components, err := getComponents(ntfs, parent_mft_entry, seen)
 	if err != nil {
-		return "/" + display_name, err
+		return []string{display_name}, err
 	}
 
-	full_path := path.Join(parent_path, display_name)
+	new_components := appendComponents(parent_path_components,
+		display_name)
 
-	// Cache for next time.
-	mft_entry.full_path = &full_path
+	// Cache the mft entry for next time.
+	mft_entry.components = new_components
 	if mft_entry.IsDir(ntfs) {
-		ntfs.full_path_lru.Add(int(id), full_path)
+		ntfs.full_path_lru.Add(int(id), new_components)
 	}
-	return full_path, nil
+	return new_components, nil
 }
 
 func CapUint64(v uint64, max uint64) uint64 {
@@ -121,4 +129,26 @@ func CapInt32(v int32, max int32) int32 {
 		return max
 	}
 	return v
+}
+
+func setADS(components []string, name string) []string {
+	result := make([]string, 0, len(components))
+	for i, c := range components {
+		if i < len(components)-1 {
+			result = append(result, c)
+		} else {
+			result = append(result, c+":"+name)
+		}
+	}
+	return result
+}
+
+func appendComponents(components []string, name string) []string {
+	result := make([]string, 0, len(components)+1)
+	for _, c := range components {
+		result = append(result, c)
+	}
+
+	result = append(result, name)
+	return result
 }
