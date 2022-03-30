@@ -477,6 +477,7 @@ func ParseMFTFile(
 				new_row.FullPath += ":" + ads_name
 				new_row.FileName +=  ":" + ads_name
 				new_row.IsDir = false
+
 				select {
 				case <-ctx.Done():
 					return
