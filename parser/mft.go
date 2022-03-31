@@ -353,6 +353,16 @@ type MFTHighlight struct {
 	components []string
 }
 
+// Copy the struct safely replacing the mutex
+func (self *MFTHighlight) Copy() *MFTHighlight {
+	self.mu.Lock()
+	new_self := *self
+	self.mu.Unlock()
+	new_self.mu = sync.Mutex{}
+
+	return &new_self
+}
+
 func (self *MFTHighlight) FullPath() string {
 	return "/" + path.Join(self.Components()...)
 }
@@ -515,7 +525,8 @@ func ParseMFTFile(
 
 			// Duplicate ADS names so we can easily search on them.
 			for _, ads_name := range ads {
-				new_row := *row
+				new_row := row.Copy()
+
 				file_names := []string{}
 				// Convert all the names to have an ADS at the end
 				// (long name + ":" + ads, short name + ":" + ads
@@ -531,7 +542,7 @@ func ParseMFTFile(
 				case <-ctx.Done():
 					return
 
-				case output <- &new_row:
+				case output <- new_row:
 				}
 			}
 		}
