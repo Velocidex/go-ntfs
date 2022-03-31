@@ -43,9 +43,13 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 		return nil, errors.New("Directory too deep")
 	}
 
-	// If the path is already cached, return it.
-	if len(mft_entry.components) > 0 {
-		return mft_entry.components, nil
+	// If the path components are already cached, return a copy.
+	mft_entry.mu.Lock()
+	mft_entry_components := CopySlice(mft_entry.components)
+	mft_entry.mu.Unlock()
+
+	if len(mft_entry_components) > 0 {
+		return mft_entry_components, nil
 	}
 
 	id := mft_entry.Record_number()
@@ -85,11 +89,13 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 		return []string{display_name}, err
 	}
 
-	new_components := appendComponents(parent_path_components,
-		display_name)
+	new_components := append(parent_path_components, display_name)
 
 	// Cache the mft entry for next time.
+	mft_entry.mu.Lock()
 	mft_entry.components = new_components
+	mft_entry.mu.Unlock()
+
 	if mft_entry.IsDir(ntfs) {
 		ntfs.full_path_lru.Add(int(id), new_components)
 	}
@@ -143,12 +149,8 @@ func setADS(components []string, name string) []string {
 	return result
 }
 
-func appendComponents(components []string, name string) []string {
-	result := make([]string, 0, len(components)+1)
-	for _, c := range components {
-		result = append(result, c)
-	}
-
-	result = append(result, name)
+func CopySlice(in []string) []string {
+	result := make([]string, len(in))
+	copy(result, in)
 	return result
 }

@@ -7,7 +7,6 @@ import (
 	"io"
 	"path"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -330,7 +329,7 @@ type MFTHighlight struct {
 	IsDir                bool
 	HasADS               bool
 	SI_Lt_FN             bool
-	uSecZeros            bool
+	USecZeros            bool
 	Copied               bool
 	SIFlags              string
 	Created0x10          time.Time
@@ -348,19 +347,40 @@ type MFTHighlight struct {
 	ntfs_ctx  *NTFSContext
 	mft_entry *MFT_ENTRY
 	ads_name  string
-
-	mu         sync.Mutex
-	components []string
 }
 
 // Copy the struct safely replacing the mutex
 func (self *MFTHighlight) Copy() *MFTHighlight {
-	self.mu.Lock()
-	new_self := *self
-	self.mu.Unlock()
-	new_self.mu = sync.Mutex{}
+	return &MFTHighlight{
+		EntryNumber:          self.EntryNumber,
+		SequenceNumber:       self.SequenceNumber,
+		InUse:                self.InUse,
+		ParentEntryNumber:    self.ParentEntryNumber,
+		ParentSequenceNumber: self.ParentSequenceNumber,
+		FileNames:            self.FileNames,
+		_FileNameTypes:       self._FileNameTypes,
+		FileSize:             self.FileSize,
+		ReferenceCount:       self.ReferenceCount,
+		IsDir:                self.IsDir,
+		HasADS:               self.HasADS,
+		SI_Lt_FN:             self.SI_Lt_FN,
+		USecZeros:            self.USecZeros,
+		Copied:               self.Copied,
+		SIFlags:              self.SIFlags,
+		Created0x10:          self.Created0x10,
+		Created0x30:          self.Created0x30,
+		LastModified0x10:     self.LastModified0x10,
+		LastModified0x30:     self.LastModified0x30,
+		LastRecordChange0x10: self.LastRecordChange0x10,
+		LastRecordChange0x30: self.LastRecordChange0x30,
+		LastAccess0x10:       self.LastAccess0x10,
+		LastAccess0x30:       self.LastAccess0x30,
+		LogFileSeqNum:        self.LogFileSeqNum,
 
-	return &new_self
+		ntfs_ctx:  self.ntfs_ctx,
+		mft_entry: self.mft_entry,
+		ads_name:  self.ads_name,
+	}
 }
 
 func (self *MFTHighlight) FullPath() string {
@@ -387,23 +407,13 @@ func (self *MFTHighlight) FileName() string {
 }
 
 func (self *MFTHighlight) Components() []string {
-	self.mu.Lock()
-	components := self.components
-	self.mu.Unlock()
+	components, _ := GetComponents(self.ntfs_ctx, self.mft_entry)
 
-	if len(components) > 0 {
-		return components
-	}
-
-	components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
-
-	self.mu.Lock()
-	defer self.mu.Unlock()
 	if self.ads_name != "" {
-		self.components = setADS(self.components, self.ads_name)
+		return setADS(components, self.ads_name)
 	}
 
-	return self.components
+	return components
 }
 
 func ParseMFTFile(
@@ -487,7 +497,6 @@ func ParseMFTFile(
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
 				ParentSequenceNumber: file_names[0].Seq_num(),
-				//Components:           components,
 				FileNames:            file_name_strings,
 				_FileNameTypes:       file_name_types,
 				FileSize:             size,
@@ -510,7 +519,7 @@ func ParseMFTFile(
 			}
 
 			row.SI_Lt_FN = row.Created0x10.Before(row.Created0x30)
-			row.uSecZeros = row.Created0x10.Unix()*1000000000 ==
+			row.USecZeros = row.Created0x10.Unix()*1000000000 ==
 				row.Created0x10.UnixNano() ||
 				row.LastModified0x10.Unix()*1000000000 == row.LastModified0x10.UnixNano()
 			row.Copied = row.Created0x10.After(row.LastModified0x10)
