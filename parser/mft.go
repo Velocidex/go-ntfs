@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -322,7 +323,6 @@ type MFTHighlight struct {
 	InUse                bool
 	ParentEntryNumber    uint64
 	ParentSequenceNumber uint16
-	components           []string
 	FileNames            []string
 	_FileNameTypes       []string
 	FileSize             int64
@@ -348,6 +348,9 @@ type MFTHighlight struct {
 	ntfs_ctx  *NTFSContext
 	mft_entry *MFT_ENTRY
 	ads_name  string
+
+	mu         sync.Mutex
+	components []string
 }
 
 func (self *MFTHighlight) FullPath() string {
@@ -374,11 +377,18 @@ func (self *MFTHighlight) FileName() string {
 }
 
 func (self *MFTHighlight) Components() []string {
-	if len(self.components) > 0 {
-		return self.components
+	self.mu.Lock()
+	components := self.components
+	self.mu.Unlock()
+
+	if len(components) > 0 {
+		return components
 	}
 
-	self.components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
+	components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
+
+	self.mu.Lock()
+	defer self.mu.Unlock()
 	if self.ads_name != "" {
 		self.components = setADS(self.components, self.ads_name)
 	}
