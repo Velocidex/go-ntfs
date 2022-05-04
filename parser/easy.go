@@ -251,6 +251,13 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 		add_extra_names(info, ads)
 
+		// Since ADS are actually data streams they can not be
+		// directories themselves. The underlying file info will still
+		// be a directory.
+		if ads != "" {
+			info.IsDir = false
+		}
+
 		result = append(result, info)
 	}
 

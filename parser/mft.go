@@ -453,6 +453,7 @@ func ParseMFTFile(
 			var si *STANDARD_INFORMATION
 			var size int64
 			ads := []string{}
+			ads_sizes := []int64{}
 			si_flags := ""
 
 			for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
@@ -467,6 +468,7 @@ func ParseMFTFile(
 					attr_name := attr.Name()
 					if attr_name != "" {
 						ads = append(ads, attr_name)
+						ads_sizes = append(ads_sizes, int64(attr.Size()))
 					}
 
 				case "$FILE_NAME":
@@ -533,7 +535,7 @@ func ParseMFTFile(
 			}
 
 			// Duplicate ADS names so we can easily search on them.
-			for _, ads_name := range ads {
+			for idx, ads_name := range ads {
 				new_row := row.Copy()
 
 				file_names := []string{}
@@ -546,6 +548,7 @@ func ParseMFTFile(
 				new_row.FileNames = file_names
 				new_row.IsDir = false
 				new_row.ads_name = ads_name
+				new_row.FileSize = ads_sizes[idx]
 
 				select {
 				case <-ctx.Done():
