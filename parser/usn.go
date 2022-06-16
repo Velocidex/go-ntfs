@@ -204,17 +204,17 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD, err error) {
 	mft_id, attr_id, err := getUSNStream(ntfs_ctx)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	mft_entry, err := ntfs_ctx.GetMFT(mft_id)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	// Get the last range
