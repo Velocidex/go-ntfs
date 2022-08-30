@@ -78,8 +78,12 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 }
 
 func (self *PagedReader) Flush() {
-	DebugPrint("Closing page reader\n")
 	self.lru.Purge()
+
+	flusher, ok := self.reader.(Flusher)
+	if ok {
+		flusher.Flush()
+	}
 }
 
 func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedReader, error) {

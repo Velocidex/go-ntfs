@@ -43,11 +43,17 @@ func (self *NTFSContext) Close() {
 		fmt.Println(self.mft_entry_lru.DebugString())
 		fmt.Println(self.full_path_lru.DebugString())
 	}
-	self.mft_entry_lru.Purge()
+	self.Purge()
 }
 
 func (self *NTFSContext) Purge() {
 	self.mft_entry_lru.Purge()
+
+	// Try to flush our reader if possible
+	flusher, ok := self.DiskReader.(Flusher)
+	if ok {
+		flusher.Flush()
+	}
 }
 
 func (self *NTFSContext) GetRecordSize() int64 {
