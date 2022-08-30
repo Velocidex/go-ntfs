@@ -277,6 +277,11 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 		for {
 			count := 0
 			DebugPrint("Checking usn from %#08x\n", start_offset)
+
+			// Purge all caching in the context before we read it so
+			// we always get fresh data.
+			ntfs_ctx.Purge()
+
 			for record := range ParseUSN(ctx, ntfs_ctx, start_offset) {
 				if record.Offset > start_offset {
 					select {
@@ -297,11 +302,6 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 				return
 
 			case <-time.After(time.Second * time.Duration(period)):
-			}
-
-			flusher, ok := ntfs_ctx.DiskReader.(Flusher)
-			if ok {
-				flusher.Flush()
 			}
 		}
 	}()
