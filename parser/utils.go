@@ -49,8 +49,7 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 
 	// Allow the directory depth to be configured (default 20)
 	if len(seen) > ntfs.MaxDirectoryDepth {
-		return []string{"<Err>",
-			"<Error-DirTooDeep>"}, TooDeepError
+		return []string{"<Err>", "<DirTooDeep>"}, TooDeepError
 	}
 
 	// If the path components are already cached, return a copy.
@@ -98,13 +97,13 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	parent_mft_entry, err := ntfs.GetMFT(int64(parent_id))
 	if err != nil {
 		return []string{"<Err>",
-			fmt.Sprintf("<Error Parent %v (%v)>", parent_id, err),
+			fmt.Sprintf("<Parent %v (%v)>", parent_id, err),
 			display_name}, InvalidParentEntry
 	}
 
 	if parent_sequence_number != parent_mft_entry.Sequence_value() {
 		return []string{"<Err>",
-			fmt.Sprintf("<Error Parent %v-%v need %v>", parent_id,
+			fmt.Sprintf("<Parent %v-%v need %v>", parent_id,
 				parent_mft_entry.Sequence_value(), parent_sequence_number),
 			display_name}, InvalidParentEntry
 	}
