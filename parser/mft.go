@@ -409,7 +409,8 @@ func (self *MFTHighlight) FileName() string {
 
 func (self *MFTHighlight) Components() []string {
 	if len(self.components) > 0 {
-		return self.components
+		res := CopySlice(self.components)
+		return setADS(res, self.ads_name)
 	}
 
 	self.components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
