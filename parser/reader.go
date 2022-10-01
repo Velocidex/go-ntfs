@@ -52,12 +52,15 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 				self.lru.Len())
 			// Read this page into memory.
 			page_buf = make([]byte, self.pagesize)
-			_, err := self.reader.ReadAt(page_buf, page)
+			n, err := self.reader.ReadAt(page_buf, page)
 			if err != nil && err != io.EOF {
 				return buf_idx, err
 			}
 
-			self.lru.Add(int(page), page_buf)
+			// Only cache full pages.
+			if n == int(self.pagesize) {
+				self.lru.Add(int(page), page_buf)
+			}
 		} else {
 			self.Hits += 1
 			page_buf = cached_page_buf.([]byte)

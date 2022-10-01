@@ -6,6 +6,13 @@ import (
 	"path"
 )
 
+var (
+	TooDeepError       = errors.New("Dir too deep")
+	NameNotFoundError  = errors.New("Entry has no filename")
+	LoopError          = errors.New("Loop Detected")
+	InvalidParentEntry = errors.New("Can not get Parent MFT")
+)
+
 func get_display_name(file_names []*FILE_NAME) string {
 	short_name := ""
 	for _, fn := range file_names {
@@ -33,14 +40,17 @@ func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (string, error) {
 // root. We return the full path of the MFT entry.
 func GetComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY) ([]string, error) {
 	seen := []uint64{}
-	return getComponents(ntfs, mft_entry, seen)
+	res, err := getComponents(ntfs, mft_entry, seen)
+	return res, err
 }
 
 func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	seen []uint64) ([]string, error) {
 
-	if len(seen) > 10 {
-		return nil, errors.New("Directory too deep")
+	// Allow the directory depth to be configured (default 20)
+	if len(seen) > ntfs.MaxDirectoryDepth {
+		return []string{"<Err>",
+			"<Error-DirTooDeep>"}, TooDeepError
 	}
 
 	// If the path components are already cached, return a copy.
@@ -64,7 +74,8 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 
 	file_names := mft_entry.FileName(ntfs)
 	if len(file_names) == 0 {
-		return nil, fmt.Errorf("Entry %v has no filename", id)
+		return []string{"<Err>",
+			fmt.Sprintf("<Unknown entry %v>", id)}, NameNotFoundError
 	}
 	display_name := get_display_name(file_names)
 
@@ -73,20 +84,35 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	for _, s := range seen {
 		if s == parent_id {
 			// Detected a loop
-			return []string{display_name}, nil
+			return []string{"<Err>",
+				fmt.Sprintf("<Loop detected %v>", parent_id),
+				display_name}, LoopError
 		}
 	}
 	seen = append(seen, parent_id)
 
+	// Get the parent sequence number.
+	parent_sequence_number := file_names[0].Seq_num()
+
 	// Get the parent entry - either from cache or reparse it.
 	parent_mft_entry, err := ntfs.GetMFT(int64(parent_id))
 	if err != nil {
-		return []string{display_name}, fmt.Errorf("Can not get Parent MFT %v", id)
+		return []string{"<Err>",
+			fmt.Sprintf("<Error Parent %v (%v)>", parent_id, err),
+			display_name}, InvalidParentEntry
+	}
+
+	if parent_sequence_number != parent_mft_entry.Sequence_value() {
+		return []string{"<Err>",
+			fmt.Sprintf("<Error Parent %v-%v need %v>", parent_id,
+				parent_mft_entry.Sequence_value(), parent_sequence_number),
+			display_name}, InvalidParentEntry
 	}
 
 	parent_path_components, err := getComponents(ntfs, parent_mft_entry, seen)
 	if err != nil {
-		return []string{display_name}, err
+		// If we hit an error ensure not to cache the path.
+		return append(parent_path_components, display_name), err
 	}
 
 	new_components := append(parent_path_components, display_name)
@@ -96,6 +122,8 @@ func getComponents(ntfs *NTFSContext, mft_entry *MFT_ENTRY,
 	mft_entry.components = new_components
 	mft_entry.mu.Unlock()
 
+	// Only cache directories because files usually do not contain
+	// children so there is no benefit in caching
 	if mft_entry.IsDir(ntfs) {
 		ntfs.full_path_lru.Add(int(id), new_components)
 	}

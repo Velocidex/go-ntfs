@@ -1,6 +1,7 @@
 {
-  "FullPath": "/$UsnJrnl",
+  "FullPath": "/\u003cErr\u003e/\u003cError Parent 11 (EntryTooShortError)\u003e/$UsnJrnl",
   "MFTID": 68310,
+  "SequenceNumber": 2,
   "Size": 6352113880,
   "Allocated": true,
   "IsDir": false,
@@ -19,7 +20,9 @@
      "AccessedTime": "2017-06-15T01:05:51.5053972Z"
     },
     "Type": "POSIX",
-    "Name": "$UsnJrnl"
+    "Name": "$UsnJrnl",
+    "ParentEntryNumber": 11,
+    "ParentSequenceNumber": 11
    }
   ],
   "Attributes": [

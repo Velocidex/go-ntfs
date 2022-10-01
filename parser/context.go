@@ -13,6 +13,8 @@ type NTFSContext struct {
 	RootMFT    *MFT_ENTRY
 	Profile    *NTFSProfile
 
+	MaxDirectoryDepth int
+
 	ClusterSize int64
 
 	mu         sync.Mutex
@@ -30,10 +32,11 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	full_path_cache, _ := NewLRU(100000, nil, name+"FullPath")
 	mft_cache, _ := NewLRU(10000, nil, name)
 	return &NTFSContext{
-		DiskReader:    image,
-		Profile:       NewNTFSProfile(),
-		mft_entry_lru: mft_cache,
-		full_path_lru: full_path_cache,
+		DiskReader:        image,
+		MaxDirectoryDepth: 10,
+		Profile:           NewNTFSProfile(),
+		mft_entry_lru:     mft_cache,
+		full_path_lru:     full_path_cache,
 	}
 }
 
