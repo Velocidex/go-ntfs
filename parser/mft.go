@@ -344,9 +344,10 @@ type MFTHighlight struct {
 	LogFileSeqNum uint64
 
 	// Hold on to these for delayed lazy evaluation.
-	ntfs_ctx  *NTFSContext
-	mft_entry *MFT_ENTRY
-	ads_name  string
+	ntfs_ctx   *NTFSContext
+	mft_entry  *MFT_ENTRY
+	ads_name   string
+	components []string
 }
 
 // Copy the struct safely replacing the mutex
@@ -407,13 +408,16 @@ func (self *MFTHighlight) FileName() string {
 }
 
 func (self *MFTHighlight) Components() []string {
-	components, _ := GetComponents(self.ntfs_ctx, self.mft_entry)
-
-	if self.ads_name != "" {
-		return setADS(components, self.ads_name)
+	if len(self.components) > 0 {
+		return self.components
 	}
 
-	return components
+	self.components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
+	if self.ads_name != "" {
+		return setADS(self.components, self.ads_name)
+	}
+
+	return self.components
 }
 
 func ParseMFTFile(

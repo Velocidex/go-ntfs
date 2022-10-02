@@ -15,9 +15,11 @@ type TimeStamps struct {
 }
 
 type FilenameInfo struct {
-	Times TimeStamps
-	Type  string
-	Name  string
+	Times                TimeStamps
+	Type                 string
+	Name                 string
+	ParentEntryNumber    uint64
+	ParentSequenceNumber uint16
 }
 
 type Attribute struct {
@@ -31,12 +33,13 @@ type Attribute struct {
 
 // Describe a single MFT entry.
 type NTFSFileInformation struct {
-	FullPath  string
-	MFTID     int64
-	Size      int64
-	Allocated bool
-	IsDir     bool
-	SI_Times  *TimeStamps
+	FullPath       string
+	MFTID          int64
+	SequenceNumber uint16
+	Size           int64
+	Allocated      bool
+	IsDir          bool
+	SI_Times       *TimeStamps
 
 	// If multiple filenames are given, we list them here.
 	Filenames []*FilenameInfo
@@ -49,10 +52,11 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 	mft_id := mft_entry.Record_number()
 
 	result := &NTFSFileInformation{
-		FullPath:  full_path,
-		MFTID:     int64(mft_id),
-		Allocated: mft_entry.Flags().IsSet("ALLOCATED"),
-		IsDir:     mft_entry.Flags().IsSet("DIRECTORY"),
+		FullPath:       full_path,
+		MFTID:          int64(mft_id),
+		SequenceNumber: mft_entry.Sequence_value(),
+		Allocated:      mft_entry.Flags().IsSet("ALLOCATED"),
+		IsDir:          mft_entry.Flags().IsSet("DIRECTORY"),
 	}
 
 	si, err := mft_entry.StandardInformation(ntfs)
@@ -73,8 +77,10 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 				MFTModifiedTime:  filename.Mft_modified().Time,
 				AccessedTime:     filename.File_accessed().Time,
 			},
-			Type: filename.NameType().Name,
-			Name: filename.Name(),
+			ParentEntryNumber:    filename.MftReference(),
+			ParentSequenceNumber: filename.Seq_num(),
+			Type:                 filename.NameType().Name,
+			Name:                 filename.Name(),
 		})
 	}
 
