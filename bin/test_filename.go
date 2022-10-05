@@ -52,12 +52,7 @@ func doTestFn() {
 			continue
 		}
 
-		full_path, err := parser.GetFullPath(ntfs_ctx, mft_entry)
-		if err != nil {
-			fmt.Printf("Error %v: %v\n", i, err)
-			continue
-		}
-
+		full_path := parser.GetFullPath(ntfs_ctx, mft_entry)
 		if *verbose_flag {
 			fmt.Printf("%v: %v\n", i, full_path)
 		}

@@ -1,5 +1,5 @@
 {
-  "FullPath": "/\u003cErr\u003e/\u003cParent 11 (EntryTooShortError)\u003e/$UsnJrnl",
+  "FullPath": "/\u003cErr\u003e/EntryTooShortError/$UsnJrnl",
   "MFTID": 68310,
   "SequenceNumber": 2,
   "Size": 6352113880,
@@ -66,5 +66,8 @@
     "Size": 32,
     "Name": "$Max"
    }
+  ],
+  "Hardlinks": [
+   "\u003cErr\u003e\\EntryTooShortError\\$UsnJrnl"
   ]
  }
