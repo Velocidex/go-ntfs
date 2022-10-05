@@ -20,31 +20,30 @@ type NTFSContext struct {
 	mu         sync.Mutex
 	RecordSize int64
 
-	// Map MFTID to string
-	full_path_lru *LRU
-
 	// Map MFTID to *MFT_ENTRY
 	mft_entry_lru *LRU
+
+	mft_summary_cache *MFTEntryCache
 }
 
 func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	STATS.Inc_NTFSContext()
-	full_path_cache, _ := NewLRU(100000, nil, name+"FullPath")
-	mft_cache, _ := NewLRU(10000, nil, name)
-	return &NTFSContext{
+	mft_cache, _ := NewLRU(1000, nil, name)
+	ntfs := &NTFSContext{
 		DiskReader:        image,
-		MaxDirectoryDepth: 10,
+		MaxDirectoryDepth: 20,
 		Profile:           NewNTFSProfile(),
 		mft_entry_lru:     mft_cache,
-		full_path_lru:     full_path_cache,
 	}
+
+	ntfs.mft_summary_cache = NewMFTEntryCache(ntfs)
+	return ntfs
 }
 
 func (self *NTFSContext) Close() {
 	if debug {
 		fmt.Printf(STATS.DebugString())
 		fmt.Println(self.mft_entry_lru.DebugString())
-		fmt.Println(self.full_path_lru.DebugString())
 	}
 	self.Purge()
 }
@@ -68,6 +67,10 @@ func (self *NTFSContext) GetRecordSize() int64 {
 	}
 
 	return self.RecordSize
+}
+
+func (self *NTFSContext) GetMFTSummary(id uint64) (*MFTEntrySummary, error) {
+	return self.mft_summary_cache.GetSummary(id)
 }
 
 func (self *NTFSContext) GetMFT(id int64) (*MFT_ENTRY, error) {

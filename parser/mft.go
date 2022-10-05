@@ -15,15 +15,6 @@ var (
 )
 
 func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE {
-	self.mu.Lock()
-	if self.attributes != nil {
-		STATS.Inc_MFT_ENTRY_attributes()
-		result := *self.attributes
-		self.mu.Unlock()
-		return result
-	}
-	self.mu.Unlock()
-
 	offset := int64(self.Attribute_offset())
 	result := make([]*NTFS_ATTRIBUTE, 0, 16)
 
@@ -58,9 +49,6 @@ func (self *MFT_ENTRY) EnumerateAttributes(ntfs *NTFSContext) []*NTFS_ATTRIBUTE 
 		offset += int64(attribute.Length())
 	}
 
-	self.mu.Lock()
-	self.attributes = &result
-	self.mu.Unlock()
 	return result
 }
 
@@ -177,21 +165,13 @@ func (self *MFT_ENTRY) StandardInformation(ntfs *NTFSContext) (
 
 // Extract the $FILE_NAME attribute from the MFT.
 func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
-	if self.filenames != nil {
-		STATS.Inc_MFT_ENTRY_filenames()
-		return *self.filenames
-	}
-
 	result := []*FILE_NAME{}
-
 	for _, attr := range self.EnumerateAttributes(ntfs) {
 		if attr.Type().Name == "$FILE_NAME" {
 			res := self.Profile.FILE_NAME(attr.Data(ntfs), 0)
 			result = append(result, res)
 		}
 	}
-
-	self.filenames = &result
 	return result
 }
 
@@ -211,10 +191,6 @@ func (self *MFT_ENTRY) GetAttribute(ntfs *NTFSContext,
 }
 
 func (self *MFT_ENTRY) IsDir(ntfs *NTFSContext) bool {
-	if self.is_dir != nil {
-		return *self.is_dir
-	}
-
 	result := false
 	for _, attr := range self.EnumerateAttributes(ntfs) {
 		switch attr.Type().Name {
@@ -222,8 +198,6 @@ func (self *MFT_ENTRY) IsDir(ntfs *NTFSContext) bool {
 			result = true
 		}
 	}
-
-	self.is_dir = &result
 	return result
 }
 
@@ -388,6 +362,15 @@ func (self *MFTHighlight) FullPath() string {
 	return "/" + path.Join(self.Components()...)
 }
 
+func (self *MFTHighlight) Links() []string {
+	components := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber), 20)
+	result := make([]string, 0, len(components))
+	for _, l := range components {
+		result = append(result, strings.Join(l, "\\"))
+	}
+	return result
+}
+
 func (self *MFTHighlight) FileNameTypes() string {
 	return strings.Join(self._FileNameTypes, ",")
 }
@@ -408,17 +391,17 @@ func (self *MFTHighlight) FileName() string {
 }
 
 func (self *MFTHighlight) Components() []string {
-	if len(self.components) > 0 {
-		res := CopySlice(self.components)
-		return setADS(res, self.ads_name)
+	components := []string{}
+	links := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber), 1)
+	if len(links) > 0 {
+		components = links[0]
 	}
 
-	self.components, _ = GetComponents(self.ntfs_ctx, self.mft_entry)
 	if self.ads_name != "" {
-		return setADS(self.components, self.ads_name)
+		return setADS(components, self.ads_name)
 	}
 
-	return self.components
+	return components
 }
 
 func ParseMFTFile(

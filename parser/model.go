@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -45,10 +46,12 @@ type NTFSFileInformation struct {
 	Filenames []*FilenameInfo
 
 	Attributes []*Attribute
+
+	Hardlinks []string
 }
 
 func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformation, error) {
-	full_path, _ := GetFullPath(ntfs, mft_entry)
+	full_path := GetFullPath(ntfs, mft_entry)
 	mft_id := mft_entry.Record_number()
 
 	result := &NTFSFileInformation{
@@ -107,6 +110,10 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 			Id:   uint64(attr_id),
 			Name: attr.Name(),
 		})
+	}
+
+	for _, l := range GetHardLinks(ntfs, uint64(mft_id), 20) {
+		result.Hardlinks = append(result.Hardlinks, strings.Join(l, "\\"))
 	}
 
 	return result, nil

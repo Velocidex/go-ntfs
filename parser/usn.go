@@ -97,7 +97,7 @@ func (self *USN_RECORD) FullPath() string {
 		return ""
 	}
 
-	parent_full_path, _ := GetFullPath(self.context, parent_mft_entry)
+	parent_full_path := GetFullPath(self.context, parent_mft_entry)
 	return parent_full_path + "/" + self.Filename()
 }
 

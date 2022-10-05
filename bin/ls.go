@@ -53,7 +53,7 @@ func doLS() {
 		child_entry, err := GetMFTEntry(ntfs_ctx, info.MFTId)
 		kingpin.FatalIfError(err, "Can not open child %v", info.Name)
 
-		full_path, _ := parser.GetFullPath(ntfs_ctx, child_entry)
+		full_path := parser.GetFullPath(ntfs_ctx, child_entry)
 
 		table.Append([]string{
 			info.MFTId,
