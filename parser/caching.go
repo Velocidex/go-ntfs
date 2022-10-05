@@ -3,6 +3,8 @@
 
 package parser
 
+import "sync"
+
 type FNSummary struct {
 	Name                 string
 	NameType             string
@@ -16,6 +18,8 @@ type MFTEntrySummary struct {
 }
 
 type MFTEntryCache struct {
+	mu sync.Mutex
+
 	ntfs *NTFSContext
 
 	lru *LRU
@@ -30,6 +34,9 @@ func NewMFTEntryCache(ntfs *NTFSContext) *MFTEntryCache {
 }
 
 func (self *MFTEntryCache) GetSummary(id uint64) (*MFTEntrySummary, error) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	res_any, pres := self.lru.Get(int(id))
 	if pres {
 		res, ok := res_any.(*MFTEntrySummary)

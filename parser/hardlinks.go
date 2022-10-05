@@ -34,10 +34,15 @@ func (self *Visitor) AddComponent(idx int, component string) {
 }
 
 func (self *Visitor) Components() [][]string {
+	result := make([][]string, 0, len(self.Paths))
+
 	for _, p := range self.Paths {
 		ReverseStringSlice(p)
+		if len(p) > 0 {
+			result = append(result, p)
+		}
 	}
-	return self.Paths
+	return result
 }
 
 // Walks the MFT entry to get all file names to this MFT entry.
@@ -64,12 +69,25 @@ func getNames(ntfs *NTFSContext,
 		return
 	}
 
-	filenames := []*FNSummary{}
+	// Filter out short file names
+	filenames := []FNSummary{}
 	for _, fn := range mft_entry.Filenames {
 		switch fn.NameType {
 		case "Win32", "DOS+Win32", "POSIX":
-			filenames = append(filenames, &fn)
+			filenames = append(filenames, fn)
 		}
+	}
+
+	// If we only have short names thats what we will use.
+	if len(filenames) == 0 {
+		filenames = mft_entry.Filenames
+	}
+
+	// No filenames in this MFT entry - this is a dead end!
+	if len(filenames) == 0 {
+		visitor.AddComponent(idx, "<UnknownEntry>")
+		visitor.AddComponent(idx, "<Err>")
+		return
 	}
 
 	for i, fn := range filenames {
