@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -78,6 +79,22 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 	}
 
 	return nil
+}
+
+func (self *USN_RECORD) Links() []string {
+	// Since this record could have mean a file deletion event
+	// then resolving the actual MFT entry to a full path is less
+	// reliable. It is more reliable to resolve the parent path,
+	// and then add the USN record name to it.
+	parent_mft_id := self.USN_RECORD_V2.ParentFileReferenceNumberID()
+
+	components := GetHardLinks(self.context, uint64(parent_mft_id), 20)
+	result := make([]string, 0, len(components))
+	for _, l := range components {
+		l = append(l, self.Filename())
+		result = append(result, strings.Join(l, "\\"))
+	}
+	return result
 }
 
 // Resolve the file to a full path
