@@ -1,20 +1,22 @@
 module www.velocidex.com/golang/go-ntfs
 
 require (
-	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
-	github.com/alecthomas/colour v0.1.0 // indirect
-	github.com/alecthomas/repr v0.0.0-20200325044227-4184120f674c // indirect
+	github.com/alecthomas/assert v1.0.0
+	github.com/alecthomas/repr v0.1.1 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/mattn/go-runewidth v0.0.3 // indirect
-	github.com/olekukonko/tablewriter v0.0.0-20180912035003-be2c049b30cc
-	github.com/sebdah/goldie v0.0.0-20180424091453-8784dd1ab561
-	github.com/sebdah/goldie/v2 v2.5.1
-	github.com/sergi/go-diff v1.1.0 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/olekukonko/tablewriter v0.0.5
+	github.com/rivo/uniseg v0.4.2 // indirect
+	github.com/sebdah/goldie v1.0.0
+	github.com/sebdah/goldie/v2 v2.5.3
+	github.com/stretchr/testify v1.8.0
+	golang.org/x/sys v0.1.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
 // replace gopkg.in/alecthomas/kingpin.v2 => /home/mic/projects/kingpin

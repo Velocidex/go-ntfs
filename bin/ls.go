@@ -23,11 +23,18 @@ var (
 		"path", "The path to list or an MFT entry.",
 	).Default("/").String()
 
+	ls_command_image_offset = ls_command.Flag(
+		"image_offset", "An offset into the file.",
+	).Default("0").Int64()
+
 	mft_regex = regexp.MustCompile("\\d+")
 )
 
 func doLS() {
-	reader, _ := parser.NewPagedReader(*ls_command_file_arg, 1024, 10000)
+	reader, _ := parser.NewPagedReader(&parser.OffsetReader{
+		Offset: *ls_command_image_offset,
+		Reader: *ls_command_file_arg,
+	}, 1024, 10000)
 
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")

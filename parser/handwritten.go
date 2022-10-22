@@ -132,6 +132,19 @@ func (self *NTFS_ATTRIBUTE) Flags() *Flags {
 	return &Flags{Value: uint64(value), Names: names}
 }
 
+// Faster shortcuts to avoid extra allocations.
+func IsCompressed(flags *Flags) bool {
+	return flags.Value&1 != 0
+}
+
+func IsCompressedOrSparse(flags *Flags) bool {
+	return flags.Value&(1+1<<14) != 0
+}
+
+func IsSparse(flags *Flags) bool {
+	return flags.Value&(1<<14) != 0
+}
+
 func (self *NTFS_ATTRIBUTE) Attribute_id() uint16 {
 	return binary.LittleEndian.Uint16(self.b[14:16])
 }

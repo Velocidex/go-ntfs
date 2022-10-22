@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -81,4 +82,22 @@ func DebugPrint(fmt_str string, v ...interface{}) {
 	if *NTFS_DEBUG {
 		fmt.Printf(fmt_str, v...)
 	}
+}
+
+// Debugging decompression
+const (
+	debugLZNT1 = false
+)
+
+func debugLZNT1Decompress(format string, args ...interface{}) {
+	if debugLZNT1 {
+		fmt.Printf(format, args...)
+	}
+}
+
+func debugHexDump(buf []byte) string {
+	if debugLZNT1 {
+		return hex.Dump(buf)
+	}
+	return ""
 }
