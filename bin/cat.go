@@ -24,14 +24,21 @@ var (
 		"offset", "The offset to start reading.",
 	).Int64()
 
+	cat_command_image_offset = cat_command.Flag(
+		"image_offset", "The offset in the image to use.",
+	).Int64()
+
 	cat_command_output_file = cat_command.Flag(
 		"out", "Write to this file",
 	).OpenFile(os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(0666))
 )
 
 func doCAT() {
-	reader, _ := parser.NewPagedReader(
-		getReader(*cat_command_file_arg), 1024, 10000)
+	reader, _ := parser.NewPagedReader(&parser.OffsetReader{
+		Offset: *cat_command_image_offset,
+		Reader: getReader(*cat_command_file_arg),
+	}, 1024, 10000)
+
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
@@ -54,7 +61,7 @@ func doCAT() {
 		defer fd.Close()
 	}
 
-	buf := make([]byte, 1024*1024)
+	buf := make([]byte, 1024*1024*10)
 	offset := *cat_command_offset
 	for {
 		n, _ := data.ReadAt(buf, offset)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -290,104 +291,24 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 }
 
 // Get all VCNs having the same type and ID
-func getAllVCNs(ntfs *NTFSContext,
+func GetAllVCNs(ntfs *NTFSContext,
 	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) []*NTFS_ATTRIBUTE {
 	result := []*NTFS_ATTRIBUTE{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == attr_type &&
-			attr.Attribute_id() == attr_id {
-			result = append(result, attr)
+		if attr.Type().Value == attr_type {
+			// If the attr_id is not specified we pick the first
+			// stream of this type. Remember it so the next VCN goes
+			// with this one.
+			if attr_id == 0 {
+				attr_id = attr.Attribute_id()
+			}
+
+			if attr.Attribute_id() == attr_id {
+				result = append(result, attr)
+			}
 		}
 	}
 	return result
-}
-
-// Gets a reader over this attribute's VCN. The actual_size and
-// initialized_size are the file's complete sizes - these are normally
-// only filled in for the first VCN attribute.
-func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
-	actual_size, initialized_size,
-	compression_unit_size int64) ([]*MappedReader, int64) {
-
-	// Handle resident attributes specifically.
-	if self.Resident().Name == "RESIDENT" {
-		buf := make([]byte, CapUint32(self.Content_size(), MAX_MFT_ENTRY_SIZE))
-		n, _ := self.Reader.ReadAt(
-			buf,
-			self.Offset+int64(self.Content_offset()))
-		buf = buf[:n]
-
-		return []*MappedReader{
-			&MappedReader{
-				FileOffset:  0,
-				Length:      int64(n),
-				ClusterSize: 1,
-				Reader:      bytes.NewReader(buf),
-			}}, int64(n)
-	}
-
-	// Figure out how much of the file this attribute covers.
-	start := int64(self.Runlist_vcn_start()) * ntfs.ClusterSize
-	end := int64(self.Runlist_vcn_end()+1) * ntfs.ClusterSize
-
-	// This attribute covers the range between the end vcn and the
-	// start vcn
-	length := end - start
-
-	// Cap this run length at the file's actual_size in case the
-	// attribute's VCN is over allocated past the end of the file.
-	if length > actual_size {
-		length = actual_size
-	}
-
-	if self.Flags().IsSet("COMPRESSED") {
-		return []*MappedReader{&MappedReader{
-			ClusterSize: 1,
-			FileOffset:  start,
-			Length:      length,
-			Reader: NewCompressedRangeReader(self.RunList(),
-				ntfs.ClusterSize,
-				ntfs.DiskReader,
-				compression_unit_size),
-		}}, length
-	}
-
-	// Handle a non compressed VCN
-
-	// If the attribute is not fully initialized, trim the mapping
-	// to the initialized range and add a pad to the end to make
-	// up the full length. For example, the attribute might
-	// contain 32 clusters, but only 16 clusters are initialized
-	// and 16 clusters are padding.
-	if length > initialized_size {
-		return []*MappedReader{
-			&MappedReader{
-				FileOffset:  start,
-				Length:      initialized_size,
-				ClusterSize: 1,
-				Reader: NewRangeReader(
-					self.RunList(), ntfs.DiskReader,
-					ntfs.ClusterSize, compression_unit_size),
-			},
-			// Pad starts immediately after the last range
-			&MappedReader{
-				ClusterSize: 1,
-				FileOffset:  start + initialized_size,
-				Length:      length - initialized_size,
-				IsSparse:    true,
-				Reader:      &NullReader{},
-			}}, length
-	}
-
-	return []*MappedReader{
-		&MappedReader{
-			FileOffset:  start,
-			Length:      length,
-			ClusterSize: 1,
-			Reader: NewRangeReader(
-				self.RunList(), ntfs.DiskReader,
-				ntfs.ClusterSize, compression_unit_size),
-		}}, length
 }
 
 // Open the full stream. Note - In NTFS a stream can be composed of
@@ -399,52 +320,108 @@ func (self *NTFS_ATTRIBUTE) getVCNReader(ntfs *NTFSContext,
 func OpenStream(ntfs *NTFSContext,
 	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) (RangeReaderAt, error) {
 
-	attr_id_found := false
-
 	result := &RangeReader{}
 
+	// Gather all the VCNs together
+	vcns := GetAllVCNs(ntfs, mft_entry, attr_type, attr_id)
+	if len(vcns) == 0 {
+		return nil, os.ErrNotExist
+	}
+
+	// Return a resident reader immediately.
+	attr := vcns[0]
+
+	if attr.Resident().Name == "RESIDENT" {
+		buf := make([]byte, CapUint32(attr.Content_size(),
+			MAX_MFT_ENTRY_SIZE))
+		n, _ := attr.Reader.ReadAt(buf,
+			attr.Offset+int64(attr.Content_offset()))
+		buf = buf[:n]
+
+		return &MappedReader{
+			FileOffset:  0,
+			Length:      int64(n),
+			ClusterSize: 1,
+			Reader:      bytes.NewReader(buf),
+		}, nil
+	}
+
+	result.runs = joinAllVCNs(ntfs, vcns)
+
+	return result, nil
+}
+
+func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 	actual_size := int64(0)
 	initialized_size := int64(0)
 	compression_unit_size := int64(0)
+	runs := []*Run{}
 
-	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value != attr_type {
-			continue
-		}
-
-		// An attr id of 0 means take the first ID of the required type.
-		if attr_id == 0 && !attr_id_found {
-			attr_id = attr.Attribute_id()
-			attr_id_found = true
-		}
-
-		if attr.Attribute_id() != attr_id {
-			continue
-		}
-
+	for _, vcn := range vcns {
 		// Actual_size is only set on the first stream.
 		if actual_size == 0 {
-			actual_size = int64(attr.Actual_size())
+			actual_size = int64(vcn.Actual_size())
 		}
 
 		// Initialized_size is only set on the first stream
 		if initialized_size == 0 {
-			initialized_size = int64(attr.Initialized_size())
+			initialized_size = int64(vcn.Initialized_size())
 		}
 
 		// Compression_unit_size is only set on the first stream.
 		if compression_unit_size == 0 {
 			compression_unit_size = int64(
-				1 << uint64(attr.Compression_unit_size()))
+				1 << uint64(vcn.Compression_unit_size()))
 		}
 
-		reader, consumed_length := attr.getVCNReader(ntfs, actual_size, initialized_size,
-			compression_unit_size)
-		result.runs = append(result.runs, reader...)
-
-		actual_size -= consumed_length
-		initialized_size -= consumed_length
+		// Join all the runlists from all VCNs into the same runlist -
+		// compressed files often have their runs broken up into
+		// different vcns so it is just easier to combine them before
+		// parsing.
+		vcn_runlist := vcn.RunList()
+		runs = append(runs, vcn_runlist...)
 	}
 
-	return result, nil
+	var reader *MappedReader
+	flags := vcns[0].Flags()
+
+	if IsCompressedOrSparse(flags) {
+		reader = &MappedReader{
+			ClusterSize: 1,
+			FileOffset:  0,
+			Length:      initialized_size,
+			Reader: NewCompressedRangeReader(runs,
+				ntfs.ClusterSize, ntfs.DiskReader,
+				compression_unit_size),
+		}
+
+	} else {
+		reader = &MappedReader{
+			ClusterSize: 1,
+			FileOffset:  0,
+			Length:      initialized_size,
+			Reader: NewUncompressedRangeReader(runs,
+				ntfs.ClusterSize, ntfs.DiskReader),
+		}
+	}
+
+	// If the attribute is not fully initialized, trim the mapping
+	// to the initialized range and add a pad to the end to make
+	// up the full length. For example, the attribute might
+	// contain 32 clusters, but only 16 clusters are initialized
+	// and 16 clusters are padding.
+	if actual_size > initialized_size {
+		return []*MappedReader{
+			reader,
+			// Pad starts immediately after the last range
+			&MappedReader{
+				ClusterSize: 1,
+				FileOffset:  initialized_size,
+				Length:      actual_size - initialized_size,
+				IsSparse:    true,
+				Reader:      &NullReader{},
+			}}
+	}
+
+	return []*MappedReader{reader}
 }

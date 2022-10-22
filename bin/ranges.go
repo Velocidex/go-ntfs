@@ -20,6 +20,14 @@ var (
 		"file", "The image file to inspect",
 	).Required().File()
 
+	runs_command_image_offset = runs_command.Flag(
+		"image_offset", "The offset in the image to use.",
+	).Int64()
+
+	runs_command_raw_runs = runs_command.Flag(
+		"raw_runs", "Also show raw runs.",
+	).Bool()
+
 	runs_command_arg = runs_command.Arg(
 		"mft_id", "An inode in MFT notation e.g. 43-128-0.",
 	).Required().String()
@@ -36,8 +44,11 @@ func getReader(reader io.ReaderAt) io.ReaderAt {
 }
 
 func doRuns() {
-	reader, _ := parser.NewPagedReader(
-		getReader(*runs_command_file_arg), 1024, 10000)
+	reader, _ := parser.NewPagedReader(&parser.OffsetReader{
+		Offset: *runs_command_image_offset,
+		Reader: getReader(*runs_command_file_arg),
+	}, 1024, 10000)
+
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
@@ -48,17 +59,23 @@ func doRuns() {
 	mft_entry, err := ntfs_ctx.GetMFT(mft_id)
 	kingpin.FatalIfError(err, "Can not open path")
 
+	if *runs_command_raw_runs {
+		vcns := parser.GetAllVCNs(ntfs_ctx,
+			mft_entry, uint64(attr_type), uint16(attr_id))
+		for _, vcn := range vcns {
+			fmt.Println(vcn.DebugString())
+			vcn_runlist := vcn.RunList()
+			parser.DebugRawRuns(vcn_runlist)
+		}
+	}
+
 	data, err := parser.OpenStream(ntfs_ctx, mft_entry,
 		uint64(attr_type), uint16(attr_id))
 	kingpin.FatalIfError(err, "Can not open stream")
 
-	fmt.Println(parser.DebugString(data, ""))
-
-	for _, rng := range data.Ranges() {
-		fmt.Printf("Range %v-%v sparse %v\n",
-			rng.Offset, rng.Offset+rng.Length, rng.IsSparse)
+	for _, r := range parser.DebugRuns(data, 0) {
+		fmt.Printf("%v\n", r)
 	}
-
 }
 
 func init() {

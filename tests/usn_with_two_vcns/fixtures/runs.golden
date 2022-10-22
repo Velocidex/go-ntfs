@@ -88,285 +88,74 @@ Found   struct NTFS_ATTRIBUTE @ 0x38:
   MftReference: 0x10ad6
   Attribute_id: 0x8e
 
-RangeReader with 2 runs:
-Run 0 (*parser.MappedReader):
-  Mapping 0 -> 182452224 (length 182452224) with *parser.RangeReader
-    RangeReader with 1 runs:
-    Run 0 (*parser.MappedReader):
-      Mapping 0 -> 182452224 (length 182452224) with *parser.NullReader
-      
-    
-Run 1 (*parser.MappedReader):
-  Mapping 182452224 -> 6352113880 (length 6169661656) with *parser.RangeReader
-    RangeReader with 67 runs:
-    Run 0 (*parser.MappedReader):
-      Mapping 0 -> 6129385472 (length 6129385472) with *parser.NullReader
-      
-    Run 1 (*parser.MappedReader):
-      Mapping 6129385472 -> 6129459200 (length 73728) with *parser.PagedReader
-      
-    Run 2 (*parser.MappedReader):
-      Mapping 6129459200 -> 6129786880 (length 327680) with *parser.PagedReader
-      
-    Run 3 (*parser.MappedReader):
-      Mapping 6129786880 -> 6130245632 (length 458752) with *parser.PagedReader
-      
-    Run 4 (*parser.MappedReader):
-      Mapping 6130245632 -> 6130933760 (length 688128) with *parser.PagedReader
-      
-    Run 5 (*parser.MappedReader):
-      Mapping 6130933760 -> 6131302400 (length 368640) with *parser.PagedReader
-      
-    Run 6 (*parser.MappedReader):
-      Mapping 6131302400 -> 6131810304 (length 507904) with *parser.PagedReader
-      
-    Run 7 (*parser.MappedReader):
-      Mapping 6131810304 -> 6132334592 (length 524288) with *parser.PagedReader
-      
-    Run 8 (*parser.MappedReader):
-      Mapping 6132334592 -> 6133071872 (length 737280) with *parser.PagedReader
-      
-    Run 9 (*parser.MappedReader):
-      Mapping 6133071872 -> 6133391360 (length 319488) with *parser.PagedReader
-      
-    Run 10 (*parser.MappedReader):
-      Mapping 6133391360 -> 6133907456 (length 516096) with *parser.PagedReader
-      
-    Run 11 (*parser.MappedReader):
-      Mapping 6133907456 -> 6134431744 (length 524288) with *parser.PagedReader
-      
-    Run 12 (*parser.MappedReader):
-      Mapping 6134431744 -> 6134956032 (length 524288) with *parser.PagedReader
-      
-    Run 13 (*parser.MappedReader):
-      Mapping 6134956032 -> 6135480320 (length 524288) with *parser.PagedReader
-      
-    Run 14 (*parser.MappedReader):
-      Mapping 6135480320 -> 6136004608 (length 524288) with *parser.PagedReader
-      
-    Run 15 (*parser.MappedReader):
-      Mapping 6136004608 -> 6136528896 (length 524288) with *parser.PagedReader
-      
-    Run 16 (*parser.MappedReader):
-      Mapping 6136528896 -> 6137876480 (length 1347584) with *parser.PagedReader
-      
-    Run 17 (*parser.MappedReader):
-      Mapping 6137876480 -> 6138101760 (length 225280) with *parser.PagedReader
-      
-    Run 18 (*parser.MappedReader):
-      Mapping 6138101760 -> 6138626048 (length 524288) with *parser.PagedReader
-      
-    Run 19 (*parser.MappedReader):
-      Mapping 6138626048 -> 6139150336 (length 524288) with *parser.PagedReader
-      
-    Run 20 (*parser.MappedReader):
-      Mapping 6139150336 -> 6139674624 (length 524288) with *parser.PagedReader
-      
-    Run 21 (*parser.MappedReader):
-      Mapping 6139674624 -> 6140198912 (length 524288) with *parser.PagedReader
-      
-    Run 22 (*parser.MappedReader):
-      Mapping 6140198912 -> 6140723200 (length 524288) with *parser.PagedReader
-      
-    Run 23 (*parser.MappedReader):
-      Mapping 6140723200 -> 6141247488 (length 524288) with *parser.PagedReader
-      
-    Run 24 (*parser.MappedReader):
-      Mapping 6141247488 -> 6141771776 (length 524288) with *parser.PagedReader
-      
-    Run 25 (*parser.MappedReader):
-      Mapping 6141771776 -> 6142296064 (length 524288) with *parser.PagedReader
-      
-    Run 26 (*parser.MappedReader):
-      Mapping 6142296064 -> 6142951424 (length 655360) with *parser.PagedReader
-      
-    Run 27 (*parser.MappedReader):
-      Mapping 6142951424 -> 6143344640 (length 393216) with *parser.PagedReader
-      
-    Run 28 (*parser.MappedReader):
-      Mapping 6143344640 -> 6143868928 (length 524288) with *parser.PagedReader
-      
-    Run 29 (*parser.MappedReader):
-      Mapping 6143868928 -> 6144393216 (length 524288) with *parser.PagedReader
-      
-    Run 30 (*parser.MappedReader):
-      Mapping 6144393216 -> 6144917504 (length 524288) with *parser.PagedReader
-      
-    Run 31 (*parser.MappedReader):
-      Mapping 6144917504 -> 6145441792 (length 524288) with *parser.PagedReader
-      
-    Run 32 (*parser.MappedReader):
-      Mapping 6145441792 -> 6146142208 (length 700416) with *parser.PagedReader
-      
-    Run 33 (*parser.MappedReader):
-      Mapping 6146142208 -> 6146490368 (length 348160) with *parser.PagedReader
-      
-    Run 34 (*parser.MappedReader):
-      Mapping 6146490368 -> 6147014656 (length 524288) with *parser.PagedReader
-      
-    Run 35 (*parser.MappedReader):
-      Mapping 6147014656 -> 6147538944 (length 524288) with *parser.PagedReader
-      
-    Run 36 (*parser.MappedReader):
-      Mapping 6147538944 -> 6148063232 (length 524288) with *parser.PagedReader
-      
-    Run 37 (*parser.MappedReader):
-      Mapping 6148063232 -> 6148587520 (length 524288) with *parser.PagedReader
-      
-    Run 38 (*parser.MappedReader):
-      Mapping 6148587520 -> 6149853184 (length 1265664) with *parser.PagedReader
-      
-    Run 39 (*parser.MappedReader):
-      Mapping 6149853184 -> 6150172672 (length 319488) with *parser.PagedReader
-      
-    Run 40 (*parser.MappedReader):
-      Mapping 6150172672 -> 6150684672 (length 512000) with *parser.PagedReader
-      
-    Run 41 (*parser.MappedReader):
-      Mapping 6150684672 -> 6151241728 (length 557056) with *parser.PagedReader
-      
-    Run 42 (*parser.MappedReader):
-      Mapping 6151241728 -> 6151737344 (length 495616) with *parser.PagedReader
-      
-    Run 43 (*parser.MappedReader):
-      Mapping 6151737344 -> 6152781824 (length 1044480) with *parser.PagedReader
-      
-    Run 44 (*parser.MappedReader):
-      Mapping 6152781824 -> 6153306112 (length 524288) with *parser.PagedReader
-      
-    Run 45 (*parser.MappedReader):
-      Mapping 6153306112 -> 6158548992 (length 5242880) with *parser.PagedReader
-      
-    Run 46 (*parser.MappedReader):
-      Mapping 6158548992 -> 6159155200 (length 606208) with *parser.PagedReader
-      
-    Run 47 (*parser.MappedReader):
-      Mapping 6159155200 -> 6159605760 (length 450560) with *parser.PagedReader
-      
-    Run 48 (*parser.MappedReader):
-      Mapping 6159605760 -> 6160130048 (length 524288) with *parser.PagedReader
-      
-    Run 49 (*parser.MappedReader):
-      Mapping 6160130048 -> 6160662528 (length 532480) with *parser.PagedReader
-      
-    Run 50 (*parser.MappedReader):
-      Mapping 6160662528 -> 6161174528 (length 512000) with *parser.PagedReader
-      
-    Run 51 (*parser.MappedReader):
-      Mapping 6161174528 -> 6161825792 (length 651264) with *parser.PagedReader
-      
-    Run 52 (*parser.MappedReader):
-      Mapping 6161825792 -> 6162399232 (length 573440) with *parser.PagedReader
-      
-    Run 53 (*parser.MappedReader):
-      Mapping 6162399232 -> 6162792448 (length 393216) with *parser.PagedReader
-      
-    Run 54 (*parser.MappedReader):
-      Mapping 6162792448 -> 6163271680 (length 479232) with *parser.PagedReader
-      
-    Run 55 (*parser.MappedReader):
-      Mapping 6163271680 -> 6163841024 (length 569344) with *parser.PagedReader
-      
-    Run 56 (*parser.MappedReader):
-      Mapping 6163841024 -> 6164324352 (length 483328) with *parser.PagedReader
-      
-    Run 57 (*parser.MappedReader):
-      Mapping 6164324352 -> 6164848640 (length 524288) with *parser.PagedReader
-      
-    Run 58 (*parser.MappedReader):
-      Mapping 6164848640 -> 6165372928 (length 524288) with *parser.PagedReader
-      
-    Run 59 (*parser.MappedReader):
-      Mapping 6165372928 -> 6165897216 (length 524288) with *parser.PagedReader
-      
-    Run 60 (*parser.MappedReader):
-      Mapping 6165897216 -> 6166413312 (length 516096) with *parser.PagedReader
-      
-    Run 61 (*parser.MappedReader):
-      Mapping 6166413312 -> 6166937600 (length 524288) with *parser.PagedReader
-      
-    Run 62 (*parser.MappedReader):
-      Mapping 6166937600 -> 6168117248 (length 1179648) with *parser.PagedReader
-      
-    Run 63 (*parser.MappedReader):
-      Mapping 6168117248 -> 6168510464 (length 393216) with *parser.PagedReader
-      
-    Run 64 (*parser.MappedReader):
-      Mapping 6168510464 -> 6169034752 (length 524288) with *parser.PagedReader
-      
-    Run 65 (*parser.MappedReader):
-      Mapping 6169034752 -> 6169559040 (length 524288) with *parser.PagedReader
-      
-    Run 66 (*parser.MappedReader):
-      Mapping 6169559040 -> 6170083328 (length 524288) with *parser.PagedReader
-      
-    
-
-Range 0-182452224 sparse true
-Range 182452224-6311837696 sparse true
-Range 6311837696-6311911424 sparse false
-Range 6311911424-6312239104 sparse false
-Range 6312239104-6312697856 sparse false
-Range 6312697856-6313385984 sparse false
-Range 6313385984-6313754624 sparse false
-Range 6313754624-6314262528 sparse false
-Range 6314262528-6314786816 sparse false
-Range 6314786816-6315524096 sparse false
-Range 6315524096-6315843584 sparse false
-Range 6315843584-6316359680 sparse false
-Range 6316359680-6316883968 sparse false
-Range 6316883968-6317408256 sparse false
-Range 6317408256-6317932544 sparse false
-Range 6317932544-6318456832 sparse false
-Range 6318456832-6318981120 sparse false
-Range 6318981120-6320328704 sparse false
-Range 6320328704-6320553984 sparse false
-Range 6320553984-6321078272 sparse false
-Range 6321078272-6321602560 sparse false
-Range 6321602560-6322126848 sparse false
-Range 6322126848-6322651136 sparse false
-Range 6322651136-6323175424 sparse false
-Range 6323175424-6323699712 sparse false
-Range 6323699712-6324224000 sparse false
-Range 6324224000-6324748288 sparse false
-Range 6324748288-6325403648 sparse false
-Range 6325403648-6325796864 sparse false
-Range 6325796864-6326321152 sparse false
-Range 6326321152-6326845440 sparse false
-Range 6326845440-6327369728 sparse false
-Range 6327369728-6327894016 sparse false
-Range 6327894016-6328594432 sparse false
-Range 6328594432-6328942592 sparse false
-Range 6328942592-6329466880 sparse false
-Range 6329466880-6329991168 sparse false
-Range 6329991168-6330515456 sparse false
-Range 6330515456-6331039744 sparse false
-Range 6331039744-6332305408 sparse false
-Range 6332305408-6332624896 sparse false
-Range 6332624896-6333136896 sparse false
-Range 6333136896-6333693952 sparse false
-Range 6333693952-6334189568 sparse false
-Range 6334189568-6335234048 sparse false
-Range 6335234048-6335758336 sparse false
-Range 6335758336-6341001216 sparse false
-Range 6341001216-6341607424 sparse false
-Range 6341607424-6342057984 sparse false
-Range 6342057984-6342582272 sparse false
-Range 6342582272-6343114752 sparse false
-Range 6343114752-6343626752 sparse false
-Range 6343626752-6344278016 sparse false
-Range 6344278016-6344851456 sparse false
-Range 6344851456-6345244672 sparse false
-Range 6345244672-6345723904 sparse false
-Range 6345723904-6346293248 sparse false
-Range 6346293248-6346776576 sparse false
-Range 6346776576-6347300864 sparse false
-Range 6347300864-6347825152 sparse false
-Range 6347825152-6348349440 sparse false
-Range 6348349440-6348865536 sparse false
-Range 6348865536-6349389824 sparse false
-Range 6349389824-6350569472 sparse false
-Range 6350569472-6350962688 sparse false
-Range 6350962688-6351486976 sparse false
-Range 6351486976-6352011264 sparse false
-Range 6352011264-6352113880 sparse false
+ 0 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 6352113880,  Cluster 1) Delegate *parser.RangeReader
+  1 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 44544,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 44544 -> DiskOffset 0 (Length 1496432,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1540976 -> DiskOffset 6815248 (Length 18,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1540994 -> DiskOffset 6700438 (Length 80,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541074 -> DiskOffset 7241728 (Length 112,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541186 -> DiskOffset 1247560 (Length 168,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541354 -> DiskOffset 6403674 (Length 90,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541444 -> DiskOffset 395692 (Length 124,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541568 -> DiskOffset 1397172 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541696 -> DiskOffset 4832524 (Length 180,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541876 -> DiskOffset 6729020 (Length 78,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1541954 -> DiskOffset 6943248 (Length 126,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542080 -> DiskOffset 10366380 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542208 -> DiskOffset 10620074 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542336 -> DiskOffset 8441520 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542464 -> DiskOffset 8455164 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542592 -> DiskOffset 10161476 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1542720 -> DiskOffset 11824283 (Length 329,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543049 -> DiskOffset 5655540 (Length 55,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543104 -> DiskOffset 7280528 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543232 -> DiskOffset 10305592 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543360 -> DiskOffset 7170396 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543488 -> DiskOffset 8668822 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543616 -> DiskOffset 8455020 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543744 -> DiskOffset 9333842 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1543872 -> DiskOffset 7332290 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544000 -> DiskOffset 11242485 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544128 -> DiskOffset 8486600 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544288 -> DiskOffset 7776836 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544384 -> DiskOffset 4039352 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544512 -> DiskOffset 4032904 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544640 -> DiskOffset 3844536 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544768 -> DiskOffset 3725528 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1544896 -> DiskOffset 4504800 (Length 171,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545067 -> DiskOffset 8422350 (Length 85,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545152 -> DiskOffset 7191892 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545280 -> DiskOffset 9370577 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545408 -> DiskOffset 7757580 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545536 -> DiskOffset 7300285 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545664 -> DiskOffset 4375191 (Length 309,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1545973 -> DiskOffset 7241902 (Length 78,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546051 -> DiskOffset 8588853 (Length 125,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546176 -> DiskOffset 11393496 (Length 136,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546312 -> DiskOffset 7165883 (Length 121,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546433 -> DiskOffset 7036895 (Length 255,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546688 -> DiskOffset 4826968 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1546816 -> DiskOffset 3946604 (Length 1280,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548096 -> DiskOffset 11469896 (Length 148,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548244 -> DiskOffset 7042460 (Length 110,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548354 -> DiskOffset 6298386 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548482 -> DiskOffset 11331662 (Length 130,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548612 -> DiskOffset 5751372 (Length 125,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548737 -> DiskOffset 7042593 (Length 159,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1548896 -> DiskOffset 4445308 (Length 140,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549036 -> DiskOffset 7757484 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549132 -> DiskOffset 10369787 (Length 117,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549249 -> DiskOffset 3998421 (Length 139,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549388 -> DiskOffset 2570938 (Length 118,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549506 -> DiskOffset 1391152 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549634 -> DiskOffset 4097876 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549762 -> DiskOffset 4793156 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1549890 -> DiskOffset 5117240 (Length 126,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550016 -> DiskOffset 5225660 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550144 -> DiskOffset 4260016 (Length 288,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550432 -> DiskOffset 4838210 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550528 -> DiskOffset 4122104 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550656 -> DiskOffset 3145508 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550784 -> DiskOffset 2706080 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550912 -> DiskOffset 1073741824 (Length 24,  Cluster 4096) Delegate *parser.PagedReader
+  1 MappedReader: FileOffset 1550936 -> DiskOffset 8647017939544843264 (Length 35184372097024,  Cluster 4096) Delegate *parser.PagedReader
