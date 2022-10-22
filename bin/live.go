@@ -91,7 +91,7 @@ func doLiveTest() {
 			continue
 		}
 
-		os_hash := fmt.Sprintf("File %v %x\n", filename, h.Sum(nil))
+		os_hash := fmt.Sprintf("File %v %x", filename, h.Sum(nil))
 
 		mft_entry, err := GetMFTEntry(ntfs_ctx, getRelativePath(filename))
 		if err != nil {
@@ -112,12 +112,14 @@ func doLiveTest() {
 			continue
 		}
 
-		ntfs_hash := fmt.Sprintf("File %v %x\n", filename, h.Sum(nil))
+		ntfs_hash := fmt.Sprintf("File %v %x", filename, h.Sum(nil))
 		if os_hash != ntfs_hash {
 			fmt.Printf("ERROR Mismatch hash on MFT entry %v:\n%s\n%s\n",
 				mft_entry.Record_number(), os_hash, ntfs_hash)
 		} else {
-			fmt.Printf("%v: %v", time.Now().Format(time.RFC3339), os_hash)
+			fmt.Printf("%v (MFTID %v): %v (%v bytes)\n",
+				time.Now().Format(time.RFC3339),
+				mft_entry.Record_number(), os_hash, stat.Size())
 		}
 	}
 }

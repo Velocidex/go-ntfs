@@ -3,17 +3,6 @@ Creating cache of size 10000
 Cache miss for 0 (400) (0)
 Cache miss for c0000000 (400) (1)
 Cache miss for c000b800 (400) (2)
-RangeReader with 2 runs:
-Run 0 (*parser.MappedReader):
-  Mapping 0 -> 4096 (length 4096) with *parser.RangeReader
-    RangeReader with 1 runs:
-    Run 0 (*parser.MappedReader):
-      Mapping 0 -> 1048576 (length 1048576) with *parser.PagedReader
-      
-    
-Run 1 (*parser.MappedReader):
-  Mapping 4096 -> 1048576 (length 1044480) with *parser.NullReader
-  
-
-Range 0-4096 sparse false
-Range 4096-1048576 sparse true
+ 0 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 4096,  Cluster 1) Delegate *parser.RangeReader
+  1 MappedReader: FileOffset 0 -> DiskOffset 69787 (Length 256,  Cluster 4096) Delegate *parser.PagedReader
+ 0 MappedReader: FileOffset 4096 -> DiskOffset 0 (Length 1044480, Sparse  Cluster 1) Delegate *parser.NullReader

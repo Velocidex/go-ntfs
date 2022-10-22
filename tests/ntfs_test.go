@@ -65,7 +65,7 @@ func (self *NTFSTestSuite) TestLargeFileSmallInit() {
 	cmd := exec.Command(self.binary, "--record", record_dir,
 		"runs", self.binary, "46", "--verbose")
 	out, err := cmd.CombinedOutput()
-	assert.NoError(self.T(), err)
+	assert.NoError(self.T(), err, string(out))
 
 	g := goldie.New(self.T(), goldie.WithFixtureDir(record_dir+"/fixtures"))
 	g.Assert(self.T(), "runs", out)
