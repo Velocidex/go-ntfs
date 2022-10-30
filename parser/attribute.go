@@ -213,12 +213,12 @@ func (self *MappedReader) ReadAt(buff []byte, off int64) (int, error) {
 	return self.Reader.ReadAt(buff[:to_read], buff_offset)
 }
 
-func (self MappedReader) DebugString() string {
+func (self *MappedReader) DebugString() string {
 	return fmt.Sprintf("Mapping %v -> %v (length %v) with %T\n%v",
 		self.FileOffset*self.ClusterSize,
 		self.Length*self.ClusterSize+self.FileOffset*self.ClusterSize,
 		self.Length*self.ClusterSize,
-		self.Reader, DebugString(self.Reader, "  "))
+		self.Reader, _DebugString(self.Reader, "  "))
 }
 
 // Trim the delegate ranges to our own mapping length.
@@ -323,7 +323,7 @@ func (self *RangeReader) DebugString() string {
 	for idx, run := range self.runs {
 		result += fmt.Sprintf(
 			"Run %v (%T):\n%v\n", idx, run,
-			DebugString(run, "  "))
+			_DebugString(run, "  "))
 	}
 	return result
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // These are hand written parsers for often used structs.
@@ -113,36 +114,43 @@ func (self *NTFS_ATTRIBUTE) name_offset() uint16 {
 	return binary.LittleEndian.Uint16(self.b[10:12])
 }
 
-func (self *NTFS_ATTRIBUTE) Flags() *Flags {
+func (self *NTFS_ATTRIBUTE) Flags() *EntryFlags {
 	value := binary.LittleEndian.Uint16(self.b[12:14])
-	names := make(map[string]bool)
+	res := EntryFlags(uint64(value))
+	return &res
+}
 
-	if value&(1<<0) != 0 {
-		names["COMPRESSED"] = true
+type EntryFlags uint64
+
+func (self EntryFlags) DebugString() string {
+	names := []string{}
+
+	if self&(1<<0) != 0 {
+		names = append(names, "COMPRESSED")
 	}
 
-	if value&(1<<14) != 0 {
-		names["ENCRYPTED"] = true
+	if self&(1<<14) != 0 {
+		names = append(names, "ENCRYPTED")
 	}
 
-	if value&(1<<15) != 0 {
-		names["SPARSE"] = true
+	if self&(1<<15) != 0 {
+		names = append(names, "SPARSE")
 	}
 
-	return &Flags{Value: uint64(value), Names: names}
+	return strings.Join(names, ",")
 }
 
 // Faster shortcuts to avoid extra allocations.
-func IsCompressed(flags *Flags) bool {
-	return flags.Value&1 != 0
+func IsCompressed(flags *EntryFlags) bool {
+	return uint64(*flags)&uint64(1) != 0
 }
 
-func IsCompressedOrSparse(flags *Flags) bool {
-	return flags.Value&(1+1<<14) != 0
+func IsCompressedOrSparse(flags *EntryFlags) bool {
+	return uint64(*flags)&uint64(1+1<<15) != 0
 }
 
-func IsSparse(flags *Flags) bool {
-	return flags.Value&(1<<14) != 0
+func IsSparse(flags *EntryFlags) bool {
+	return uint64(*flags)&uint64(1<<15) != 0
 }
 
 func (self *NTFS_ATTRIBUTE) Attribute_id() uint16 {
