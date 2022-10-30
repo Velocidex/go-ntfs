@@ -137,7 +137,7 @@ func (self EntryFlags) DebugString() string {
 		names = append(names, "SPARSE")
 	}
 
-	return strings.Join(names, ",")
+	return fmt.Sprintf("%d (%v)", self, strings.Join(names, ","))
 }
 
 // Faster shortcuts to avoid extra allocations.
