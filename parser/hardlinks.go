@@ -108,6 +108,11 @@ func getNames(ntfs *NTFSContext,
 		return
 	}
 
+	// Order the filenames such that the long file name comes first.
+	if len(filenames) > 1 && filenames[0].NameType == "DOS" {
+		filenames[0], filenames[1] = filenames[1], filenames[0]
+	}
+
 	for i, fn := range filenames {
 		// The first FN entry continues to visit the same path but the
 		// next one will add a new path.

@@ -2,11 +2,11 @@ module www.velocidex.com/golang/go-ntfs
 
 require (
 	github.com/alecthomas/assert v1.0.0
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/sebdah/goldie v1.0.0
 	github.com/sebdah/goldie/v2 v2.5.3
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
