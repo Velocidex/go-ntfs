@@ -19,9 +19,16 @@ import (
 	"fmt"
 )
 
+const (
+	IncludeShortNames      = true
+	DoNotIncludeShortNames = false
+)
+
 type Visitor struct {
 	Paths [][]string
 	Max   int
+
+	IncludeShortNames bool
 }
 
 func (self *Visitor) Add(idx int, depth int) int {
@@ -47,8 +54,14 @@ func (self *Visitor) Components() [][]string {
 
 // Walks the MFT entry to get all file names to this MFT entry.
 func GetHardLinks(ntfs *NTFSContext, mft_id uint64, max int) [][]string {
+	if max == 0 {
+		max = ntfs.options.MaxLinks
+	}
+
 	visitor := &Visitor{
-		Paths: [][]string{[]string{}},
+		Paths:             [][]string{[]string{}},
+		Max:               max,
+		IncludeShortNames: ntfs.options.IncludeShortNames,
 	}
 
 	mft_entry_summary, err := ntfs.GetMFTSummary(mft_id)
@@ -63,7 +76,7 @@ func GetHardLinks(ntfs *NTFSContext, mft_id uint64, max int) [][]string {
 func getNames(ntfs *NTFSContext,
 	mft_entry *MFTEntrySummary, visitor *Visitor, idx, depth int) {
 
-	if depth > ntfs.MaxDirectoryDepth {
+	if depth > ntfs.options.MaxDirectoryDepth {
 		visitor.AddComponent(idx, "<DirTooDeep>")
 		visitor.AddComponent(idx, "<Err>")
 		return
@@ -71,10 +84,15 @@ func getNames(ntfs *NTFSContext,
 
 	// Filter out short file names
 	filenames := []FNSummary{}
-	for _, fn := range mft_entry.Filenames {
-		switch fn.NameType {
-		case "Win32", "DOS+Win32", "POSIX":
-			filenames = append(filenames, fn)
+	if visitor.IncludeShortNames {
+		filenames = mft_entry.Filenames
+
+	} else {
+		for _, fn := range mft_entry.Filenames {
+			switch fn.NameType {
+			case "Win32", "DOS+Win32", "POSIX":
+				filenames = append(filenames, fn)
+			}
 		}
 	}
 
@@ -103,6 +121,7 @@ func getNames(ntfs *NTFSContext,
 
 		visitor.AddComponent(visitor_idx, fn.Name)
 
+		// No more recursion - we met the terminal path.
 		if fn.ParentEntryNumber == 5 || fn.ParentEntryNumber == 0 {
 			continue
 		}

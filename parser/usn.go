@@ -87,8 +87,19 @@ func (self *USN_RECORD) Links() []string {
 	// reliable. It is more reliable to resolve the parent path,
 	// and then add the USN record name to it.
 	parent_mft_id := self.USN_RECORD_V2.ParentFileReferenceNumberID()
+	parent_mft_sequence := self.USN_RECORD_V2.ParentFileReferenceNumberSequence()
 
-	components := GetHardLinks(self.context, uint64(parent_mft_id), 20)
+	// Make sure the parent has the correct sequence to prevent
+	// nonsensical paths.
+	parent_mft_entry, err := self.context.GetMFTSummary(parent_mft_id)
+	if err != nil || uint64(parent_mft_entry.Sequence) != parent_mft_sequence {
+		return []string{fmt.Sprintf("<Err>\\<Parent %v-%v need %v>\\%v",
+			parent_mft_id, parent_mft_entry.Sequence, parent_mft_sequence,
+			self.Filename())}
+	}
+
+	components := GetHardLinks(self.context, uint64(parent_mft_id),
+		DefaultMaxLinks)
 	result := make([]string, 0, len(components))
 	for _, l := range components {
 		l = append(l, self.Filename())

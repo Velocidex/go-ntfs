@@ -26,6 +26,9 @@ var (
 	stat_command_arg = stat_command.Arg(
 		"path", "The path to list or an STAT entry.",
 	).Default("5").String()
+
+	stat_command_verbose = stat_command.Flag(
+		"include_short_names", "Include Short Names in links").Bool()
 )
 
 func doSTAT() {
@@ -36,6 +39,14 @@ func doSTAT() {
 
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
+
+	if *stat_command_verbose {
+		ntfs_ctx.SetOptions(parser.Options{
+			IncludeShortNames: true,
+			MaxLinks:          1000,
+			MaxDirectoryDepth: 100,
+		})
+	}
 
 	mft_entry, err := GetMFTEntry(ntfs_ctx, *stat_command_arg)
 	kingpin.FatalIfError(err, "Can not open path")

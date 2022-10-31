@@ -13,11 +13,12 @@ type NTFSContext struct {
 	RootMFT    *MFT_ENTRY
 	Profile    *NTFSProfile
 
-	MaxDirectoryDepth int
-
 	ClusterSize int64
 
-	mu         sync.Mutex
+	mu sync.Mutex
+
+	// Analysis options can be set with SetOptions()
+	options    Options
 	RecordSize int64
 
 	// Map MFTID to *MFT_ENTRY
@@ -30,14 +31,20 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	STATS.Inc_NTFSContext()
 	mft_cache, _ := NewLRU(1000, nil, name)
 	ntfs := &NTFSContext{
-		DiskReader:        image,
-		MaxDirectoryDepth: 20,
-		Profile:           NewNTFSProfile(),
-		mft_entry_lru:     mft_cache,
+		DiskReader:    image,
+		options:       GetDefaultOptions(),
+		Profile:       NewNTFSProfile(),
+		mft_entry_lru: mft_cache,
 	}
 
 	ntfs.mft_summary_cache = NewMFTEntryCache(ntfs)
 	return ntfs
+}
+
+func (self *NTFSContext) SetOptions(options Options) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+	self.options = options
 }
 
 func (self *NTFSContext) Close() {
