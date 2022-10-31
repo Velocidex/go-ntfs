@@ -43,6 +43,19 @@ func DebugString(arg interface{}, indent string) string {
 	return ""
 }
 
+func _DebugString(arg interface{}, indent string) string {
+	debugger, ok := arg.(Debugger)
+	if ok {
+		lines := strings.Split(debugger.DebugString(), "\n")
+		for idx, line := range lines {
+			lines[idx] = indent + line
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	return ""
+}
+
 func Printf(fmt_str string, args ...interface{}) {
 	if NTFS_DEBUG != nil && *NTFS_DEBUG {
 		fmt.Printf(fmt_str, args...)
