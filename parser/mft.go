@@ -363,7 +363,8 @@ func (self *MFTHighlight) FullPath() string {
 }
 
 func (self *MFTHighlight) Links() []string {
-	components := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber), 20)
+	components := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber),
+		DefaultMaxLinks)
 	result := make([]string, 0, len(components))
 	for _, l := range components {
 		result = append(result, strings.Join(l, "\\"))
@@ -410,6 +411,17 @@ func ParseMFTFile(
 	size int64,
 	cluster_size int64,
 	record_size int64) chan *MFTHighlight {
+	return ParseMFTFileWithOptions(ctx, reader, size,
+		cluster_size, record_size, GetDefaultOptions())
+}
+
+func ParseMFTFileWithOptions(
+	ctx context.Context,
+	reader io.ReaderAt,
+	size int64,
+	cluster_size int64,
+	record_size int64,
+	options Options) chan *MFTHighlight {
 	output := make(chan *MFTHighlight)
 
 	if record_size == 0 {
@@ -426,6 +438,7 @@ func ParseMFTFile(
 		ntfs.RootMFT = &MFT_ENTRY{Reader: reader, Profile: ntfs.Profile}
 		ntfs.ClusterSize = cluster_size
 		ntfs.RecordSize = record_size
+		ntfs.SetOptions(options)
 
 		ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(reader, 0)
 		for id := int64(0); id < size/record_size+1; id++ {
