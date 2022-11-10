@@ -110,7 +110,7 @@ func (self *USN_RECORD) Links() []string {
 
 // Resolve the file to a full path
 func (self *USN_RECORD) FullPath() string {
-	// Since this record could have mean a file deletion event
+	// Since this record could have meant a file deletion event
 	// then resolving the actual MFT entry to a full path is less
 	// reliable. It is more reliable to resolve the parent path,
 	// and then add the USN record name to it.

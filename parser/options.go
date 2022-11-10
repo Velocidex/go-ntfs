@@ -13,6 +13,10 @@ type Options struct {
 
 	// Maximum directory depth to anlayze for paths.
 	MaxDirectoryDepth int
+
+	// These path components will be added in front of each link
+	// generated.
+	PrefixComponents []string
 }
 
 func GetDefaultOptions() Options {

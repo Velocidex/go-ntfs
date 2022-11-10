@@ -391,6 +391,9 @@ func (self *MFTHighlight) FileName() string {
 	return short_name
 }
 
+// For simplicity and backwards compatibility returns the first hard
+// link of the mft entry. In NTFS MFT entries can have multiple paths
+// so you should consult the Links() to get more info.
 func (self *MFTHighlight) Components() []string {
 	components := []string{}
 	links := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber), 1)
