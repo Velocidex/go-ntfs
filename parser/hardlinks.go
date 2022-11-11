@@ -29,6 +29,7 @@ type Visitor struct {
 	Max   int
 
 	IncludeShortNames bool
+	Prefix            []string
 }
 
 func (self *Visitor) Add(idx int, depth int) int {
@@ -45,8 +46,10 @@ func (self *Visitor) Components() [][]string {
 
 	for _, p := range self.Paths {
 		ReverseStringSlice(p)
+		components := append([]string{}, self.Prefix...)
+		components = append(components, p...)
 		if len(p) > 0 {
-			result = append(result, p)
+			result = append(result, components)
 		}
 	}
 	return result
@@ -62,6 +65,7 @@ func GetHardLinks(ntfs *NTFSContext, mft_id uint64, max int) [][]string {
 		Paths:             [][]string{[]string{}},
 		Max:               max,
 		IncludeShortNames: ntfs.options.IncludeShortNames,
+		Prefix:            ntfs.options.PrefixComponents,
 	}
 
 	mft_entry_summary, err := ntfs.GetMFTSummary(mft_id)
