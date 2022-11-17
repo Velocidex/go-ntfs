@@ -92,7 +92,12 @@ func (self *USN_RECORD) Links() []string {
 	// Make sure the parent has the correct sequence to prevent
 	// nonsensical paths.
 	parent_mft_entry, err := self.context.GetMFTSummary(parent_mft_id)
-	if err != nil || uint64(parent_mft_entry.Sequence) != parent_mft_sequence {
+	if err != nil {
+		return []string{fmt.Sprintf("<Err>\\<Parent %v Error %v>\\%v",
+			parent_mft_id, err, self.Filename())}
+	}
+
+	if uint64(parent_mft_entry.Sequence) != parent_mft_sequence {
 		return []string{fmt.Sprintf("<Err>\\<Parent %v-%v need %v>\\%v",
 			parent_mft_id, parent_mft_entry.Sequence, parent_mft_sequence,
 			self.Filename())}
