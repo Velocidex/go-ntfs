@@ -115,17 +115,62 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 		return nil, err
 	}
 
+	// In the first pass we instantiate a reader of the MFT $DATA
+	// stream that is found in the first MFT entry. The real MFT may
+	// be larger than that and split across multiple entries but we
+	// can not bootstrap it until we have the reader of the first part
+	// of the MFT.
 	root_mft := ntfs.Profile.MFT_ENTRY(fixed_up_reader, 0)
+
+	var first_mft_reader io.ReaderAt
+	found_attribute_list := false
 
 	// Find the $DATA attribute of the root entry. This will
 	// contain the full $MFT file.
 	for _, attr := range root_mft.EnumerateAttributes(ntfs) {
-		if attr.Type().Name == "$DATA" {
-			return attr.Data(ntfs), nil
+		switch attr.Type().Value {
+		case ATTR_TYPE_ATTRIBUTE_LIST:
+			// If there is an attribute list the MFT may be split
+			// across multiple entries - further processing will be
+			// needed.
+			found_attribute_list = true
+
+		case ATTR_TYPE_DATA:
+			first_mft_reader = attr.Data(ntfs)
 		}
 	}
 
-	return nil, errors.New("$DATA attribute not found for $MFT")
+	if first_mft_reader == nil {
+		return nil, errors.New("$DATA attribute not found for $MFT")
+	}
+
+	// This is the common case - only one $DATA attribute.
+	if !found_attribute_list {
+		return first_mft_reader, nil
+	}
+
+	// Now do a second scan of the MFT to find all the attributes in
+	// the attribute list. We depend on the first VNC to be in the
+	// $MFT entry and that extended $DATA attributes will be present
+	// in this first stream. The root_mft will only cover the first
+	// part of the $MFT with the first $DATA section which is resident
+	// into root.
+	root_mft = ntfs.Profile.MFT_ENTRY(first_mft_reader, 0)
+
+	// Collect all the data streams in the root MFT entry.
+	var mft_data_streams []*NTFS_ATTRIBUTE
+	for _, attr := range root_mft.EnumerateAttributes(ntfs) {
+		if attr.Type().Value == ATTR_TYPE_DATA {
+			mft_data_streams = append(mft_data_streams, attr)
+		}
+	}
+
+	// Create a reader over all the VCN streams.
+	result := &RangeReader{
+		runs: joinAllVCNs(ntfs, mft_data_streams),
+	}
+
+	return result, nil
 }
 
 func (self *NTFS_BOOT_SECTOR) IsValid() error {

@@ -64,18 +64,16 @@ func ExtractI30ListFromStream(
 func ExtractI30List(ntfs *NTFSContext, mft_entry *MFT_ENTRY) []*FileInfo {
 	results := []*FileInfo{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		name := attr.Type().Name
+		switch attr.Type().Value {
 
-		switch name {
-
-		case "$INDEX_ROOT":
+		case ATTR_TYPE_INDEX_ROOT:
 			index_root := ntfs.Profile.INDEX_ROOT(
 				attr.Data(ntfs), 0)
 			for _, record := range index_root.Node().GetRecords(ntfs) {
 				results = append(results, new_file_info(record))
 			}
 
-		case "$INDEX_ALLOCATION":
+		case ATTR_TYPE_INDEX_ALLOCATION:
 			attr_reader := attr.Data(ntfs)
 			results = append(results,
 				ExtractI30ListFromStream(ntfs,

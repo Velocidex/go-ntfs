@@ -41,6 +41,23 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	return ntfs
 }
 
+func (self *NTFSContext) Copy() *NTFSContext {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	return &NTFSContext{
+		DiskReader:        self.DiskReader,
+		Boot:              self.Boot,
+		RootMFT:           self.RootMFT,
+		Profile:           self.Profile,
+		ClusterSize:       self.ClusterSize,
+		options:           self.options,
+		RecordSize:        self.RecordSize,
+		mft_entry_lru:     self.mft_entry_lru,
+		mft_summary_cache: self.mft_summary_cache,
+	}
+}
+
 func (self *NTFSContext) SetOptions(options Options) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
