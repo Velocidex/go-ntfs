@@ -154,7 +154,7 @@ func (self *MFT_ENTRY) Display(ntfs *NTFSContext) string {
 func (self *MFT_ENTRY) StandardInformation(ntfs *NTFSContext) (
 	*STANDARD_INFORMATION, error) {
 	for _, attr := range self.EnumerateAttributes(ntfs) {
-		if attr.Type().Name == "$STANDARD_INFORMATION" {
+		if attr.Type().Value == ATTR_TYPE_STANDARD_INFORMATION {
 			return self.Profile.STANDARD_INFORMATION(
 				attr.Data(ntfs), 0), nil
 		}
@@ -167,7 +167,7 @@ func (self *MFT_ENTRY) StandardInformation(ntfs *NTFSContext) (
 func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
 	result := []*FILE_NAME{}
 	for _, attr := range self.EnumerateAttributes(ntfs) {
-		if attr.Type().Name == "$FILE_NAME" {
+		if attr.Type().Value == ATTR_TYPE_FILE_NAME {
 			res := self.Profile.FILE_NAME(attr.Data(ntfs), 0)
 			result = append(result, res)
 		}
@@ -193,9 +193,9 @@ func (self *MFT_ENTRY) GetAttribute(ntfs *NTFSContext,
 func (self *MFT_ENTRY) IsDir(ntfs *NTFSContext) bool {
 	result := false
 	for _, attr := range self.EnumerateAttributes(ntfs) {
-		switch attr.Type().Name {
-		case "$INDEX_ROOT", "$INDEX_ALLOCATION":
-			result = true
+		switch attr.Type().Value {
+		case ATTR_TYPE_INDEX_ROOT, ATTR_TYPE_INDEX_ALLOCATION:
+			return true
 		}
 	}
 	return result
@@ -214,13 +214,13 @@ func (self *MFT_ENTRY) DirNodes(ntfs *NTFSContext) []*INDEX_NODE_HEADER {
 	result := []*INDEX_NODE_HEADER{}
 
 	for _, attr := range self.EnumerateAttributes(ntfs) {
-		switch attr.Type().Name {
-		case "$INDEX_ROOT":
+		switch attr.Type().Value {
+		case ATTR_TYPE_INDEX_ROOT:
 			index_root := self.Profile.INDEX_ROOT(
 				attr.Data(ntfs), 0)
 			result = append(result, index_root.Node())
 
-		case "$INDEX_ALLOCATION":
+		case ATTR_TYPE_INDEX_ALLOCATION:
 			attr_reader := attr.Data(ntfs)
 			for i := int64(0); i < int64(attr.DataSize()); i += 0x1000 {
 				index_root, err := DecodeSTANDARD_INDEX_HEADER(
@@ -462,8 +462,8 @@ func ParseMFTFileWithOptions(
 
 			for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 				attr_type := attr.Type()
-				switch attr_type.Name {
-				case "$DATA":
+				switch attr_type.Value {
+				case ATTR_TYPE_DATA:
 					if size == 0 {
 						size = attr.DataSize()
 					}
@@ -475,14 +475,14 @@ func ParseMFTFileWithOptions(
 						ads_sizes = append(ads_sizes, int64(attr.Size()))
 					}
 
-				case "$FILE_NAME":
+				case ATTR_TYPE_FILE_NAME:
 					res := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
 					file_names = append(file_names, res)
 					file_name_types = append(file_name_types, res.NameType().Name)
 					fn := res.Name()
 					file_name_strings = append(file_name_strings, fn)
 
-				case "$STANDARD_INFORMATION":
+				case ATTR_TYPE_STANDARD_INFORMATION:
 					si = ntfs.Profile.STANDARD_INFORMATION(
 						attr.Data(ntfs), 0)
 					si_flags = si.Flags().DebugString()

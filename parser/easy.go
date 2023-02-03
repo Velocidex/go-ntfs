@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -103,7 +104,7 @@ func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	}
 
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == 128 &&
+		if attr.Type().Value == ATTR_TYPE_DATA &&
 			attr.Name() == parts[1] {
 			return OpenStream(ntfs, mft_entry,
 				128, attr.Attribute_id())
@@ -135,11 +136,11 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 	// Walk all the attributes collecting the imporant things.
 	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
-		switch attr.Type().Name {
-		case "$STANDARD_INFORMATION":
+		switch attr.Type().Value {
+		case ATTR_TYPE_STANDARD_INFORMATION:
 			si = ntfs.Profile.STANDARD_INFORMATION(attr.Data(ntfs), 0)
 
-		case "$FILE_NAME":
+		case ATTR_TYPE_FILE_NAME:
 			// Separate the filenames into LFN and other file names.
 			file_name := ntfs.Profile.FILE_NAME(attr.Data(ntfs), 0)
 
@@ -158,7 +159,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 					other_file_names, file_name)
 			}
 
-		case "$DATA":
+		case ATTR_TYPE_DATA:
 			// Only show the first VCN run of
 			// non-resident $DATA attributes.
 			if !attr.IsResident() &&
@@ -168,7 +169,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 			data_attributes = append(data_attributes, attr)
 
-		case "$INDEX_ROOT", "$INDEX_ALLOCATION":
+		case ATTR_TYPE_INDEX_ROOT, ATTR_TYPE_INDEX_ALLOCATION:
 			is_dir = true
 			index_attribute = attr
 		}
@@ -292,22 +293,28 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 
 // Get all VCNs having the same type and ID
 func GetAllVCNs(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) []*NTFS_ATTRIBUTE {
+	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16) []*NTFS_ATTRIBUTE {
 	result := []*NTFS_ATTRIBUTE{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 		if attr.Type().Value == attr_type {
+			attr_id := attr.Attribute_id()
+
 			// If the attr_id is not specified we pick the first
 			// stream of this type. Remember it so the next VCN goes
 			// with this one.
-			if attr_id == 0 {
-				attr_id = attr.Attribute_id()
+			if required_attr_id == 0 {
+				required_attr_id = attr_id
 			}
 
-			if attr.Attribute_id() == attr_id {
+			// In extended attributes the ID can be set to 0 which
+			// means it is the continuation of the standard type.
+			if attr_id == 0 ||
+				attr_id == required_attr_id {
 				result = append(result, attr)
 			}
 		}
 	}
+
 	return result
 }
 
@@ -356,6 +363,11 @@ func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 	initialized_size := int64(0)
 	compression_unit_size := int64(0)
 	runs := []*Run{}
+
+	// Sort the VCNs in order so they can be joined.
+	sort.Slice(vcns, func(i, j int) bool {
+		return vcns[i].Runlist_vcn_start() < vcns[j].Runlist_vcn_start()
+	})
 
 	for _, vcn := range vcns {
 		// Actual_size is only set on the first stream.

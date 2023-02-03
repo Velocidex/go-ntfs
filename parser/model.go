@@ -91,7 +91,7 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 		attr_type := attr.Type()
 		attr_id := attr.Attribute_id()
 
-		if attr_type.Name == "$DATA" && result.Size == 0 {
+		if attr_type.Value == ATTR_TYPE_DATA && result.Size == 0 {
 			result.Size = attr.DataSize()
 		}
 

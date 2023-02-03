@@ -167,7 +167,7 @@ func getUSNStream(ntfs_ctx *NTFSContext) (mft_id int64, attr_id uint16, err erro
 
 	// Find the attribute we need.
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs_ctx) {
-		if attr.Type().Value == 128 && attr.Name() == "$J" {
+		if attr.Type().Value == ATTR_TYPE_DATA && attr.Name() == "$J" {
 			return int64(mft_entry.Record_number()),
 				attr.Attribute_id(), nil
 		}
