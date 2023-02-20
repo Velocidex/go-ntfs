@@ -90,7 +90,7 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 		sector_idx += 1
 	}
 
-	return bytes.NewReader(buffer), nil
+	return &FixedUpReader{bytes.NewReader(buffer)}, nil
 }
 
 // Find the root MFT_ENTRY object. Returns a reader over the $MFT file.
@@ -108,19 +108,16 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 	// 4. Instantiate the MFT over this new reader.
 	record_size := ntfs.Boot.ClusterSize()
 	offset := int64(ntfs.Boot._mft_cluster()) * record_size
-	disk_mft := ntfs.Profile.MFT_ENTRY(ntfs.DiskReader, offset)
-
-	fixed_up_reader, err := FixUpDiskMFTEntry(disk_mft)
-	if err != nil {
-		return nil, err
-	}
 
 	// In the first pass we instantiate a reader of the MFT $DATA
 	// stream that is found in the first MFT entry. The real MFT may
 	// be larger than that and split across multiple entries but we
 	// can not bootstrap it until we have the reader of the first part
 	// of the MFT.
-	root_mft := ntfs.Profile.MFT_ENTRY(fixed_up_reader, 0)
+	root_mft, err := GetFixedUpMFTEntry(ntfs, ntfs.DiskReader, offset)
+	if err != nil {
+		return nil, err
+	}
 
 	var first_mft_reader io.ReaderAt
 	found_attribute_list := false
@@ -155,7 +152,11 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 	// in this first stream. The root_mft will only cover the first
 	// part of the $MFT with the first $DATA section which is resident
 	// into root.
-	root_mft = ntfs.Profile.MFT_ENTRY(first_mft_reader, 0)
+	root_mft, err = GetFixedUpMFTEntry(ntfs, first_mft_reader, 0)
+	if err != nil {
+		return nil, err
+	}
+	ntfs.RootMFT = root_mft
 
 	// Collect all the data streams in the root MFT entry.
 	var mft_data_streams []*NTFS_ATTRIBUTE
@@ -199,4 +200,16 @@ func (self *NTFS_BOOT_SECTOR) IsValid() error {
 	}
 
 	return nil
+}
+
+func GetFixedUpMFTEntry(
+	ntfs *NTFSContext,
+	reader io.ReaderAt, offset int64) (*MFT_ENTRY, error) {
+	raw_mft := ntfs.Profile.MFT_ENTRY(reader, offset)
+	fixed_up_reader, err := FixUpDiskMFTEntry(raw_mft)
+	if err != nil {
+		return nil, err
+	}
+
+	return ntfs.Profile.MFT_ENTRY(fixed_up_reader, 0), nil
 }

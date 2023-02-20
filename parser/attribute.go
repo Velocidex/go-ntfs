@@ -122,6 +122,16 @@ func (self *NTFS_ATTRIBUTE) RunList() []*Run {
 	attr_length := self.Length()
 	runlist_offset := self.Offset + int64(self.Runlist_offset())
 
+	/* Make sure we are instantiated on top of a fixed up MFT entry.
+
+	is_fixed := IsFixed(self.Reader, runlist_offset)
+	if !is_fixed {
+		DlvBreak()
+	}
+	fmt.Printf("RunList on fixed %v\n", IsFixed(self.Reader, runlist_offset))
+
+	*/
+
 	// Read the entire attribute into memory. This makes it easier
 	// to parse the runlist.
 	buffer := make([]byte, CapUint32(attr_length, MAX_RUNLIST_SIZE))
@@ -194,6 +204,18 @@ type MappedReader struct {
 	CompressedLength int64 // For compressed readers, we need to decompress on read.
 	IsSparse         bool
 	Reader           io.ReaderAt
+}
+
+func (self *MappedReader) IsFixed(offset int64) bool {
+	return IsFixed(self.Reader, offset-
+		self.FileOffset*self.ClusterSize+
+		self.TargetOffset*self.ClusterSize)
+}
+
+func (self *MappedReader) VtoP(offset int64) int64 {
+	return VtoP(self.Reader, offset-
+		self.FileOffset*self.ClusterSize+
+		self.TargetOffset*self.ClusterSize)
 }
 
 func (self *MappedReader) ReadAt(buff []byte, off int64) (int, error) {
@@ -580,6 +602,50 @@ func (self *RangeReader) readFromARun(
 	}
 }
 
+func (self *RangeReader) IsFixed(offset int64) bool {
+	for j := 0; j < len(self.runs); j++ {
+		run := self.runs[j]
+
+		// Start of run in bytes in file address space
+		run_file_offset := run.FileOffset * run.ClusterSize
+		run_length := run.Length * run.ClusterSize
+
+		// End of run in bytes in file address space.
+		run_end_file_offset := run_file_offset + run_length
+
+		// This run can provide us with some data.
+		if run_file_offset <= offset &&
+			offset < run_end_file_offset {
+			run_offset := offset - run_file_offset
+			return IsFixed(run, run_offset)
+		}
+	}
+	return false
+}
+
+func (self *RangeReader) VtoP(offset int64) int64 {
+	for j := 0; j < len(self.runs); j++ {
+		run := self.runs[j]
+
+		// Start of run in bytes in file address space
+		run_file_offset := run.FileOffset * run.ClusterSize
+		run_length := run.Length * run.ClusterSize
+
+		// End of run in bytes in file address space.
+		run_end_file_offset := run_file_offset + run_length
+
+		// This run can provide us with some data.
+		if run_file_offset <= offset &&
+			offset < run_end_file_offset {
+
+			// The relative offset within the run.
+			run_offset := offset - run_file_offset
+			return VtoP(run, run_offset) + offset
+		}
+	}
+	return 0
+}
+
 func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 	int, error) {
 	buf_idx := 0
@@ -608,7 +674,8 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 
 			n, err := self.readFromARun(j, buf[buf_idx:], run_offset)
 			if err != nil {
-				DebugPrint("Reading run %v returned error %v\n", self.runs[j], err)
+				DebugPrint("Reading offset %v from run %v returned error %v\n",
+					run_offset, self.runs[j].DebugString(), err)
 				return buf_idx, err
 			}
 
