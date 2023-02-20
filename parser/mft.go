@@ -415,7 +415,7 @@ func ParseMFTFile(
 	cluster_size int64,
 	record_size int64) chan *MFTHighlight {
 	return ParseMFTFileWithOptions(ctx, reader, size,
-		cluster_size, record_size, GetDefaultOptions())
+		cluster_size, record_size, 0, GetDefaultOptions())
 }
 
 func ParseMFTFileWithOptions(
@@ -424,6 +424,7 @@ func ParseMFTFileWithOptions(
 	size int64,
 	cluster_size int64,
 	record_size int64,
+	start_entry int64,
 	options Options) chan *MFTHighlight {
 	output := make(chan *MFTHighlight)
 
@@ -443,7 +444,7 @@ func ParseMFTFileWithOptions(
 		ntfs.RecordSize = record_size
 		ntfs.SetOptions(options)
 
-		for id := int64(0); id < size/record_size+1; id++ {
+		for id := start_entry; id < size/record_size+1; id++ {
 			mft_entry, err := ntfs.GetMFT(id)
 			if err != nil {
 				continue
