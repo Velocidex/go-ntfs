@@ -746,8 +746,7 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		// entry than the one we are working on now. We need
 		// to fetch it from there.
 		mft_ref := attr_list_entry.MftReference()
-		if ntfs.RootMFT != nil &&
-			mft_ref != uint64(mft_entry.Record_number()) {
+		if mft_ref != uint64(mft_entry.Record_number()) {
 
 			DebugPrint("While working on %v - Fetching from MFT Entry %v\n",
 				mft_entry.Record_number(), mft_ref)

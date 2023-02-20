@@ -136,10 +136,15 @@ func VtoP(reader interface{}, offset int64) int64 {
 
 type FixedUpReader struct {
 	*bytes.Reader
+	original_offset int64
 }
 
 func (self FixedUpReader) IsFixed(offset int64) bool {
 	return true
+}
+
+func (self FixedUpReader) VtoP(offset int64) int64 {
+	return self.original_offset
 }
 
 type IsFixedReader interface {

@@ -90,7 +90,10 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 		sector_idx += 1
 	}
 
-	return &FixedUpReader{bytes.NewReader(buffer)}, nil
+	return &FixedUpReader{
+		Reader:          bytes.NewReader(buffer),
+		original_offset: mft.Offset,
+	}, nil
 }
 
 // Find the root MFT_ENTRY object. Returns a reader over the $MFT file.
@@ -146,19 +149,25 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 		return first_mft_reader, nil
 	}
 
-	// Now do a second scan of the MFT to find all the attributes in
-	// the attribute list. We depend on the first VNC to be in the
-	// $MFT entry and that extended $DATA attributes will be present
-	// in this first stream. The root_mft will only cover the first
-	// part of the $MFT with the first $DATA section which is resident
-	// into root.
-	root_mft, err = GetFixedUpMFTEntry(ntfs, first_mft_reader, 0)
+	// There are more VCNs which we need to discover. Set the
+	// MFTReader in the context to cover the first VCN only for the
+	// below call to EnumerateAttributes. Hopefully the actual
+	// attribute falls inside the first VCN.
+	ntfs.MFTReader = first_mft_reader
+
+	// Now do a second scan of the MFT entry to find all the
+	// attributes in the attribute list (including extended
+	// attributes). We depend on the first VNC to be in the $MFT entry
+	// and that extended $DATA attributes will be present in this
+	// first stream.
+	root_mft, err = ntfs.GetMFT(0)
 	if err != nil {
 		return nil, err
 	}
-	ntfs.RootMFT = root_mft
 
-	// Collect all the data streams in the root MFT entry.
+	// Collect all the data streams in the root MFT entry (include
+	// extended attributes). Each $DATA stream is a VCN in the wider
+	// MFT stream.
 	var mft_data_streams []*NTFS_ATTRIBUTE
 	for _, attr := range root_mft.EnumerateAttributes(ntfs) {
 		if attr.Type().Value == ATTR_TYPE_DATA {
@@ -166,10 +175,14 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 		}
 	}
 
-	// Create a reader over all the VCN streams.
+	// Create a single reader over all the VCN streams.
 	result := &RangeReader{
 		runs: joinAllVCNs(ntfs, mft_data_streams),
 	}
+
+	// Reset the MFTReader in the context so we can read all MFT
+	// entries from it (even ones in the second $DATA attribute).
+	ntfs.MFTReader = result
 
 	return result, nil
 }

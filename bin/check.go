@@ -21,6 +21,9 @@ var (
 
 	check_command_start_id = check_command.Flag(
 		"start", "The ID to start with").Int64()
+
+	check_command_end_id = check_command.Flag(
+		"end", "The ID to end with").Default("10000000").Int64()
 )
 
 func doCheck() {
@@ -32,12 +35,7 @@ func doCheck() {
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	fmt.Printf(ntfs_ctx.RootMFT.DebugString())
-
-	number_of_entries := int64(ntfs_ctx.RootMFT.Size()) / ntfs_ctx.RecordSize
-	number_of_entries = 1000000000
-
-	for i := *check_command_start_id; i < number_of_entries; i++ {
+	for i := *check_command_start_id; i < *check_command_end_id; i++ {
 		reportError(ntfs_ctx, i)
 
 		mft_entry, err := ntfs_ctx.GetMFT(i)
@@ -64,7 +62,7 @@ func doCheck() {
 
 func reportError(ntfs_ctx *parser.NTFSContext, id int64) {
 	offset := ntfs_ctx.GetRecordSize() * id
-	disk_offset := parser.VtoP(ntfs_ctx.RootMFT.Reader, offset)
+	disk_offset := parser.VtoP(ntfs_ctx.MFTReader, offset)
 	fmt.Printf("MFTId %v: Offset %v (%v clusters), disk offset %v (%v clusters)\n",
 		id, offset, offset/ntfs_ctx.ClusterSize,
 		disk_offset, disk_offset/ntfs_ctx.ClusterSize)
