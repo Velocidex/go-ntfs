@@ -88,49 +88,49 @@ Found   struct NTFS_ATTRIBUTE @ 0x38:
   MftReference: 0x10ad6
   Attribute_id: 0x8e
 
- 0 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 6352113880,  Cluster 1) Delegate *parser.RangeReader
-  1 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 44544, Sparse  Cluster 4096) Delegate *parser.NullReader
-  1 MappedReader: FileOffset 44544 -> DiskOffset 0 (Length 1496432, Sparse  Cluster 4096) Delegate *parser.NullReader
-  1 MappedReader: FileOffset 1540976 -> DiskOffset 6815248 (Length 16,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1540992 -> DiskOffset 1247560 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541152 -> DiskOffset 1397172 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541280 -> DiskOffset 4832524 (Length 176,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541456 -> DiskOffset 10366380 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541584 -> DiskOffset 10620074 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541712 -> DiskOffset 8441520 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541840 -> DiskOffset 8455164 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1541968 -> DiskOffset 10161476 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542096 -> DiskOffset 11824283 (Length 320,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542416 -> DiskOffset 10305592 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542544 -> DiskOffset 7170396 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542672 -> DiskOffset 8668822 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542800 -> DiskOffset 8455020 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1542928 -> DiskOffset 9333842 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543056 -> DiskOffset 7332290 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543184 -> DiskOffset 11242485 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543312 -> DiskOffset 8486600 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543472 -> DiskOffset 7776836 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543568 -> DiskOffset 4039352 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543696 -> DiskOffset 4032904 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543824 -> DiskOffset 3844536 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1543952 -> DiskOffset 3725528 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544080 -> DiskOffset 4504800 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544240 -> DiskOffset 9370577 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544368 -> DiskOffset 7757580 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544496 -> DiskOffset 7300285 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544624 -> DiskOffset 4375191 (Length 304,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1544928 -> DiskOffset 11393496 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1545056 -> DiskOffset 4826968 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1545184 -> DiskOffset 3946604 (Length 1280,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1546464 -> DiskOffset 11469896 (Length 144,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1546608 -> DiskOffset 11331662 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1546736 -> DiskOffset 4445308 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1546864 -> DiskOffset 3998421 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1546992 -> DiskOffset 4097876 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547120 -> DiskOffset 4793156 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547248 -> DiskOffset 5117240 (Length 112,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547360 -> DiskOffset 4838210 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547456 -> DiskOffset 4122104 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547584 -> DiskOffset 3145508 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547712 -> DiskOffset 2706080 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
-  1 MappedReader: FileOffset 1547840 -> DiskOffset 1073741824 (Length 16, Sparse  Cluster 4096) Delegate *parser.NullReader
+0  0 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 6352113880,  Cluster 1) Delegate *parser.RangeReader
+1   1 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 44544, Sparse  Cluster 4096) Delegate *parser.NullReader
+2   1 MappedReader: FileOffset 44544 -> DiskOffset 0 (Length 1496432, Sparse  Cluster 4096) Delegate *parser.NullReader
+3   1 MappedReader: FileOffset 1540976 -> DiskOffset 6815248 (Length 16,  Cluster 4096) Delegate *parser.PagedReader
+4   1 MappedReader: FileOffset 1540992 -> DiskOffset 1247560 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
+5   1 MappedReader: FileOffset 1541152 -> DiskOffset 1397172 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+6   1 MappedReader: FileOffset 1541280 -> DiskOffset 4832524 (Length 176,  Cluster 4096) Delegate *parser.PagedReader
+7   1 MappedReader: FileOffset 1541456 -> DiskOffset 10366380 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+8   1 MappedReader: FileOffset 1541584 -> DiskOffset 10620074 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+9   1 MappedReader: FileOffset 1541712 -> DiskOffset 8441520 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+10   1 MappedReader: FileOffset 1541840 -> DiskOffset 8455164 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+11   1 MappedReader: FileOffset 1541968 -> DiskOffset 10161476 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+12   1 MappedReader: FileOffset 1542096 -> DiskOffset 11824283 (Length 320,  Cluster 4096) Delegate *parser.PagedReader
+13   1 MappedReader: FileOffset 1542416 -> DiskOffset 10305592 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+14   1 MappedReader: FileOffset 1542544 -> DiskOffset 7170396 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+15   1 MappedReader: FileOffset 1542672 -> DiskOffset 8668822 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+16   1 MappedReader: FileOffset 1542800 -> DiskOffset 8455020 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+17   1 MappedReader: FileOffset 1542928 -> DiskOffset 9333842 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+18   1 MappedReader: FileOffset 1543056 -> DiskOffset 7332290 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+19   1 MappedReader: FileOffset 1543184 -> DiskOffset 11242485 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+20   1 MappedReader: FileOffset 1543312 -> DiskOffset 8486600 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
+21   1 MappedReader: FileOffset 1543472 -> DiskOffset 7776836 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
+22   1 MappedReader: FileOffset 1543568 -> DiskOffset 4039352 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+23   1 MappedReader: FileOffset 1543696 -> DiskOffset 4032904 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+24   1 MappedReader: FileOffset 1543824 -> DiskOffset 3844536 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+25   1 MappedReader: FileOffset 1543952 -> DiskOffset 3725528 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+26   1 MappedReader: FileOffset 1544080 -> DiskOffset 4504800 (Length 160,  Cluster 4096) Delegate *parser.PagedReader
+27   1 MappedReader: FileOffset 1544240 -> DiskOffset 9370577 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+28   1 MappedReader: FileOffset 1544368 -> DiskOffset 7757580 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+29   1 MappedReader: FileOffset 1544496 -> DiskOffset 7300285 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+30   1 MappedReader: FileOffset 1544624 -> DiskOffset 4375191 (Length 304,  Cluster 4096) Delegate *parser.PagedReader
+31   1 MappedReader: FileOffset 1544928 -> DiskOffset 11393496 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+32   1 MappedReader: FileOffset 1545056 -> DiskOffset 4826968 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+33   1 MappedReader: FileOffset 1545184 -> DiskOffset 3946604 (Length 1280,  Cluster 4096) Delegate *parser.PagedReader
+34   1 MappedReader: FileOffset 1546464 -> DiskOffset 11469896 (Length 144,  Cluster 4096) Delegate *parser.PagedReader
+35   1 MappedReader: FileOffset 1546608 -> DiskOffset 11331662 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+36   1 MappedReader: FileOffset 1546736 -> DiskOffset 4445308 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+37   1 MappedReader: FileOffset 1546864 -> DiskOffset 3998421 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+38   1 MappedReader: FileOffset 1546992 -> DiskOffset 4097876 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+39   1 MappedReader: FileOffset 1547120 -> DiskOffset 4793156 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+40   1 MappedReader: FileOffset 1547248 -> DiskOffset 5117240 (Length 112,  Cluster 4096) Delegate *parser.PagedReader
+41   1 MappedReader: FileOffset 1547360 -> DiskOffset 4838210 (Length 96,  Cluster 4096) Delegate *parser.PagedReader
+42   1 MappedReader: FileOffset 1547456 -> DiskOffset 4122104 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+43   1 MappedReader: FileOffset 1547584 -> DiskOffset 3145508 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+44   1 MappedReader: FileOffset 1547712 -> DiskOffset 2706080 (Length 128,  Cluster 4096) Delegate *parser.PagedReader
+45   1 MappedReader: FileOffset 1547840 -> DiskOffset 1073741824 (Length 16, Sparse  Cluster 4096) Delegate *parser.NullReader
