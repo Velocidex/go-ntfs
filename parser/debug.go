@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -74,6 +75,8 @@ func SetDebug() {
 	NTFS_DEBUG = &yes
 }
 
+func DlvBreak() {}
+
 func DebugPrint(fmt_str string, v ...interface{}) {
 	if NTFS_DEBUG == nil {
 		// os.Environ() seems very expensive in Go so we cache
@@ -113,4 +116,47 @@ func debugHexDump(buf []byte) string {
 		return hex.Dump(buf)
 	}
 	return ""
+}
+
+// A reader may be able to tell us about the physical layer it is
+// reading from.
+type VtoPer interface {
+	VtoP(offset int64) int64
+}
+
+func VtoP(reader interface{}, offset int64) int64 {
+	vtop, ok := reader.(VtoPer)
+	if ok {
+		return vtop.VtoP(offset)
+	}
+
+	fmt.Printf("Reader of type %T does not support VtoP\n", reader)
+	return 0
+}
+
+type FixedUpReader struct {
+	*bytes.Reader
+	original_offset int64
+}
+
+func (self FixedUpReader) IsFixed(offset int64) bool {
+	return true
+}
+
+func (self FixedUpReader) VtoP(offset int64) int64 {
+	return self.original_offset
+}
+
+type IsFixedReader interface {
+	IsFixed(offset int64) bool
+}
+
+func IsFixed(item interface{}, offset int64) bool {
+	x, ok := item.(IsFixedReader)
+	if ok {
+		return x.IsFixed(offset)
+	}
+
+	fmt.Printf("Reader of type %T does not support IsFixed\n", item)
+	return false
 }

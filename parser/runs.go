@@ -1,6 +1,8 @@
 package parser
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type RunInfo struct {
 	Type             string
@@ -37,9 +39,9 @@ func (self RunInfo) String() string {
 func DebugRawRuns(runs []*Run) {
 	fmt.Printf("Runs ....\n")
 
-	for _, r := range runs {
-		fmt.Printf("Disk Offset %d  RelativeUrnOffset %d (Length %d)\n",
-			r.Offset, r.RelativeUrnOffset, r.Length)
+	for idx, r := range runs {
+		fmt.Printf("%d Disk Offset %d  RelativeUrnOffset %d (Length %d)\n",
+			idx, r.Offset, r.RelativeUrnOffset, r.Length)
 	}
 }
 

@@ -52,7 +52,7 @@ func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
 		return nil, err
 	}
 
-	ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(mft_reader, 5)
+	ntfs.MFTReader = mft_reader
 
 	return ntfs, nil
 }

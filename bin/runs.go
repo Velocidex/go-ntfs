@@ -73,8 +73,8 @@ func doRuns() {
 		uint64(attr_type), uint16(attr_id))
 	kingpin.FatalIfError(err, "Can not open stream")
 
-	for _, r := range parser.DebugRuns(data, 0) {
-		fmt.Printf("%v\n", r)
+	for idx, r := range parser.DebugRuns(data, 0) {
+		fmt.Printf("%d %v\n", idx, r)
 	}
 }
 

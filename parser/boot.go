@@ -90,7 +90,10 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 		sector_idx += 1
 	}
 
-	return bytes.NewReader(buffer), nil
+	return &FixedUpReader{
+		Reader:          bytes.NewReader(buffer),
+		original_offset: mft.Offset,
+	}, nil
 }
 
 // Find the root MFT_ENTRY object. Returns a reader over the $MFT file.
@@ -108,19 +111,16 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 	// 4. Instantiate the MFT over this new reader.
 	record_size := ntfs.Boot.ClusterSize()
 	offset := int64(ntfs.Boot._mft_cluster()) * record_size
-	disk_mft := ntfs.Profile.MFT_ENTRY(ntfs.DiskReader, offset)
-
-	fixed_up_reader, err := FixUpDiskMFTEntry(disk_mft)
-	if err != nil {
-		return nil, err
-	}
 
 	// In the first pass we instantiate a reader of the MFT $DATA
 	// stream that is found in the first MFT entry. The real MFT may
 	// be larger than that and split across multiple entries but we
 	// can not bootstrap it until we have the reader of the first part
 	// of the MFT.
-	root_mft := ntfs.Profile.MFT_ENTRY(fixed_up_reader, 0)
+	root_mft, err := GetFixedUpMFTEntry(ntfs, ntfs.DiskReader, offset)
+	if err != nil {
+		return nil, err
+	}
 
 	var first_mft_reader io.ReaderAt
 	found_attribute_list := false
@@ -149,15 +149,25 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 		return first_mft_reader, nil
 	}
 
-	// Now do a second scan of the MFT to find all the attributes in
-	// the attribute list. We depend on the first VNC to be in the
-	// $MFT entry and that extended $DATA attributes will be present
-	// in this first stream. The root_mft will only cover the first
-	// part of the $MFT with the first $DATA section which is resident
-	// into root.
-	root_mft = ntfs.Profile.MFT_ENTRY(first_mft_reader, 0)
+	// There are more VCNs which we need to discover. Set the
+	// MFTReader in the context to cover the first VCN only for the
+	// below call to EnumerateAttributes. Hopefully the actual
+	// attribute falls inside the first VCN.
+	ntfs.MFTReader = first_mft_reader
 
-	// Collect all the data streams in the root MFT entry.
+	// Now do a second scan of the MFT entry to find all the
+	// attributes in the attribute list (including extended
+	// attributes). We depend on the first VNC to be in the $MFT entry
+	// and that extended $DATA attributes will be present in this
+	// first stream.
+	root_mft, err = ntfs.GetMFT(0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect all the data streams in the root MFT entry (include
+	// extended attributes). Each $DATA stream is a VCN in the wider
+	// MFT stream.
 	var mft_data_streams []*NTFS_ATTRIBUTE
 	for _, attr := range root_mft.EnumerateAttributes(ntfs) {
 		if attr.Type().Value == ATTR_TYPE_DATA {
@@ -165,10 +175,14 @@ func BootstrapMFT(ntfs *NTFSContext) (io.ReaderAt, error) {
 		}
 	}
 
-	// Create a reader over all the VCN streams.
+	// Create a single reader over all the VCN streams.
 	result := &RangeReader{
 		runs: joinAllVCNs(ntfs, mft_data_streams),
 	}
+
+	// Reset the MFTReader in the context so we can read all MFT
+	// entries from it (even ones in the second $DATA attribute).
+	ntfs.MFTReader = result
 
 	return result, nil
 }
@@ -199,4 +213,16 @@ func (self *NTFS_BOOT_SECTOR) IsValid() error {
 	}
 
 	return nil
+}
+
+func GetFixedUpMFTEntry(
+	ntfs *NTFSContext,
+	reader io.ReaderAt, offset int64) (*MFT_ENTRY, error) {
+	raw_mft := ntfs.Profile.MFT_ENTRY(reader, offset)
+	fixed_up_reader, err := FixUpDiskMFTEntry(raw_mft)
+	if err != nil {
+		return nil, err
+	}
+
+	return ntfs.Profile.MFT_ENTRY(fixed_up_reader, 0), nil
 }

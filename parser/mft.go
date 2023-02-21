@@ -438,12 +438,11 @@ func ParseMFTFileWithOptions(
 		ntfs := newNTFSContext(&NullReader{}, "NullReader")
 		defer ntfs.Close()
 
-		ntfs.RootMFT = &MFT_ENTRY{Reader: reader, Profile: ntfs.Profile}
+		ntfs.MFTReader = reader
 		ntfs.ClusterSize = cluster_size
 		ntfs.RecordSize = record_size
 		ntfs.SetOptions(options)
 
-		ntfs.RootMFT = ntfs.Profile.MFT_ENTRY(reader, 0)
 		for id := int64(0); id < size/record_size+1; id++ {
 			mft_entry, err := ntfs.GetMFT(id)
 			if err != nil {

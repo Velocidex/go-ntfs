@@ -23,6 +23,14 @@ type PagedReader struct {
 	Miss int64
 }
 
+func (self *PagedReader) IsFixed(offset int64) bool {
+	return false
+}
+
+func (self *PagedReader) VtoP(offset int64) int64 {
+	return offset
+}
+
 func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
