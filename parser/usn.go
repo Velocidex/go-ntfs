@@ -30,7 +30,7 @@ func (self *USN_RECORD) Filename() string {
 }
 
 func (self *USN_RECORD) Validate() bool {
-	return uint64(self.Offset) == self.Usn() && self.RecordLength() != 0
+	return self.Usn() > 0 && self.RecordLength() != 0
 }
 
 func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
