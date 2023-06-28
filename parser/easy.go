@@ -107,7 +107,7 @@ func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 		if attr.Type().Value == ATTR_TYPE_DATA &&
 			attr.Name() == parts[1] {
 			return OpenStream(ntfs, mft_entry,
-				128, attr.Attribute_id())
+				128, 0 /*attr.Attribute_id()*/, parts[1])
 		}
 	}
 
@@ -291,14 +291,27 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 	return result
 }
 
-// Get all VCNs having the same type and ID
+// Get all VCNs having the (same type and ID for default $DATA stream) OR ($DATA with specific name)
 func GetAllVCNs(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16) []*NTFS_ATTRIBUTE {
+	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16,
+	required_data_attr_name string) []*NTFS_ATTRIBUTE {
 	result := []*NTFS_ATTRIBUTE{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 		if attr.Type().Value == attr_type {
 			attr_id := attr.Attribute_id()
+			attr_name := attr.Name()
 
+			if required_data_attr_name != "" {
+				if required_data_attr_name == attr_name {
+					result = append(result, attr)
+				}
+				continue
+			}
+			// If named attribute not asked for, do not include any named
+			// attributes, only the default $DATA stream.
+			if attr_name != "" {
+				continue
+			}
 			// If the attr_id is not specified we pick the first
 			// stream of this type. Remember it so the next VCN goes
 			// with this one.
@@ -325,12 +338,12 @@ func GetAllVCNs(ntfs *NTFSContext,
 // a single stream. This function is what you need when you want to
 // read the full file.
 func OpenStream(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) (RangeReaderAt, error) {
+	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16, attr_name string) (RangeReaderAt, error) {
 
 	result := &RangeReader{}
 
 	// Gather all the VCNs together
-	vcns := GetAllVCNs(ntfs, mft_entry, attr_type, attr_id)
+	vcns := GetAllVCNs(ntfs, mft_entry, attr_type, attr_id, attr_name)
 	if len(vcns) == 0 {
 		return nil, os.ErrNotExist
 	}

@@ -98,7 +98,7 @@ func doLiveTest() {
 			fmt.Printf("ERROR Getting MFT Id: %v\n", err)
 		}
 
-		reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0)
+		reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
 		if err != nil {
 			fmt.Printf("ERROR Getting MFT Id %v: %v\n",
 				mft_entry.Record_number(), err)

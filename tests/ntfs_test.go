@@ -85,8 +85,8 @@ func (self *NTFSTestSuite) TestLargeFileSmallInit() {
 // This test case looks at a sparse $J USN journal with two VCNs.
 func (self *NTFSTestSuite) TestUSNWith2VCNs() {
 	record_dir := "usn_with_two_vcns"
-	cmd := exec.Command(self.binary, "--record", record_dir,
-		"runs", self.binary, "68310", "--verbose")
+	cmd := exec.Command(self.binary, "--stream_name", "$J", "--record",
+		record_dir, "runs", self.binary, "68310", "--verbose")
 	out, err := cmd.CombinedOutput()
 	assert.NoError(self.T(), err)
 

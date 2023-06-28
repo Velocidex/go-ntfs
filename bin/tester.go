@@ -107,7 +107,7 @@ func doTest() {
 
 		for _, attr := range mft_entry.EnumerateAttributes(ntfs_ctx) {
 			reader, err := parser.OpenStream(ntfs_ctx,
-				mft_entry, attr.Type().Value, attr.Attribute_id())
+				mft_entry, attr.Type().Value, attr.Attribute_id(), "")
 			if err != nil {
 				continue
 			}

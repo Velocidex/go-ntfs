@@ -45,14 +45,16 @@ func doCAT() {
 	mft_entry, err := GetMFTEntry(ntfs_ctx, *cat_command_arg)
 	kingpin.FatalIfError(err, "Can not open path")
 
+	var ads_name string = ""
 	// Access by mft id (e.g. 1234-128-6)
 	_, attr_type, attr_id, err := parser.ParseMFTId(*cat_command_arg)
 	if err != nil {
 		attr_type = 128 // $DATA
+		ads_name = getADSName(*cat_command_arg)
 	}
 
 	data, err := parser.OpenStream(ntfs_ctx, mft_entry,
-		uint64(attr_type), uint16(attr_id))
+		uint64(attr_type), uint16(attr_id), ads_name)
 	kingpin.FatalIfError(err, "Can not open stream")
 
 	var fd io.WriteCloser = os.Stdout

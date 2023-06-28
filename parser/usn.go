@@ -195,7 +195,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 			return
 		}
 
-		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id)
+		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, "$J")
 		if err != nil {
 			DebugPrint("ParseUSN error: %v", err)
 			return
@@ -245,7 +245,7 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 		return nil, err
 	}
 
-	data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id)
+	data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, "$J")
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,10 @@ var (
 		"record", "Path to read/write recorded data").
 		Default("").String()
 
+	stream_name = app.Flag(
+		"stream_name", "Name of alternate data stream").
+		Default("").String()
+
 	runs_command_file_arg = runs_command.Arg(
 		"file", "The image file to inspect",
 	).Required().File()
@@ -52,16 +56,26 @@ func doRuns() {
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
-	// Access by mft id (e.g. 1234-128-6)
-	mft_id, attr_type, attr_id, err := parser.ParseMFTId(*runs_command_arg)
-	kingpin.FatalIfError(err, "Can not ParseMFTId")
-
-	mft_entry, err := ntfs_ctx.GetMFT(mft_id)
+	mft_entry, err := GetMFTEntry(ntfs_ctx, *runs_command_arg)
 	kingpin.FatalIfError(err, "Can not open path")
+
+	var ads_name string = "" //*stream_name
+	// Access by mft id (e.g. 1234-128-6) or filepath (e.g. C:\Folder\Hello.txt:hiddenstream)
+	_, attr_type, attr_id, err := parser.ParseMFTId(*runs_command_arg)
+	if err != nil {
+		attr_type = 128 // $DATA
+		ads_name = getADSName(*runs_command_arg)
+	}
+
+	// if ADS was explicitly mentioned, use it. It may already be part of the filename
+	// but we'll ignore that now.
+	if *stream_name != "" {
+		ads_name = *stream_name
+	}
 
 	if *runs_command_raw_runs {
 		vcns := parser.GetAllVCNs(ntfs_ctx,
-			mft_entry, uint64(attr_type), uint16(attr_id))
+			mft_entry, uint64(attr_type), uint16(attr_id), ads_name)
 		for _, vcn := range vcns {
 			fmt.Println(vcn.DebugString())
 			vcn_runlist := vcn.RunList()
@@ -70,7 +84,7 @@ func doRuns() {
 	}
 
 	data, err := parser.OpenStream(ntfs_ctx, mft_entry,
-		uint64(attr_type), uint16(attr_id))
+		uint64(attr_type), uint16(attr_id), ads_name)
 	kingpin.FatalIfError(err, "Can not open stream")
 
 	for idx, r := range parser.DebugRuns(data, 0) {

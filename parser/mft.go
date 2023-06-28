@@ -103,6 +103,7 @@ func (self *MFT_ENTRY) GetDirectAttribute(
 // indexes in the path to find the right MFT entry.
 func (self *MFT_ENTRY) Open(ntfs *NTFSContext, filename string) (*MFT_ENTRY, error) {
 	filename = strings.Replace(filename, "\\", "/", -1)
+	filename = strings.Split(filename, ":")[0] // remove ADS if any as not needed
 	components := strings.Split(path.Clean(filename), "/")
 
 	get_path_in_dir := func(component string, dir *MFT_ENTRY) (
