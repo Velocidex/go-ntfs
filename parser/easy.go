@@ -410,7 +410,7 @@ func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 	var reader *MappedReader
 	flags := vcns[0].Flags()
 
-	if IsCompressed(flags) { // YK - all Sparse files are not compressed!
+	if IsCompressedOrSparse(flags) {
 		reader = &MappedReader{
 			ClusterSize: 1,
 			FileOffset:  0,
