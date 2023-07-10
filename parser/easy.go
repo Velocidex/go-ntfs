@@ -89,7 +89,7 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, stream_name
 	switch len(components) {
 	case 1:
 		// 0xffff is the wildcard stream id - means pick the first one.
-		return components[0], 128, 0xffff, stream_name, nil
+		return components[0], ATTR_TYPE_DATA, 0xffff, stream_name, nil
 	case 2:
 		return components[0], components[1], 0xffff, stream_name, nil
 	case 3:
@@ -101,7 +101,8 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, stream_name
 
 func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	// Check for ADS in the path.
-	stream_name := ""
+	stream_name := WILDCARD_STREAM_NAME
+
 	parts := strings.SplitN(path, ":", 2)
 	if len(parts) > 1 {
 		stream_name = parts[1]
@@ -117,16 +118,8 @@ func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 		return nil, err
 	}
 
-	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == ATTR_TYPE_DATA {
-			if stream_name != "" && attr.Name() != stream_name {
-				continue
-			}
-			return OpenStream(ntfs, mft_entry, 128, attr.Attribute_id(), stream_name)
-		}
-	}
-
-	return nil, errors.New("File not found.")
+	return OpenStream(ntfs, mft_entry,
+		ATTR_TYPE_DATA, WILDCARD_STREAM_ID, stream_name)
 }
 
 func RangeSize(rng RangeReaderAt) int64 {
@@ -311,6 +304,9 @@ type attrInfo struct {
 	attr_type uint64
 	attr_id   uint16
 	attr_name string
+	resident  bool
+	vcn_start uint64
+	vcn_end   uint64
 	attr      *NTFS_ATTRIBUTE
 }
 
@@ -325,14 +321,18 @@ func selectAttribute(attributes []*attrInfo,
 		required_attr_id == WILDCARD_STREAM_ID {
 		for _, attr := range attributes {
 			if attr.attr_type == attr_type && attr.attr_name == "" {
-				return attr, nil
+				if attr.resident || attr.vcn_start == 0 {
+					return attr, nil
+				}
 			}
 		}
 
 		// Now search for the first attributed name.
 		for _, attr := range attributes {
 			if attr.attr_type == attr_type {
-				return attr, nil
+				if attr.resident || attr.vcn_start == 0 {
+					return attr, nil
+				}
 			}
 		}
 		return nil, FILE_NOT_FOUND_ERROR
@@ -343,7 +343,9 @@ func selectAttribute(attributes []*attrInfo,
 		for _, attr := range attributes {
 			if attr.attr_type == attr_type &&
 				attr.attr_name == required_data_attr_name {
-				return attr, nil
+				if attr.resident || attr.vcn_start == 0 {
+					return attr, nil
+				}
 			}
 		}
 		return nil, FILE_NOT_FOUND_ERROR
@@ -359,7 +361,9 @@ func selectAttribute(attributes []*attrInfo,
 					continue
 				}
 
-				return attr, nil
+				if attr.resident || attr.vcn_start == 0 {
+					return attr, nil
+				}
 			}
 		}
 	}
@@ -379,6 +383,9 @@ func GetAllVCNs(ntfs *NTFSContext,
 			attr_type: attr.Type().Value,
 			attr_id:   attr.Attribute_id(),
 			attr_name: attr.Name(),
+			resident:  attr.IsResident(),
+			vcn_start: attr.Runlist_vcn_start(),
+			vcn_end:   attr.Runlist_vcn_end(),
 			attr:      attr,
 		})
 	}
@@ -393,15 +400,40 @@ func GetAllVCNs(ntfs *NTFSContext,
 
 	// Now collect all attributes with the exact set of type, id and
 	// name. These all form part of the same VCN set.
-	result := []*NTFS_ATTRIBUTE{}
+	result := []*NTFS_ATTRIBUTE{selected_attribute.attr}
+
+	// Resident attributes do not have VCNs
+	if selected_attribute.resident {
+		return result
+	}
+
+	for {
+		selected_attribute, err = findNextVCN(attributes, selected_attribute)
+		// Protect ourselves from cycles.
+		if err != nil || len(result) > 20 {
+			break
+		}
+
+		result = append(result, selected_attribute.attr)
+	}
+
+	return result
+}
+
+func findNextVCN(attributes []*attrInfo, selected_attribute *attrInfo) (*attrInfo, error) {
+	// Make sure the vcns make sense
+	if selected_attribute.vcn_end <= selected_attribute.vcn_start {
+		return nil, FILE_NOT_FOUND_ERROR
+	}
+
 	for _, attr := range attributes {
-		if attr.attr_type == selected_attribute.attr_type &&
-			attr.attr_id == selected_attribute.attr_id &&
+		if attr.attr_type == attr.attr_type &&
+			attr.vcn_start == selected_attribute.vcn_end+1 &&
 			attr.attr_name == selected_attribute.attr_name {
-			result = append(result, attr.attr)
+			return attr, nil
 		}
 	}
-	return result
+	return nil, FILE_NOT_FOUND_ERROR
 }
 
 // Open the full stream. Note - In NTFS a stream can be composed of

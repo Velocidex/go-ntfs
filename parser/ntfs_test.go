@@ -46,11 +46,12 @@ func TestNTFS(t *testing.T) {
 	result["03 I30"] = parser.ExtractI30List(ntfs_ctx, dir)
 
 	// Open by mft id
-	mft_idx, attr, id, err := parser.ParseMFTId("46-128-5")
+	mft_idx, attr, id, name, err := parser.ParseMFTId("46-128-5")
 	assert.NoError(err, "ParseMFTId")
 	assert.Equal(mft_idx, int64(46))
 	assert.Equal(attr, int64(128))
 	assert.Equal(id, int64(5))
+	assert.Equal(name, parser.WILDCARD_STREAM_NAME)
 
 	// Test resident file.
 	buf := make([]byte, 3000000)
@@ -112,11 +113,12 @@ func TestNTFSOpenStream(t *testing.T) {
 	result["03 I30"] = parser.ExtractI30List(ntfs_ctx, dir)
 
 	// Open by mft id
-	mft_idx, attr, id, err := parser.ParseMFTId("46-128-5")
+	mft_idx, attr, id, name, err := parser.ParseMFTId("46-128-5")
 	assert.NoError(err, "ParseMFTId")
 	assert.Equal(mft_idx, int64(46))
 	assert.Equal(attr, int64(128))
 	assert.Equal(id, int64(5))
+	assert.Equal(name, parser.WILDCARD_STREAM_NAME)
 
 	// Test resident file.
 	mft_entry, err := root.Open(ntfs_ctx,
@@ -124,14 +126,17 @@ func TestNTFSOpenStream(t *testing.T) {
 	assert.NoError(err, "root.Open")
 
 	buf := make([]byte, 3000000)
-	reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
+	reader, err := parser.OpenStream(ntfs_ctx,
+		mft_entry, parser.ATTR_TYPE_DATA, parser.WILDCARD_STREAM_ID,
+		parser.WILDCARD_STREAM_NAME)
 	assert.NoError(err, "GetDataForPath")
 
 	n, _ := reader.ReadAt(buf, 0)
 	result["04 Hello world.txt"] = fmt.Sprintf("%v: %s", n, string(buf[:n]))
 
 	// Test ADS
-	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 5, "goodbye.txt")
+	reader, err = parser.OpenStream(ntfs_ctx, mft_entry,
+		parser.ATTR_TYPE_DATA, 5, "goodbye.txt")
 	assert.NoError(err, "GetDataForPath")
 
 	n, _ = reader.ReadAt(buf, 0)
@@ -140,7 +145,9 @@ func TestNTFSOpenStream(t *testing.T) {
 
 	// Test a compressed file with multiple VCN runs
 	mft_entry, err = root.Open(ntfs_ctx, "ones.bin")
-	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
+	reader, err = parser.OpenStream(ntfs_ctx, mft_entry,
+		parser.ATTR_TYPE_DATA, parser.WILDCARD_STREAM_ID,
+		parser.WILDCARD_STREAM_NAME)
 	assert.NoError(err, "Open compressed ones.bin")
 
 	n, _ = reader.ReadAt(buf, 0)
