@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strings"
 	"time"
 )
@@ -87,6 +86,8 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 		})
 	}
 
+	inode_formatter := InodeFormatter{}
+
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
 		attr_type := attr.Type()
 		attr_id := attr.Attribute_id()
@@ -101,14 +102,15 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 			continue
 		}
 
+		name := attr.Name()
+
 		result.Attributes = append(result.Attributes, &Attribute{
 			Type:   attr_type.Name,
 			TypeId: attr_type.Value,
-			Inode: fmt.Sprintf("%v-%v-%v",
-				mft_id, attr_type.Value, attr_id),
-			Size: attr.DataSize(),
-			Id:   uint64(attr_id),
-			Name: attr.Name(),
+			Inode:  inode_formatter.Inode(mft_id, attr_type.Value, attr_id, name),
+			Size:   attr.DataSize(),
+			Id:     uint64(attr_id),
+			Name:   name,
 		})
 	}
 

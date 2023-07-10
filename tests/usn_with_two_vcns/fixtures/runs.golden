@@ -87,6 +87,7 @@ Found   struct NTFS_ATTRIBUTE @ 0x38:
   Starting_vcn: 0x0
   MftReference: 0x10ad6
   Attribute_id: 0x8e
+
 0  0 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 6352113880,  Cluster 1) Delegate *parser.RangeReader
 1   1 MappedReader: FileOffset 0 -> DiskOffset 0 (Length 44544, Sparse  Cluster 4096) Delegate *parser.NullReader
 2   1 MappedReader: FileOffset 44544 -> DiskOffset 0 (Length 1496432, Sparse  Cluster 4096) Delegate *parser.NullReader

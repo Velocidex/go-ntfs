@@ -47,10 +47,9 @@ func doCAT() {
 
 	var ads_name string = ""
 	// Access by mft id (e.g. 1234-128-6)
-	_, attr_type, attr_id, err := parser.ParseMFTId(*cat_command_arg)
+	_, attr_type, attr_id, ads_name, err := parser.ParseMFTId(*cat_command_arg)
 	if err != nil {
 		attr_type = 128 // $DATA
-		ads_name = getADSName(*cat_command_arg)
 	}
 
 	data, err := parser.OpenStream(ntfs_ctx, mft_entry,

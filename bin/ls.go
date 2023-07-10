@@ -33,7 +33,7 @@ var (
 func doLS() {
 	reader, _ := parser.NewPagedReader(&parser.OffsetReader{
 		Offset: *ls_command_image_offset,
-		Reader: *ls_command_file_arg,
+		Reader: getReader(*ls_command_file_arg),
 	}, 1024, 10000)
 
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
