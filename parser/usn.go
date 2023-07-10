@@ -153,26 +153,27 @@ func NewUSN_RECORD(ntfs *NTFSContext, reader io.ReaderAt, offset int64) *USN_REC
 	}
 }
 
-func getUSNStream(ntfs_ctx *NTFSContext) (mft_id int64, attr_id uint16, err error) {
+func getUSNStream(ntfs_ctx *NTFSContext) (mft_id int64, attr_id uint16, attr_name string, err error) {
 	dir, err := ntfs_ctx.GetMFT(5)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, "", err
 	}
 
 	// Open the USN file from the root of the filesystem.
 	mft_entry, err := dir.Open(ntfs_ctx, "$Extend\\$UsnJrnl")
 	if err != nil {
-		return 0, 0, errors.New("Can not open path")
+		return 0, 0, "", errors.New("Can not open path")
 	}
 
 	// Find the attribute we need.
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs_ctx) {
-		if attr.Type().Value == ATTR_TYPE_DATA && attr.Name() == "$J" {
+		name := attr.Name()
+		if attr.Type().Value == ATTR_TYPE_DATA && name == "$J" {
 			return int64(mft_entry.Record_number()),
-				attr.Attribute_id(), nil
+				attr.Attribute_id(), name, nil
 		}
 	}
-	return 0, 0, errors.New("Can not find $Extend\\$UsnJrnl:$J")
+	return 0, 0, "", errors.New("Can not find $Extend\\$UsnJrnl:$J")
 }
 
 // Returns a channel which will send USN records on. We start parsing
@@ -183,7 +184,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 	go func() {
 		defer close(output)
 
-		mft_id, attr_id, err := getUSNStream(ntfs_ctx)
+		mft_id, attr_id, attr_name, err := getUSNStream(ntfs_ctx)
 		if err != nil {
 			DebugPrint("ParseUSN error: %v", err)
 			return
@@ -195,7 +196,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 			return
 		}
 
-		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, "$J")
+		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, attr_name)
 		if err != nil {
 			DebugPrint("ParseUSN error: %v", err)
 			return
@@ -235,7 +236,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 
 // Find the last USN record of the file.
 func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD, err error) {
-	mft_id, attr_id, err := getUSNStream(ntfs_ctx)
+	mft_id, attr_id, attr_name, err := getUSNStream(ntfs_ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +246,7 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 		return nil, err
 	}
 
-	data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, "$J")
+	data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, attr_name)
 	if err != nil {
 		return nil, err
 	}

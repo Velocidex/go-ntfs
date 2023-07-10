@@ -12,14 +12,6 @@ func (self *InodeFormatter) Inode(mft_id uint32,
 	inode := fmt.Sprintf("%d-%d-%d", mft_id, attr_type_id, attr_id)
 	needle := uint32(attr_id)<<16 + uint32(attr_type_id)
 
-	// We use attr_id as a placeholder in GetAllVCNs() for the first
-	// attribute of that ID. This means if we really have an ID of 0
-	// we need to ensure we interpret it literally. We do this by also
-	// including the ads name.
-	if attr_id == 0 && name != "" {
-		return inode + ":" + name
-	}
-
 	if inSliceUint32(needle, self.attr_ids) {
 		// Only include the name if it is necessary (i.e. there is
 		// another stream of the same type-id).

@@ -13,6 +13,16 @@ import (
 	"time"
 )
 
+const (
+	// An invalid filename to flag a wildcard search.
+	WILDCARD_STREAM_NAME = ":*:"
+	WILDCARD_STREAM_ID   = uint16(0xffff)
+)
+
+var (
+	FILE_NOT_FOUND_ERROR = errors.New("File not found.")
+)
+
 type FileInfo struct {
 	MFTId         string    `json:"MFTId,omitempty"`
 	Mtime         time.Time `json:"Mtime,omitempty"`
@@ -58,6 +68,8 @@ func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
 }
 
 func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, stream_name string, err error) {
+	stream_name = WILDCARD_STREAM_NAME
+
 	// Support the ADS name being included in the inode
 	parts := strings.SplitN(mft_id, ":", 2)
 	if len(parts) > 1 {
@@ -76,9 +88,10 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, stream_name
 
 	switch len(components) {
 	case 1:
-		return components[0], 128, 0, stream_name, nil
+		// 0xffff is the wildcard stream id - means pick the first one.
+		return components[0], 128, 0xffff, stream_name, nil
 	case 2:
-		return components[0], components[1], 0, stream_name, nil
+		return components[0], components[1], 0xffff, stream_name, nil
 	case 3:
 		return components[0], components[1], components[2], stream_name, nil
 	default:
@@ -294,55 +307,100 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 	return result
 }
 
+type attrInfo struct {
+	attr_type uint64
+	attr_id   uint16
+	attr_name string
+	attr      *NTFS_ATTRIBUTE
+}
+
+func selectAttribute(attributes []*attrInfo,
+	attr_type uint64,
+	required_attr_id uint16,
+	required_data_attr_name string) (*attrInfo, error) {
+
+	// Search for stream that matches the type.  First search for non
+	// ADS stream, and if not found then search again for any stream.
+	if required_data_attr_name == WILDCARD_STREAM_NAME &&
+		required_attr_id == WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type && attr.attr_name == "" {
+				return attr, nil
+			}
+		}
+
+		// Now search for the first attributed name.
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type {
+				return attr, nil
+			}
+		}
+		return nil, FILE_NOT_FOUND_ERROR
+	}
+
+	// Search for any stream with the given name
+	if required_attr_id == WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type &&
+				attr.attr_name == required_data_attr_name {
+				return attr, nil
+			}
+		}
+		return nil, FILE_NOT_FOUND_ERROR
+	}
+
+	// Search for a specific attr_id.
+	if required_attr_id != WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type &&
+				attr.attr_id == required_attr_id {
+				if required_data_attr_name != WILDCARD_STREAM_NAME &&
+					required_data_attr_name != attr.attr_name {
+					continue
+				}
+
+				return attr, nil
+			}
+		}
+	}
+	return nil, FILE_NOT_FOUND_ERROR
+}
+
 // Get all VCNs having the (same type and ID for default $DATA stream)
 // OR ($DATA with specific name)
 func GetAllVCNs(ntfs *NTFSContext,
 	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16,
 	required_data_attr_name string) []*NTFS_ATTRIBUTE {
-	result := []*NTFS_ATTRIBUTE{}
+
+	// First extract all attribute info so we can decide who to choose.
+	attributes := []*attrInfo{}
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value != attr_type {
-			continue
-		}
-
-		attr_id := attr.Attribute_id()
-		attr_name := attr.Name()
-
-		// If we need to find a attr name just look at that.
-		if required_data_attr_name != "" {
-			// We also need to match the attr id.
-			if required_attr_id != 0 && required_attr_id != attr_id {
-				continue
-			}
-
-			// Match the attr name
-			if required_data_attr_name == attr_name {
-				result = append(result, attr)
-			}
-			continue
-		}
-
-		// If the required_attr_id and required_data_attr_name are not
-		// specified, the caller just wants the first stream that
-		// matches that does not have an ADS (primary stream). This
-		// corresponds to the user just opening the file to read by
-		// MFT ID.
-		if required_attr_id == 0 &&
-			required_data_attr_name == "" &&
-			attr_name == "" {
-			required_attr_id = attr_id
-			result = append(result, attr)
-			continue
-		}
-
-		// In extended attributes the ID can be set to 0 which
-		// means it is the continuation of the standard type.
-		if (attr_id == 0 && attr_name == "") ||
-			attr_id == required_attr_id {
-			result = append(result, attr)
-		}
+		attributes = append(attributes, &attrInfo{
+			attr_type: attr.Type().Value,
+			attr_id:   attr.Attribute_id(),
+			attr_name: attr.Name(),
+			attr:      attr,
+		})
 	}
 
+	// Depending on the required_data_attr_name and required_attr_id
+	// specified we select the attribute we need.
+	selected_attribute, err := selectAttribute(attributes, attr_type,
+		required_attr_id, required_data_attr_name)
+	if err != nil {
+		return nil
+	}
+
+	// Now collect all attributes with the exact set of type, id and
+	// name. These all form part of the same VCN set.
+	result := []*NTFS_ATTRIBUTE{}
+	for _, attr := range attributes {
+		if attr.attr_type == selected_attribute.attr_type &&
+			attr.attr_id == selected_attribute.attr_id &&
+			attr.attr_name == selected_attribute.attr_name {
+			result = append(result, attr.attr)
+		}
+	}
 	return result
 }
 
