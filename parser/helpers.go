@@ -25,5 +25,5 @@ func (self *WinFileTime) DebugString() string {
 
 func (self *NTFSProfile) WinFileTime(reader io.ReaderAt, offset int64) *WinFileTime {
 	filetime := ParseUint64(reader, offset)
-	return &WinFileTime{time.Unix(0, int64(filetimeToUnixtime(filetime)))}
+	return &WinFileTime{time.Unix(0, int64(filetimeToUnixtime(filetime))).UTC()}
 }

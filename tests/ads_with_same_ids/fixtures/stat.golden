@@ -6,18 +6,18 @@
   "Allocated": true,
   "IsDir": false,
   "SI_Times": {
-   "CreateTime": "2023-06-23T12:11:03.540746+10:00",
-   "FileModifiedTime": "2023-06-23T12:16:17.9724723+10:00",
-   "MFTModifiedTime": "2023-06-23T12:16:17.9724723+10:00",
-   "AccessedTime": "2023-06-23T12:16:17.9724723+10:00"
+   "CreateTime": "2023-06-23T02:11:03.540746Z",
+   "FileModifiedTime": "2023-06-23T02:16:17.9724723Z",
+   "MFTModifiedTime": "2023-06-23T02:16:17.9724723Z",
+   "AccessedTime": "2023-06-23T02:16:17.9724723Z"
   },
   "Filenames": [
    {
     "Times": {
-     "CreateTime": "2023-06-23T12:11:03.540746+10:00",
-     "FileModifiedTime": "2023-06-23T12:11:03.540746+10:00",
-     "MFTModifiedTime": "2023-06-23T12:11:03.540746+10:00",
-     "AccessedTime": "2023-06-23T12:11:03.540746+10:00"
+     "CreateTime": "2023-06-23T02:11:03.540746Z",
+     "FileModifiedTime": "2023-06-23T02:11:03.540746Z",
+     "MFTModifiedTime": "2023-06-23T02:11:03.540746Z",
+     "AccessedTime": "2023-06-23T02:11:03.540746Z"
     },
     "Type": "POSIX",
     "Name": "Nine.txt",

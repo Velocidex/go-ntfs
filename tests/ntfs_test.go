@@ -102,6 +102,18 @@ func (self *NTFSTestSuite) TestUSNWith2VCNs() {
 	g.Assert(self.T(), "stat", out)
 }
 
+// This test reads a highly fragmented MFT stream
+func (self *NTFSTestSuite) TestHighlyFragmentedMFT() {
+	record_dir := "highly_fragmented_mft"
+	cmd := exec.Command(self.binary, "--record",
+		record_dir, "runs", self.binary, "0")
+	out, err := cmd.CombinedOutput()
+	assert.NoError(self.T(), err, string(out))
+
+	g := goldie.New(self.T(), goldie.WithFixtureDir(record_dir+"/fixtures"))
+	g.Assert(self.T(), "runs", out)
+}
+
 // This file contains multiple data streams with the same ID. We need
 // to generate Inode strings which include the stream name so it can
 // be disambiguated.
