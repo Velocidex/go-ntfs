@@ -103,6 +103,7 @@ func (self *MFT_ENTRY) GetDirectAttribute(
 // indexes in the path to find the right MFT entry.
 func (self *MFT_ENTRY) Open(ntfs *NTFSContext, filename string) (*MFT_ENTRY, error) {
 	filename = strings.Replace(filename, "\\", "/", -1)
+	filename = strings.Split(filename, ":")[0] // remove ADS if any as not needed
 	components := strings.Split(path.Clean(filename), "/")
 
 	get_path_in_dir := func(component string, dir *MFT_ENTRY) (
@@ -177,11 +178,17 @@ func (self *MFT_ENTRY) FileName(ntfs *NTFSContext) []*FILE_NAME {
 
 // Retrieve the content of the attribute stream specified by type and
 // id. If id is 0 return the first attribute of this type.
-func (self *MFT_ENTRY) GetAttribute(ntfs *NTFSContext,
-	attr_type, id int64) (*NTFS_ATTRIBUTE, error) {
+func (self *MFT_ENTRY) GetAttribute(
+	ntfs *NTFSContext, attr_type,
+	id int64, stream string) (*NTFS_ATTRIBUTE, error) {
 	for _, attr := range self.EnumerateAttributes(ntfs) {
 		if attr.Type().Value == uint64(attr_type) {
 			if id <= 0 || int64(attr.Attribute_id()) == id {
+				// Optionally allow the caller to specify the stream
+				// name.
+				if stream != "" && stream != attr.Name() {
+					continue
+				}
 				return attr, nil
 			}
 		}
@@ -292,6 +299,7 @@ func (self *MapReader) ReadAt(buf []byte, offset int64) (int, error) {
 
 type MFTHighlight struct {
 	EntryNumber          int64
+	Inode                string
 	SequenceNumber       uint16
 	InUse                bool
 	ParentEntryNumber    uint64
@@ -496,9 +504,9 @@ func ParseMFTFileWithOptions(
 			}
 
 			mft_id := mft_entry.Record_number()
-
 			row := &MFTHighlight{
 				EntryNumber:          int64(mft_id),
+				Inode:                fmt.Sprintf("%d", mft_id),
 				SequenceNumber:       mft_entry.Sequence_value(),
 				InUse:                mft_entry.Flags().IsSet("ALLOCATED"),
 				ParentEntryNumber:    file_names[0].MftReference(),
@@ -553,6 +561,7 @@ func ParseMFTFileWithOptions(
 				new_row.IsDir = false
 				new_row.ads_name = ads_name
 				new_row.FileSize = ads_sizes[idx]
+				new_row.Inode += ":" + ads_name
 
 				select {
 				case <-ctx.Done():

@@ -376,6 +376,13 @@ func NewUncompressedRangeReader(
 			Reader:      disk_reader,
 		}
 
+		// If the run is sparse we make it read from the null
+		// reader.
+		if run.RelativeUrnOffset == 0 {
+			reader_run.IsSparse = true
+			reader_run.Reader = &NullReader{}
+		}
+
 		result.runs = append(result.runs, reader_run)
 		file_offset += reader_run.Length
 	}

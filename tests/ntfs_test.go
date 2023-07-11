@@ -85,10 +85,10 @@ func (self *NTFSTestSuite) TestLargeFileSmallInit() {
 // This test case looks at a sparse $J USN journal with two VCNs.
 func (self *NTFSTestSuite) TestUSNWith2VCNs() {
 	record_dir := "usn_with_two_vcns"
-	cmd := exec.Command(self.binary, "--record", record_dir,
-		"runs", self.binary, "68310", "--verbose")
+	cmd := exec.Command(self.binary, "--record",
+		record_dir, "runs", self.binary, "68310:$J", "--verbose")
 	out, err := cmd.CombinedOutput()
-	assert.NoError(self.T(), err)
+	assert.NoError(self.T(), err, string(out))
 
 	g := goldie.New(self.T(), goldie.WithFixtureDir(record_dir+"/fixtures"))
 	g.Assert(self.T(), "runs", out)
@@ -100,6 +100,99 @@ func (self *NTFSTestSuite) TestUSNWith2VCNs() {
 	out, err = cmd.CombinedOutput()
 	assert.NoError(self.T(), err)
 	g.Assert(self.T(), "stat", out)
+}
+
+// This file contains multiple data streams with the same ID. We need
+// to generate Inode strings which include the stream name so it can
+// be disambiguated.
+func (self *NTFSTestSuite) TestMultipleADSWithSameID() {
+	record_dir := "ads_with_same_ids"
+	cmd := exec.Command(self.binary, "--record", record_dir,
+		"ls", self.binary)
+	out_b, err := cmd.CombinedOutput()
+	out := string(out_b)
+	assert.NoError(self.T(), err, out)
+
+	// Check that inodes do not include ADS unless it is necessary for disambiguation
+	g := goldie.New(self.T(), goldie.WithFixtureDir(record_dir+"/fixtures"))
+	g.Assert(self.T(), "ls", out_b)
+
+	// This is the first stream with id 0 we dont need an ADS
+	// reference because we will pick the first anyway.
+	assert.Contains(self.T(), out, "38-128-0 ")
+
+	// This stream needs an ads to disambiguate it from the :111
+	// stream.
+	assert.Contains(self.T(), out, "38-128-0:333")
+	assert.Contains(self.T(), out, "38-128-3 ")
+
+	// $Secure:$SDS is only stream with ADS and it has non zero ID -
+	// we dont need an inode with ADS
+	assert.Contains(self.T(), out, "9-128-8 ")
+
+	// Search first stream with same id
+	cmd = exec.Command(self.binary, "--record", record_dir, "stat", self.binary, "38")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	g = goldie.New(self.T(), goldie.WithFixtureDir(record_dir+"/fixtures"))
+	g.Assert(self.T(), "stat", out_b)
+
+	// Search first stream with id of 0 will select the first stream :111
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38-128-0")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "1111")
+
+	// Opening by mft id gives the non-ads stream
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "9999")
+
+	// Reading by mft id and ads gives the first stream with that ads
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38:111")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "1111")
+
+	// Reading by id containing ads
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38-128-0:333")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "333")
+
+	// Reading by type and id
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38-128-3")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "999")
+
+	// Reading by mft record id has wildcard stream id - will pick the non-ads stream 38-128-3
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38-128")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Contains(self.T(), out, "999")
+
+	// Reading by id of 9 file - it does not have any ADS should return error
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "38-128-3:111")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.Error(self.T(), err, out)
+	assert.Contains(self.T(), out, "file does not exist")
+
+	// Open $Secure:$SDS which has no - non-ads stream
+	cmd = exec.Command(self.binary, "--record", record_dir, "cat", self.binary, "9")
+	out_b, err = cmd.CombinedOutput()
+	out = string(out_b)
+	assert.NoError(self.T(), err, out)
+	assert.Equal(self.T(), len(out), 263264)
 }
 
 func TestNTFS(t *testing.T) {

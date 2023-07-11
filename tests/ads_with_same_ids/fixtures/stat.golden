@@ -1,0 +1,97 @@
+{
+  "FullPath": "/Nine.txt",
+  "MFTID": 38,
+  "SequenceNumber": 2,
+  "Size": 5005,
+  "Allocated": true,
+  "IsDir": false,
+  "SI_Times": {
+   "CreateTime": "2023-06-23T12:11:03.540746+10:00",
+   "FileModifiedTime": "2023-06-23T12:16:17.9724723+10:00",
+   "MFTModifiedTime": "2023-06-23T12:16:17.9724723+10:00",
+   "AccessedTime": "2023-06-23T12:16:17.9724723+10:00"
+  },
+  "Filenames": [
+   {
+    "Times": {
+     "CreateTime": "2023-06-23T12:11:03.540746+10:00",
+     "FileModifiedTime": "2023-06-23T12:11:03.540746+10:00",
+     "MFTModifiedTime": "2023-06-23T12:11:03.540746+10:00",
+     "AccessedTime": "2023-06-23T12:11:03.540746+10:00"
+    },
+    "Type": "POSIX",
+    "Name": "Nine.txt",
+    "ParentEntryNumber": 5,
+    "ParentSequenceNumber": 5
+   }
+  ],
+  "Attributes": [
+   {
+    "Type": "$STANDARD_INFORMATION",
+    "TypeId": 16,
+    "Id": 0,
+    "Inode": "38-16-0",
+    "Size": 72,
+    "Name": ""
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 0,
+    "Inode": "38-128-0",
+    "Size": 5005,
+    "Name": "111"
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 0,
+    "Inode": "38-128-0:333",
+    "Size": 6005,
+    "Name": "333"
+   },
+   {
+    "Type": "$ATTRIBUTE_LIST",
+    "TypeId": 32,
+    "Id": 10,
+    "Inode": "38-32-10",
+    "Size": 224,
+    "Name": ""
+   },
+   {
+    "Type": "$FILE_NAME",
+    "TypeId": 48,
+    "Id": 2,
+    "Inode": "38-48-2",
+    "Size": 82,
+    "Name": ""
+   },
+   {
+    "Type": "$OBJECT_ID",
+    "TypeId": 64,
+    "Id": 4,
+    "Inode": "38-64-4",
+    "Size": 16,
+    "Name": ""
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 3,
+    "Inode": "38-128-3",
+    "Size": 5000,
+    "Name": ""
+   },
+   {
+    "Type": "$DATA",
+    "TypeId": 128,
+    "Id": 7,
+    "Inode": "38-128-7",
+    "Size": 56,
+    "Name": "222"
+   }
+  ],
+  "Hardlinks": [
+   "Nine.txt"
+  ]
+ }

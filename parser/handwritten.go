@@ -204,13 +204,15 @@ func (self *NTFS_ATTRIBUTE) DebugString() string {
 	result += fmt.Sprintf("  Attribute_id: %#0x\n", self.Attribute_id())
 	result += fmt.Sprintf("  Content_size: %#0x\n", self.Content_size())
 	result += fmt.Sprintf("  Content_offset: %#0x\n", self.Content_offset())
-	result += fmt.Sprintf("  Runlist_vcn_start: %#0x\n", self.Runlist_vcn_start())
-	result += fmt.Sprintf("  Runlist_vcn_end: %#0x\n", self.Runlist_vcn_end())
-	result += fmt.Sprintf("  Runlist_offset: %#0x\n", self.Runlist_offset())
-	result += fmt.Sprintf("  Compression_unit_size: %#0x\n", self.Compression_unit_size())
-	result += fmt.Sprintf("  Allocated_size: %#0x\n", self.Allocated_size())
-	result += fmt.Sprintf("  Actual_size: %#0x\n", self.Actual_size())
-	result += fmt.Sprintf("  Initialized_size: %#0x\n", self.Initialized_size())
+	if self.Resident().Value == 1 {
+		result += fmt.Sprintf("  Runlist_vcn_start: %#0x\n", self.Runlist_vcn_start())
+		result += fmt.Sprintf("  Runlist_vcn_end: %#0x\n", self.Runlist_vcn_end())
+		result += fmt.Sprintf("  Runlist_offset: %#0x\n", self.Runlist_offset())
+		result += fmt.Sprintf("  Compression_unit_size: %#0x\n", self.Compression_unit_size())
+		result += fmt.Sprintf("  Allocated_size: %#0x\n", self.Allocated_size())
+		result += fmt.Sprintf("  Actual_size: %#0x\n", self.Actual_size())
+		result += fmt.Sprintf("  Initialized_size: %#0x\n", self.Initialized_size())
+	}
 	return result
 }
 

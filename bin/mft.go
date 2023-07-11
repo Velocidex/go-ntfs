@@ -59,7 +59,7 @@ func doMFTFromImage() {
 	kingpin.FatalIfError(err, "Can not open path")
 
 	mft_reader, err := parser.OpenStream(ntfs_ctx, mft_entry,
-		uint64(128), uint16(0))
+		uint64(128), uint16(0), "")
 	kingpin.FatalIfError(err, "Can not open stream")
 
 	for item := range parser.ParseMFTFile(context.Background(),

@@ -5,7 +5,7 @@ import (
 )
 
 func GetMFTEntry(ntfs_ctx *parser.NTFSContext, filename string) (*parser.MFT_ENTRY, error) {
-	mft_idx, _, _, err := parser.ParseMFTId(filename)
+	mft_idx, _, _, _, err := parser.ParseMFTId(filename)
 	if err == nil {
 		// Access by mft id (e.g. 1234-128-6)
 		return ntfs_ctx.GetMFT(mft_idx)

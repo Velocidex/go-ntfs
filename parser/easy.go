@@ -13,6 +13,16 @@ import (
 	"time"
 )
 
+const (
+	// An invalid filename to flag a wildcard search.
+	WILDCARD_STREAM_NAME = ":*:"
+	WILDCARD_STREAM_ID   = uint16(0xffff)
+)
+
+var (
+	FILE_NOT_FOUND_ERROR = errors.New("File not found.")
+)
+
 type FileInfo struct {
 	MFTId         string    `json:"MFTId,omitempty"`
 	Mtime         time.Time `json:"Mtime,omitempty"`
@@ -57,13 +67,20 @@ func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
 	return ntfs, nil
 }
 
-func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) {
+func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, stream_name string, err error) {
+	stream_name = WILDCARD_STREAM_NAME
+
+	// Support the ADS name being included in the inode
+	parts := strings.SplitN(mft_id, ":", 2)
+	if len(parts) > 1 {
+		stream_name = parts[1]
+	}
 	components := []int64{}
-	components_str := strings.Split(mft_id, "-")
+	components_str := strings.Split(parts[0], "-")
 	for _, component_str := range components_str {
 		x, err := strconv.Atoi(component_str)
 		if err != nil {
-			return 0, 0, 0, errors.New("Incorrect format for MFTId: e.g. 5-144-1")
+			return 0, 0, 0, "", errors.New("Incorrect format for MFTId: e.g. 5-144-1")
 		}
 
 		components = append(components, int64(x))
@@ -71,26 +88,23 @@ func ParseMFTId(mft_id string) (mft_idx int64, attr int64, id int64, err error) 
 
 	switch len(components) {
 	case 1:
-		return components[0], 128, 0, nil
+		// 0xffff is the wildcard stream id - means pick the first one.
+		return components[0], 128, 0xffff, stream_name, nil
 	case 2:
-		return components[0], components[1], 0, nil
+		return components[0], components[1], 0xffff, stream_name, nil
 	case 3:
-		return components[0], components[1], components[2], nil
+		return components[0], components[1], components[2], stream_name, nil
 	default:
-		return 0, 0, 0, errors.New("Incorrect format for MFTId: e.g. 5-144-1")
+		return 0, 0, 0, "", errors.New("Incorrect format for MFTId: e.g. 5-144-1")
 	}
 }
 
 func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	// Check for ADS in the path.
-	parts := strings.Split(path, ":")
-	switch len(parts) {
-	case 2:
-		break
-	case 1:
-		parts = append(parts, "")
-	default:
-		return nil, errors.New("Path may not contain more than one ':'")
+	stream_name := ""
+	parts := strings.SplitN(path, ":", 2)
+	if len(parts) > 1 {
+		stream_name = parts[1]
 	}
 
 	root, err := ntfs.GetMFT(5)
@@ -104,10 +118,11 @@ func GetDataForPath(ntfs *NTFSContext, path string) (RangeReaderAt, error) {
 	}
 
 	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == ATTR_TYPE_DATA &&
-			attr.Name() == parts[1] {
-			return OpenStream(ntfs, mft_entry,
-				128, attr.Attribute_id())
+		if attr.Type().Value == ATTR_TYPE_DATA {
+			if stream_name != "" && attr.Name() != stream_name {
+				continue
+			}
+			return OpenStream(ntfs, mft_entry, 128, attr.Attribute_id(), stream_name)
 		}
 	}
 
@@ -131,8 +146,9 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	var win32_name *FILE_NAME
 	var index_attribute *NTFS_ATTRIBUTE
 	var is_dir bool
-
 	var fn_birth_time, fn_mtime time.Time
+
+	mft_id := node_mft.Record_number()
 
 	// Walk all the attributes collecting the imporant things.
 	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
@@ -201,7 +217,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 
 	if index_attribute != nil {
 		inode := fmt.Sprintf(
-			"%d-%d-%d", node_mft.Record_number(),
+			"%d-%d-%d", mft_id,
 			index_attribute.Type().Value,
 			index_attribute.Attribute_id())
 
@@ -222,6 +238,7 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 		result = append(result, info)
 	}
 
+	inode_formatter := InodeFormatter{}
 	for _, attr := range data_attributes {
 		ads := ""
 		name := attr.Name()
@@ -232,13 +249,12 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			ads = ":" + name
 		}
 
-		inode := fmt.Sprintf(
-			"%d-%d-%d", node_mft.Record_number(),
-			attr.Type().Value,
-			attr.Attribute_id())
+		attr_id := attr.Attribute_id()
+		attr_type_id := attr.Type().Value
 
 		info := &FileInfo{
-			MFTId:    inode,
+			MFTId: inode_formatter.Inode(
+				mft_id, attr_type_id, attr_id, name),
 			Mtime:    si.File_altered_time().Time,
 			Atime:    si.File_accessed_time().Time,
 			Ctime:    si.Mft_altered_time().Time,
@@ -291,30 +307,100 @@ func ListDir(ntfs *NTFSContext, root *MFT_ENTRY) []*FileInfo {
 	return result
 }
 
-// Get all VCNs having the same type and ID
-func GetAllVCNs(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16) []*NTFS_ATTRIBUTE {
-	result := []*NTFS_ATTRIBUTE{}
-	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
-		if attr.Type().Value == attr_type {
-			attr_id := attr.Attribute_id()
+type attrInfo struct {
+	attr_type uint64
+	attr_id   uint16
+	attr_name string
+	attr      *NTFS_ATTRIBUTE
+}
 
-			// If the attr_id is not specified we pick the first
-			// stream of this type. Remember it so the next VCN goes
-			// with this one.
-			if required_attr_id == 0 {
-				required_attr_id = attr_id
+func selectAttribute(attributes []*attrInfo,
+	attr_type uint64,
+	required_attr_id uint16,
+	required_data_attr_name string) (*attrInfo, error) {
+
+	// Search for stream that matches the type.  First search for non
+	// ADS stream, and if not found then search again for any stream.
+	if required_data_attr_name == WILDCARD_STREAM_NAME &&
+		required_attr_id == WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type && attr.attr_name == "" {
+				return attr, nil
 			}
+		}
 
-			// In extended attributes the ID can be set to 0 which
-			// means it is the continuation of the standard type.
-			if attr_id == 0 ||
-				attr_id == required_attr_id {
-				result = append(result, attr)
+		// Now search for the first attributed name.
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type {
+				return attr, nil
+			}
+		}
+		return nil, FILE_NOT_FOUND_ERROR
+	}
+
+	// Search for any stream with the given name
+	if required_attr_id == WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type &&
+				attr.attr_name == required_data_attr_name {
+				return attr, nil
+			}
+		}
+		return nil, FILE_NOT_FOUND_ERROR
+	}
+
+	// Search for a specific attr_id.
+	if required_attr_id != WILDCARD_STREAM_ID {
+		for _, attr := range attributes {
+			if attr.attr_type == attr_type &&
+				attr.attr_id == required_attr_id {
+				if required_data_attr_name != WILDCARD_STREAM_NAME &&
+					required_data_attr_name != attr.attr_name {
+					continue
+				}
+
+				return attr, nil
 			}
 		}
 	}
+	return nil, FILE_NOT_FOUND_ERROR
+}
 
+// Get all VCNs having the (same type and ID for default $DATA stream)
+// OR ($DATA with specific name)
+func GetAllVCNs(ntfs *NTFSContext,
+	mft_entry *MFT_ENTRY, attr_type uint64, required_attr_id uint16,
+	required_data_attr_name string) []*NTFS_ATTRIBUTE {
+
+	// First extract all attribute info so we can decide who to choose.
+	attributes := []*attrInfo{}
+	for _, attr := range mft_entry.EnumerateAttributes(ntfs) {
+		attributes = append(attributes, &attrInfo{
+			attr_type: attr.Type().Value,
+			attr_id:   attr.Attribute_id(),
+			attr_name: attr.Name(),
+			attr:      attr,
+		})
+	}
+
+	// Depending on the required_data_attr_name and required_attr_id
+	// specified we select the attribute we need.
+	selected_attribute, err := selectAttribute(attributes, attr_type,
+		required_attr_id, required_data_attr_name)
+	if err != nil {
+		return nil
+	}
+
+	// Now collect all attributes with the exact set of type, id and
+	// name. These all form part of the same VCN set.
+	result := []*NTFS_ATTRIBUTE{}
+	for _, attr := range attributes {
+		if attr.attr_type == selected_attribute.attr_type &&
+			attr.attr_id == selected_attribute.attr_id &&
+			attr.attr_name == selected_attribute.attr_name {
+			result = append(result, attr.attr)
+		}
+	}
 	return result
 }
 
@@ -325,12 +411,12 @@ func GetAllVCNs(ntfs *NTFSContext,
 // a single stream. This function is what you need when you want to
 // read the full file.
 func OpenStream(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16) (RangeReaderAt, error) {
+	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16, attr_name string) (RangeReaderAt, error) {
 
 	result := &RangeReader{}
 
 	// Gather all the VCNs together
-	vcns := GetAllVCNs(ntfs, mft_entry, attr_type, attr_id)
+	vcns := GetAllVCNs(ntfs, mft_entry, attr_type, attr_id, attr_name)
 	if len(vcns) == 0 {
 		return nil, os.ErrNotExist
 	}
@@ -397,7 +483,7 @@ func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 	var reader *MappedReader
 	flags := vcns[0].Flags()
 
-	if IsCompressedOrSparse(flags) {
+	if IsCompressed(flags) { // YK - all Sparse files are not compressed!
 		reader = &MappedReader{
 			ClusterSize: 1,
 			FileOffset:  0,

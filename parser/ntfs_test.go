@@ -124,14 +124,14 @@ func TestNTFSOpenStream(t *testing.T) {
 	assert.NoError(err, "root.Open")
 
 	buf := make([]byte, 3000000)
-	reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0)
+	reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
 	assert.NoError(err, "GetDataForPath")
 
 	n, _ := reader.ReadAt(buf, 0)
 	result["04 Hello world.txt"] = fmt.Sprintf("%v: %s", n, string(buf[:n]))
 
 	// Test ADS
-	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 5)
+	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 5, "goodbye.txt")
 	assert.NoError(err, "GetDataForPath")
 
 	n, _ = reader.ReadAt(buf, 0)
@@ -140,7 +140,7 @@ func TestNTFSOpenStream(t *testing.T) {
 
 	// Test a compressed file with multiple VCN runs
 	mft_entry, err = root.Open(ntfs_ctx, "ones.bin")
-	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 0)
+	reader, err = parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
 	assert.NoError(err, "Open compressed ones.bin")
 
 	n, _ = reader.ReadAt(buf, 0)
