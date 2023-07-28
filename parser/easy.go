@@ -24,19 +24,20 @@ var (
 )
 
 type FileInfo struct {
-	MFTId         string    `json:"MFTId,omitempty"`
-	Mtime         time.Time `json:"Mtime,omitempty"`
-	Atime         time.Time `json:"Atime,omitempty"`
-	Ctime         time.Time `json:"Ctime,omitempty"`
-	Btime         time.Time `json:"Btime,omitempty"` // Birth time.
-	FNBtime       time.Time `json:"FNBtime,omitempty"`
-	FNMtime       time.Time `json:"FNBtime,omitempty"`
-	Name          string    `json:"Name,omitempty"`
-	NameType      string    `json:"NameType,omitempty"`
-	ExtraNames    []string  `json:"ExtraNames,omitempty"`
-	IsDir         bool      `json:"IsDir,omitempty"`
-	Size          int64
-	AllocatedSize int64
+	MFTId          string    `json:"MFTId,omitempty"`
+	SequenceNumber uint16    `json:"SequenceNumber,omitempty"`
+	Mtime          time.Time `json:"Mtime,omitempty"`
+	Atime          time.Time `json:"Atime,omitempty"`
+	Ctime          time.Time `json:"Ctime,omitempty"`
+	Btime          time.Time `json:"Btime,omitempty"` // Birth time.
+	FNBtime        time.Time `json:"FNBtime,omitempty"`
+	FNMtime        time.Time `json:"FNBtime,omitempty"`
+	Name           string    `json:"Name,omitempty"`
+	NameType       string    `json:"NameType,omitempty"`
+	ExtraNames     []string  `json:"ExtraNames,omitempty"`
+	IsDir          bool      `json:"IsDir,omitempty"`
+	Size           int64
+	AllocatedSize  int64
 
 	// Is it in I30 slack?
 	IsSlack     bool  `json:"IsSlack,omitempty"`
@@ -214,16 +215,17 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			index_attribute.Attribute_id())
 
 		info := &FileInfo{
-			MFTId:    inode,
-			Mtime:    si.File_altered_time().Time,
-			Atime:    si.File_accessed_time().Time,
-			Ctime:    si.Mft_altered_time().Time,
-			Btime:    si.Create_time().Time,
-			FNBtime:  fn_birth_time,
-			FNMtime:  fn_mtime,
-			Name:     win32_name.Name(),
-			NameType: win32_name.NameType().Name,
-			IsDir:    is_dir,
+			MFTId:          inode,
+			SequenceNumber: node_mft.Sequence_value(),
+			Mtime:          si.File_altered_time().Time,
+			Atime:          si.File_accessed_time().Time,
+			Ctime:          si.Mft_altered_time().Time,
+			Btime:          si.Create_time().Time,
+			FNBtime:        fn_birth_time,
+			FNMtime:        fn_mtime,
+			Name:           win32_name.Name(),
+			NameType:       win32_name.NameType().Name,
+			IsDir:          is_dir,
 		}
 
 		add_extra_names(info, "")
@@ -247,16 +249,17 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 		info := &FileInfo{
 			MFTId: inode_formatter.Inode(
 				mft_id, attr_type_id, attr_id, name),
-			Mtime:    si.File_altered_time().Time,
-			Atime:    si.File_accessed_time().Time,
-			Ctime:    si.Mft_altered_time().Time,
-			Btime:    si.Create_time().Time,
-			FNBtime:  fn_birth_time,
-			FNMtime:  fn_mtime,
-			Name:     win32_name.Name() + ads,
-			NameType: win32_name.NameType().Name,
-			IsDir:    is_dir,
-			Size:     attr.DataSize(),
+			SequenceNumber: node_mft.Sequence_value(),
+			Mtime:          si.File_altered_time().Time,
+			Atime:          si.File_accessed_time().Time,
+			Ctime:          si.Mft_altered_time().Time,
+			Btime:          si.Create_time().Time,
+			FNBtime:        fn_birth_time,
+			FNMtime:        fn_mtime,
+			Name:           win32_name.Name() + ads,
+			NameType:       win32_name.NameType().Name,
+			IsDir:          is_dir,
+			Size:           attr.DataSize(),
 		}
 
 		add_extra_names(info, ads)
