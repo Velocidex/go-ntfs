@@ -138,10 +138,10 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 	var data_attributes []*NTFS_ATTRIBUTE
 	var win32_name *FILE_NAME
 	var index_attribute *NTFS_ATTRIBUTE
-	var is_dir bool
 	var fn_birth_time, fn_mtime time.Time
 
 	mft_id := node_mft.Record_number()
+	is_dir := node_mft.Flags().IsSet("DIRECTORY")
 
 	// Walk all the attributes collecting the imporant things.
 	for _, attr := range node_mft.EnumerateAttributes(ntfs) {
@@ -179,7 +179,6 @@ func Stat(ntfs *NTFSContext, node_mft *MFT_ENTRY) []*FileInfo {
 			data_attributes = append(data_attributes, attr)
 
 		case ATTR_TYPE_INDEX_ROOT, ATTR_TYPE_INDEX_ALLOCATION:
-			is_dir = true
 			index_attribute = attr
 		}
 	}
