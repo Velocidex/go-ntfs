@@ -533,7 +533,7 @@ func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 			FileOffset:  0,
 			Length:      initialized_size,
 			Reader: NewUncompressedRangeReader(runs,
-				ntfs.ClusterSize, ntfs.DiskReader),
+				ntfs.ClusterSize, ntfs.DiskReader, IsSparse(flags)),
 		}
 	}
 

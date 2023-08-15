@@ -353,7 +353,8 @@ func (self *RangeReader) DebugString() string {
 func NewUncompressedRangeReader(
 	runs []*Run,
 	cluster_size int64,
-	disk_reader io.ReaderAt) *RangeReader {
+	disk_reader io.ReaderAt,
+	is_sparse bool) *RangeReader {
 
 	result := &RangeReader{}
 	var file_offset int64
@@ -378,7 +379,7 @@ func NewUncompressedRangeReader(
 
 		// If the run is sparse we make it read from the null
 		// reader.
-		if run.RelativeUrnOffset == 0 {
+		if is_sparse && run.RelativeUrnOffset == 0 {
 			reader_run.IsSparse = true
 			reader_run.Reader = &NullReader{}
 		}

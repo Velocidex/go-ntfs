@@ -98,10 +98,12 @@ func doLiveTest() {
 			fmt.Printf("ERROR Getting MFT Id: %v\n", err)
 		}
 
-		reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128, 0, "")
+		reader, err := parser.OpenStream(ntfs_ctx, mft_entry, 128,
+			parser.WILDCARD_STREAM_ID, "")
 		if err != nil {
 			fmt.Printf("ERROR Getting MFT Id %v: %v\n",
 				mft_entry.Record_number(), err)
+			continue
 		}
 
 		ntfs_h := sha256.New()
