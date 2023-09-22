@@ -154,8 +154,14 @@ func (self *NTFS_ATTRIBUTE) RunList() []*Run {
 
 		// Pad out to 8 bytes
 		for i := 0; i < 8; i++ {
+			// This should not happen but we protect from overflow.
+			value := byte(0)
+			if offset < len(buffer) {
+				value = buffer[offset]
+			}
+
 			if i < length_size {
-				length_buffer[i] = buffer[offset]
+				length_buffer[i] = value
 				offset++
 			} else {
 				length_buffer[i] = 0
@@ -165,13 +171,19 @@ func (self *NTFS_ATTRIBUTE) RunList() []*Run {
 		// Sign extend if the last byte is larger than 0x80.
 		var sign byte = 0x00
 		for i := 0; i < 8; i++ {
+			// This should not happen but we protect from overflow.
+			value := byte(0)
+			if offset < len(buffer) {
+				value = buffer[offset]
+			}
+
 			if i == run_offset_size-1 &&
 				buffer[offset]&0x80 != 0 {
 				sign = 0xFF
 			}
 
 			if i < run_offset_size {
-				offset_buffer[i] = buffer[offset]
+				offset_buffer[i] = value
 				offset++
 			} else {
 				offset_buffer[i] = sign
