@@ -35,6 +35,12 @@ const (
 	mft_entry_size int64 = 0x400
 )
 
+type DetailedHighlights struct {
+	*parser.MFTHighlight
+	FullPath string
+	Links    []string
+}
+
 func doMFTFromFile() {
 	reader, _ := parser.NewPagedReader(*mft_command_file_arg, 1024, 10000)
 	st, err := (*mft_command_file_arg).Stat()
@@ -78,7 +84,11 @@ func doMFTFromImage() {
 			continue
 		}
 
-		serialized, err := json.MarshalIndent(item, " ", " ")
+		serialized, err := json.MarshalIndent(DetailedHighlights{
+			MFTHighlight: item,
+			FullPath:     item.FullPath(),
+			Links:        item.Links(),
+		}, " ", " ")
 		kingpin.FatalIfError(err, "Marshal")
 
 		fmt.Println(string(serialized))
