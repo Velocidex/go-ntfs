@@ -22,6 +22,10 @@ var (
 		"image", "An image containing an $MFT",
 	).File()
 
+	mft_command_image_offset = mft_command.Flag(
+		"image_offset", "The offset in the image to use.",
+	).Int64()
+
 	mft_command_filename_filter = mft_command.Flag(
 		"filename_filter", "A regex to filter on filename",
 	).Default(".").String()
@@ -48,22 +52,28 @@ func doMFTFromFile() {
 func doMFTFromImage() {
 	filename_filter := regexp.MustCompile(*mft_command_filename_filter)
 
-	reader, _ := parser.NewPagedReader(*mft_command_image_arg, 1024, 10000)
-	st, err := (*mft_command_image_arg).Stat()
-	kingpin.FatalIfError(err, "Can not open MFT file")
+	reader, err := parser.NewPagedReader(&parser.OffsetReader{
+		Offset: *mft_command_image_offset,
+		Reader: getReader(*mft_command_image_arg),
+	}, 0x400, 10000)
+	kingpin.FatalIfError(err, "Can not open image")
 
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
+	// Get the MFT ID 0
 	mft_entry, err := GetMFTEntry(ntfs_ctx, "0")
 	kingpin.FatalIfError(err, "Can not open path")
 
+	// Get the first data stream of ID 0 - this is the MFT
 	mft_reader, err := parser.OpenStream(ntfs_ctx, mft_entry,
-		uint64(128), uint16(0), "")
+		uint64(128), parser.WILDCARD_STREAM_ID,
+		parser.WILDCARD_STREAM_NAME)
 	kingpin.FatalIfError(err, "Can not open stream")
 
 	for item := range parser.ParseMFTFile(context.Background(),
-		mft_reader, st.Size(), ntfs_ctx.ClusterSize, ntfs_ctx.RecordSize) {
+		mft_reader, parser.RangeSize(mft_reader),
+		ntfs_ctx.ClusterSize, ntfs_ctx.RecordSize) {
 		if len(filename_filter.FindStringIndex(item.FileName())) == 0 {
 			continue
 		}
