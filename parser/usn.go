@@ -143,7 +143,7 @@ func (self *USN_RECORD) FileAttributes() []string {
 }
 
 func (self *USN_RECORD) SourceInfo() []string {
-	return self.USN_RECORD_V2.FileAttributes().Values()
+	return self.USN_RECORD_V2.SourceInfo().Values()
 }
 
 func NewUSN_RECORD(ntfs *NTFSContext, reader io.ReaderAt, offset int64) *USN_RECORD {
