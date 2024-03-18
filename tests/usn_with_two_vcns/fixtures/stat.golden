@@ -32,7 +32,8 @@
     "Id": 0,
     "Inode": "68310-16-0",
     "Size": 72,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$DATA",
@@ -40,7 +41,8 @@
     "Id": 0,
     "Inode": "68310-128-0",
     "Size": 6352113880,
-    "Name": "$J"
+    "Name": "$J",
+    "Resident": false
    },
    {
     "Type": "$ATTRIBUTE_LIST",
@@ -48,7 +50,8 @@
     "Id": 8,
     "Inode": "68310-32-8",
     "Size": 168,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$FILE_NAME",
@@ -56,7 +59,8 @@
     "Id": 1,
     "Inode": "68310-48-1",
     "Size": 82,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$DATA",
@@ -64,7 +68,8 @@
     "Id": 142,
     "Inode": "68310-128-142",
     "Size": 32,
-    "Name": "$Max"
+    "Name": "$Max",
+    "Resident": true
    }
   ],
   "Hardlinks": [

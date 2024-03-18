@@ -32,7 +32,8 @@
     "Id": 0,
     "Inode": "38-16-0",
     "Size": 72,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$DATA",
@@ -40,7 +41,8 @@
     "Id": 0,
     "Inode": "38-128-0",
     "Size": 5005,
-    "Name": "111"
+    "Name": "111",
+    "Resident": false
    },
    {
     "Type": "$DATA",
@@ -48,7 +50,8 @@
     "Id": 0,
     "Inode": "38-128-0:333",
     "Size": 6005,
-    "Name": "333"
+    "Name": "333",
+    "Resident": false
    },
    {
     "Type": "$ATTRIBUTE_LIST",
@@ -56,7 +59,8 @@
     "Id": 10,
     "Inode": "38-32-10",
     "Size": 224,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$FILE_NAME",
@@ -64,7 +68,8 @@
     "Id": 2,
     "Inode": "38-48-2",
     "Size": 82,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$OBJECT_ID",
@@ -72,7 +77,8 @@
     "Id": 4,
     "Inode": "38-64-4",
     "Size": 16,
-    "Name": ""
+    "Name": "",
+    "Resident": true
    },
    {
     "Type": "$DATA",
@@ -80,7 +86,8 @@
     "Id": 3,
     "Inode": "38-128-3",
     "Size": 5000,
-    "Name": ""
+    "Name": "",
+    "Resident": false
    },
    {
     "Type": "$DATA",
@@ -88,7 +95,8 @@
     "Id": 7,
     "Inode": "38-128-7",
     "Size": 56,
-    "Name": "222"
+    "Name": "222",
+    "Resident": true
    }
   ],
   "Hardlinks": [

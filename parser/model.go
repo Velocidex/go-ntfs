@@ -23,12 +23,13 @@ type FilenameInfo struct {
 }
 
 type Attribute struct {
-	Type   string
-	TypeId uint64
-	Id     uint64
-	Inode  string
-	Size   int64
-	Name   string
+	Type     string
+	TypeId   uint64
+	Id       uint64
+	Inode    string
+	Size     int64
+	Name     string
+	Resident bool
 }
 
 // Describe a single MFT entry.
@@ -105,12 +106,13 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 		name := attr.Name()
 
 		result.Attributes = append(result.Attributes, &Attribute{
-			Type:   attr_type.Name,
-			TypeId: attr_type.Value,
-			Inode:  inode_formatter.Inode(mft_id, attr_type.Value, attr_id, name),
-			Size:   attr.DataSize(),
-			Id:     uint64(attr_id),
-			Name:   name,
+			Type:     attr_type.Name,
+			TypeId:   attr_type.Value,
+			Inode:    inode_formatter.Inode(mft_id, attr_type.Value, attr_id, name),
+			Size:     attr.DataSize(),
+			Id:       uint64(attr_id),
+			Name:     name,
+			Resident: attr.IsResident(),
 		})
 	}
 
