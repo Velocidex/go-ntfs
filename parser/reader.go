@@ -12,12 +12,44 @@ import (
 	"sync"
 )
 
+// Keep pages in a free list to avoid allocations.
+type FreeList struct {
+	mu       sync.Mutex
+	pagesize int64
+
+	freelist [][]byte
+}
+
+func (self *FreeList) Get() []byte {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	if len(self.freelist) == 0 {
+		return make([]byte, self.pagesize)
+	}
+
+	// Take the page off the end of the list
+	result := self.freelist[len(self.freelist)-1]
+	self.freelist = self.freelist[:len(self.freelist)-1]
+
+	return result
+}
+
+func (self *FreeList) Put(in []byte) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	self.freelist = append(self.freelist, in)
+}
+
 type PagedReader struct {
 	mu sync.Mutex
 
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
+
+	freelist *FreeList
 
 	Hits int64
 	Miss int64
@@ -58,8 +90,9 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 			self.Miss += 1
 			DebugPrint("Cache miss for %x (%x) (%d)\n", page, self.pagesize,
 				self.lru.Len())
-			// Read this page into memory.
-			page_buf = make([]byte, self.pagesize)
+
+			// Read this page into memory - already holding the lock.
+			page_buf = self.freelist.Get()
 			n, err := self.reader.ReadAt(page_buf, page)
 			if err != nil && err != io.EOF {
 				return buf_idx, err
@@ -100,17 +133,26 @@ func (self *PagedReader) Flush() {
 func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedReader, error) {
 	DebugPrint("Creating cache of size %v\n", cache_size)
 
+	self := &PagedReader{
+		reader:   reader,
+		pagesize: pagesize,
+		freelist: &FreeList{
+			pagesize: pagesize,
+		},
+	}
+
 	// By default 10mb cache.
-	cache, err := NewLRU(cache_size, nil, "NewPagedReader")
+	cache, err := NewLRU(cache_size, func(key int, value interface{}) {
+		// Put the page back on the free list
+		self.freelist.Put(value.([]byte))
+	}, "NewPagedReader")
 	if err != nil {
 		return nil, err
 	}
 
-	return &PagedReader{
-		reader:   reader,
-		pagesize: pagesize,
-		lru:      cache,
-	}, nil
+	self.lru = cache
+
+	return self, nil
 }
 
 // Invalidate the disk cache
