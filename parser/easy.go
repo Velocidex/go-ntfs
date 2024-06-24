@@ -44,6 +44,27 @@ type FileInfo struct {
 	SlackOffset int64 `json:"SlackOffset,omitempty"`
 }
 
+// Build an NTFS Context from the raw MFT file. NOTE: This approach
+// has some shortcomings which callers should be aware of:
+
+// 1. There is no image other than the provided MFT so any MFT
+// attributes with external clusters will return empty data.
+
+// 2. The cluster size and MFT record size are not known (These are
+// specified in the boot sector) so callers will have to guess those.
+func GetNTFSContextFromRawMFT(reader io.ReaderAt,
+	cluster_size int64,
+	record_size int64) *NTFSContext {
+
+	ntfs := newNTFSContext(&NullReader{}, "NullReader")
+
+	ntfs.MFTReader = reader
+	ntfs.ClusterSize = cluster_size
+	ntfs.RecordSize = record_size
+
+	return ntfs
+}
+
 func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
 	ntfs := newNTFSContext(image, "GetNTFSContext")
 

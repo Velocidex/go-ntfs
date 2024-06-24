@@ -444,12 +444,10 @@ func ParseMFTFileWithOptions(
 	go func() {
 		defer close(output)
 
-		ntfs := newNTFSContext(&NullReader{}, "NullReader")
+		ntfs := GetNTFSContextFromRawMFT(
+			reader, cluster_size, record_size)
 		defer ntfs.Close()
 
-		ntfs.MFTReader = reader
-		ntfs.ClusterSize = cluster_size
-		ntfs.RecordSize = record_size
 		ntfs.SetOptions(options)
 
 		for id := start_entry; id < size/record_size+1; id++ {
