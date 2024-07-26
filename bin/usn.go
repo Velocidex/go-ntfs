@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -19,6 +20,9 @@ var (
 
 	usn_command_watch = usn_command.Flag(
 		"watch", "Watch the USN for changes").Bool()
+
+	usn_command_filename_filter = usn_command.Flag(
+		"file_filter", "Regex to match the filename").Default(".").String()
 )
 
 const template = `
@@ -61,10 +65,43 @@ func doUSN() {
 	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
+	filename_filter, err := regexp.Compile(*usn_command_filename_filter)
+	kingpin.FatalIfError(err, "Filename filter")
+
 	for record := range parser.ParseUSN(context.Background(), ntfs_ctx, 0) {
+		mft_id := record.FileReferenceNumberID()
+		mft_seq := uint16(record.FileReferenceNumberSequence())
+
+		ntfs_ctx.SetPreload(mft_id, mft_seq,
+			func(entry *parser.MFTEntrySummary) (*parser.MFTEntrySummary, bool) {
+				if entry != nil {
+					return entry, false
+				}
+
+				// Add a fake entry to resolve the filename
+				return &parser.MFTEntrySummary{
+					Sequence: mft_seq,
+					Filenames: []parser.FNSummary{{
+						Name:              record.Filename(),
+						NameType:          "DOS+Win32",
+						ParentEntryNumber: record.ParentFileReferenceNumberID(),
+						ParentSequenceNumber: uint16(
+							record.ParentFileReferenceNumberSequence()),
+					}},
+				}, true
+			})
+	}
+
+	for record := range parser.ParseUSN(context.Background(), ntfs_ctx, 0) {
+		filename := record.Filename()
+
+		if !filename_filter.MatchString(filename) {
+			continue
+		}
+
 		fmt.Printf(template, record.Usn(), record.Offset,
-			record.Filename(),
-			record.FullPath(), record.TimeStamp(),
+			filename,
+			record.Links(), record.TimeStamp(),
 			strings.Join(record.Reason(), ", "),
 			strings.Join(record.FileAttributes(), ", "),
 			strings.Join(record.SourceInfo(), ", "),

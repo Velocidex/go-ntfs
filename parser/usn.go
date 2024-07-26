@@ -82,29 +82,35 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 }
 
 func (self *USN_RECORD) Links() []string {
-	// Since this record could have mean a file deletion event
+	return self._Links(DefaultMaxLinks)
+}
+
+func (self *USN_RECORD) _Links(depth int) []string {
+	// Since this record could have meant a file deletion event
 	// then resolving the actual MFT entry to a full path is less
 	// reliable. It is more reliable to resolve the parent path,
 	// and then add the USN record name to it.
 	parent_mft_id := self.USN_RECORD_V2.ParentFileReferenceNumberID()
-	parent_mft_sequence := self.USN_RECORD_V2.ParentFileReferenceNumberSequence()
+	parent_mft_sequence := uint16(
+		self.USN_RECORD_V2.ParentFileReferenceNumberSequence())
 
 	// Make sure the parent has the correct sequence to prevent
 	// nonsensical paths.
-	parent_mft_entry, err := self.context.GetMFTSummary(parent_mft_id)
+	parent_mft_entry, err := self.context.mft_summary_cache.GetSummary(
+		parent_mft_id, parent_mft_sequence)
 	if err != nil {
 		return []string{fmt.Sprintf("<Err>\\<Parent %v Error %v>\\%v",
 			parent_mft_id, err, self.Filename())}
 	}
 
-	if uint64(parent_mft_entry.Sequence) != parent_mft_sequence {
+	if uint64(parent_mft_entry.Sequence) != uint64(parent_mft_sequence) {
 		return []string{fmt.Sprintf("<Err>\\<Parent %v-%v need %v>\\%v",
 			parent_mft_id, parent_mft_entry.Sequence, parent_mft_sequence,
 			self.Filename())}
 	}
 
-	components := GetHardLinks(self.context, uint64(parent_mft_id),
-		DefaultMaxLinks)
+	components := self.context.full_path_resolver.GetHardLinks(
+		uint64(parent_mft_id), parent_mft_sequence, DefaultMaxLinks)
 	result := make([]string, 0, len(components))
 	for _, l := range components {
 		l = append(l, self.Filename())
@@ -115,23 +121,11 @@ func (self *USN_RECORD) Links() []string {
 
 // Resolve the file to a full path
 func (self *USN_RECORD) FullPath() string {
-	// Since this record could have meant a file deletion event
-	// then resolving the actual MFT entry to a full path is less
-	// reliable. It is more reliable to resolve the parent path,
-	// and then add the USN record name to it.
-	parent_mft_id := self.USN_RECORD_V2.ParentFileReferenceNumberID()
-	parent_mft_entry, err := self.context.GetMFT(int64(parent_mft_id))
-	if err != nil {
+	res := self._Links(1)
+	if len(res) == 0 {
 		return ""
 	}
-
-	file_names := parent_mft_entry.FileName(self.context)
-	if len(file_names) == 0 {
-		return ""
-	}
-
-	parent_full_path := GetFullPath(self.context, parent_mft_entry)
-	return parent_full_path + "/" + self.Filename()
+	return res[0]
 }
 
 func (self *USN_RECORD) Reason() []string {
@@ -176,36 +170,34 @@ func getUSNStream(ntfs_ctx *NTFSContext) (mft_id int64, attr_id uint16, attr_nam
 	return 0, 0, "", errors.New("Can not find $Extend\\$UsnJrnl:$J")
 }
 
+func OpenUSNStream(ntfs_ctx *NTFSContext) (RangeReaderAt, error) {
+	mft_id, attr_id, attr_name, err := getUSNStream(ntfs_ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mft_entry, err := ntfs_ctx.GetMFT(mft_id)
+	if err != nil {
+		return nil, err
+	}
+
+	return OpenStream(ntfs_ctx, mft_entry, 128, attr_id, attr_name)
+}
+
 // Returns a channel which will send USN records on. We start parsing
 // at the start of the file and continue until the end.
-func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64) chan *USN_RECORD {
+func ParseUSN(ctx context.Context,
+	ntfs_ctx *NTFSContext,
+	usn_stream RangeReaderAt,
+	starting_offset int64) chan *USN_RECORD {
+
 	output := make(chan *USN_RECORD)
 
 	go func() {
 		defer close(output)
 
-		mft_id, attr_id, attr_name, err := getUSNStream(ntfs_ctx)
-		if err != nil {
-			DebugPrint("ParseUSN error: %v", err)
-			return
-		}
-
-		mft_entry, err := ntfs_ctx.GetMFT(mft_id)
-		if err != nil {
-			DebugPrint("ParseUSN error: %v", err)
-			return
-		}
-
-		data, err := OpenStream(ntfs_ctx, mft_entry, 128, attr_id, attr_name)
-		if err != nil {
-			DebugPrint("ParseUSN error: %v", err)
-			return
-		}
-
 		count := 0
-		defer DebugPrint("Skipped %v entries\n", count)
-
-		for _, rng := range data.Ranges() {
+		for _, rng := range usn_stream.Ranges() {
 			run_end := rng.Offset + rng.Length
 			if rng.IsSparse {
 				continue
@@ -216,7 +208,7 @@ func ParseUSN(ctx context.Context, ntfs_ctx *NTFSContext, starting_offset int64)
 				continue
 			}
 
-			for record := NewUSN_RECORD(ntfs_ctx, data, rng.Offset); record != nil; record = record.Next(run_end) {
+			for record := NewUSN_RECORD(ntfs_ctx, usn_stream, rng.Offset); record != nil; record = record.Next(run_end) {
 				if record.Offset < starting_offset {
 					continue
 				}
@@ -268,7 +260,13 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 
 	DebugPrint("Staring to parse USN in offset for seek %v\n", last_range.Offset)
 	count := 0
-	for record := range ParseUSN(ctx, ntfs_ctx, last_range.Offset) {
+	usn_stream, err := OpenUSNStream(ntfs_ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for record := range ParseUSN(
+		ctx, ntfs_ctx, usn_stream, last_range.Offset) {
 		result = record
 		count++
 	}
@@ -316,7 +314,13 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 			// we always get fresh data.
 			ntfs_ctx.Purge()
 
-			for record := range ParseUSN(ctx, ntfs_ctx, start_offset) {
+			usn_stream, err := OpenUSNStream(ntfs_ctx)
+			if err != nil {
+				return
+			}
+
+			for record := range ParseUSN(
+				ctx, ntfs_ctx, usn_stream, start_offset) {
 				if record.Offset > start_offset {
 					select {
 					case <-ctx.Done():

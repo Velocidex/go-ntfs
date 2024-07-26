@@ -55,32 +55,45 @@ func (self *Visitor) Components() [][]string {
 	return result
 }
 
+// The FullPathResolver resolves an MFT entry into a full path.
+//
+// This resolver can use information from both the USN journal and the
+// MFT to reconstruct the full path of an mft entry.
+type FullPathResolver struct {
+	ntfs    *NTFSContext
+	options Options
+
+	mft_cache *MFTEntryCache
+}
+
 // Walks the MFT entry to get all file names to this MFT entry.
-func GetHardLinks(ntfs *NTFSContext, mft_id uint64, max int) [][]string {
+func (self *FullPathResolver) GetHardLinks(
+	mft_id uint64, seq_number uint16, max int) [][]string {
 	if max == 0 {
-		max = ntfs.options.MaxLinks
+		max = self.options.MaxLinks
 	}
 
 	visitor := &Visitor{
 		Paths:             [][]string{[]string{}},
 		Max:               max,
-		IncludeShortNames: ntfs.options.IncludeShortNames,
-		Prefix:            ntfs.options.PrefixComponents,
+		IncludeShortNames: self.options.IncludeShortNames,
+		Prefix:            self.options.PrefixComponents,
 	}
 
-	mft_entry_summary, err := ntfs.GetMFTSummary(mft_id)
+	mft_entry_summary, err := self.mft_cache.GetSummary(
+		mft_id, seq_number)
 	if err != nil {
 		return nil
 	}
-	getNames(ntfs, mft_entry_summary, visitor, 0, 0)
+	self.getNames(mft_entry_summary, visitor, 0, 0)
 
 	return visitor.Components()
 }
 
-func getNames(ntfs *NTFSContext,
+func (self *FullPathResolver) getNames(
 	mft_entry *MFTEntrySummary, visitor *Visitor, idx, depth int) {
 
-	if depth > ntfs.options.MaxDirectoryDepth {
+	if depth > self.options.MaxDirectoryDepth {
 		visitor.AddComponent(idx, "<DirTooDeep>")
 		visitor.AddComponent(idx, "<Err>")
 		return
@@ -135,7 +148,8 @@ func getNames(ntfs *NTFSContext,
 			continue
 		}
 
-		parent_entry, err := ntfs.GetMFTSummary(fn.ParentEntryNumber)
+		parent_entry, err := self.mft_cache.GetSummary(
+			fn.ParentEntryNumber, fn.ParentSequenceNumber)
 		if err != nil {
 			visitor.AddComponent(visitor_idx, err.Error())
 			visitor.AddComponent(visitor_idx, "<Err>")
@@ -150,6 +164,6 @@ func getNames(ntfs *NTFSContext,
 			continue
 		}
 
-		getNames(ntfs, parent_entry, visitor, visitor_idx, depth+1)
+		self.getNames(parent_entry, visitor, visitor_idx, depth+1)
 	}
 }

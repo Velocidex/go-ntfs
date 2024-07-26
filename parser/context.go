@@ -30,6 +30,8 @@ type NTFSContext struct {
 	mft_entry_lru *LRU
 
 	mft_summary_cache *MFTEntryCache
+
+	full_path_resolver *FullPathResolver
 }
 
 func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
@@ -43,7 +45,18 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	}
 
 	ntfs.mft_summary_cache = NewMFTEntryCache(ntfs)
+	ntfs.full_path_resolver = &FullPathResolver{
+		ntfs:      ntfs,
+		options:   ntfs.options,
+		mft_cache: ntfs.mft_summary_cache,
+	}
+
 	return ntfs
+}
+
+func (self *NTFSContext) SetPreload(id uint64, seq uint16,
+	cb func(entry *MFTEntrySummary) (*MFTEntrySummary, bool)) {
+	self.mft_summary_cache.SetPreload(id, seq, cb)
 }
 
 func (self *NTFSContext) Copy() *NTFSContext {
@@ -97,10 +110,6 @@ func (self *NTFSContext) GetRecordSize() int64 {
 	}
 
 	return self.RecordSize
-}
-
-func (self *NTFSContext) GetMFTSummary(id uint64) (*MFTEntrySummary, error) {
-	return self.mft_summary_cache.GetSummary(id)
 }
 
 func (self *NTFSContext) GetMFT(id int64) (*MFT_ENTRY, error) {

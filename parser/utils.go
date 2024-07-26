@@ -23,7 +23,8 @@ func get_display_name(file_names []*FILE_NAME) string {
 // Traverse the mft entry and attempt to find its owner until the
 // root. We return the full path of the MFT entry.
 func GetFullPath(ntfs *NTFSContext, mft_entry *MFT_ENTRY) string {
-	links := GetHardLinks(ntfs, uint64(mft_entry.Record_number()), 1)
+	links := ntfs.full_path_resolver.GetHardLinks(
+		uint64(mft_entry.Record_number()), mft_entry.Sequence_value(), 1)
 	if len(links) == 0 {
 		return "/"
 	}
