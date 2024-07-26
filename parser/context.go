@@ -47,7 +47,7 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	ntfs.mft_summary_cache = NewMFTEntryCache(ntfs)
 	ntfs.full_path_resolver = &FullPathResolver{
 		ntfs:      ntfs,
-		options:   ntfs.options,
+		options:   &ntfs.options,
 		mft_cache: ntfs.mft_summary_cache,
 	}
 

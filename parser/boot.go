@@ -20,6 +20,10 @@ func (self *NTFS_BOOT_SECTOR) BlockCount() int64 {
 	return int64(self._volume_size()) / int64(self.ClusterSize())
 }
 
+func (self *NTFS_BOOT_SECTOR) VolumeSize() int64 {
+	return int64(self._volume_size())
+}
+
 func (self *NTFS_BOOT_SECTOR) RecordSize() int64 {
 	_record_size := int64(self._mft_record_size())
 	if _record_size > 0 {
