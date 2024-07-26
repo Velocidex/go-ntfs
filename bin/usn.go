@@ -68,7 +68,11 @@ func doUSN() {
 	filename_filter, err := regexp.Compile(*usn_command_filename_filter)
 	kingpin.FatalIfError(err, "Filename filter")
 
-	for record := range parser.ParseUSN(context.Background(), ntfs_ctx, 0) {
+	usn_stream, err := parser.OpenUSNStream(ntfs_ctx)
+	kingpin.FatalIfError(err, "OpenUSNStream")
+
+	for record := range parser.ParseUSN(context.Background(),
+		ntfs_ctx, usn_stream, 0) {
 		mft_id := record.FileReferenceNumberID()
 		mft_seq := uint16(record.FileReferenceNumberSequence())
 
@@ -92,7 +96,8 @@ func doUSN() {
 			})
 	}
 
-	for record := range parser.ParseUSN(context.Background(), ntfs_ctx, 0) {
+	for record := range parser.ParseUSN(
+		context.Background(), ntfs_ctx, usn_stream, 0) {
 		filename := record.Filename()
 
 		if !filename_filter.MatchString(filename) {
