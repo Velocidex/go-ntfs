@@ -45,11 +45,10 @@ func (self *Visitor) Components() [][]string {
 	result := make([][]string, 0, len(self.Paths))
 
 	for _, p := range self.Paths {
+		p = append(p, self.Prefix...)
 		ReverseStringSlice(p)
-		components := append([]string{}, self.Prefix...)
-		components = append(components, p...)
 		if len(p) > 0 {
-			result = append(result, components)
+			result = append(result, p)
 		}
 	}
 	return result
@@ -61,7 +60,7 @@ func (self *Visitor) Components() [][]string {
 // MFT to reconstruct the full path of an mft entry.
 type FullPathResolver struct {
 	ntfs    *NTFSContext
-	options Options
+	options *Options
 
 	mft_cache *MFTEntryCache
 }

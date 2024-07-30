@@ -67,6 +67,12 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
+	// If the read is very large and a multiple of pagesize, it is
+	// faster to just delegate reading to the underlying reader.
+	if len(buf) > 10*int(self.pagesize) && len(buf)%int(self.pagesize) == 0 {
+		return self.reader.ReadAt(buf, offset)
+	}
+
 	buf_idx := 0
 	for {
 		// How much is left in this page to read?

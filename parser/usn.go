@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -345,4 +346,117 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 	}()
 
 	return output
+}
+
+type USNCarvedRecord struct {
+	*USN_RECORD
+	DiskOffset int64
+}
+
+func CarveUSN(ctx context.Context,
+	ntfs_ctx *NTFSContext,
+	stream io.ReaderAt,
+	size int64) chan *USNCarvedRecord {
+	output := make(chan *USNCarvedRecord)
+
+	go func() {
+		defer close(output)
+
+		cluster_size := ntfs_ctx.ClusterSize
+		if cluster_size == 0 {
+			cluster_size = 0x1000
+		}
+
+		buffer_size := 1024 * cluster_size
+
+		buffer := make([]byte, buffer_size)
+
+		now := time.Now()
+
+		// Overlap buffers in case an entry is split
+		for i := int64(0); i < size; i += buffer_size - cluster_size {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			DebugPrint("%v: Reading buffer length %v at %v in %v\n",
+				time.Now(), len(buffer), i, time.Now().Sub(now))
+
+			now = time.Now()
+			n, err := stream.ReadAt(buffer, i)
+			if err != nil && err != io.EOF {
+				return
+			}
+
+			if n < 64 {
+				return
+			}
+
+			buf_reader := bytes.NewReader(buffer[:n])
+
+			// We assume that entries are aligned to 0x10 at least.
+			for j := int64(0); j < int64(n)-0x10; j += 0x10 {
+
+				// MajorVersion must be 2 and MinorVersion 0. This is
+				// a quick check that should eliminate most of the
+				// false positives. We check more carefully below.
+				if buffer[j+4] != '\x02' ||
+					buffer[j+5] != '\x00' ||
+					buffer[j+6] != '\x00' ||
+					buffer[j+7] != '\x00' {
+					continue
+				}
+
+				record, ok := testUSNEntry(ntfs_ctx, buf_reader, j)
+				if !ok {
+					continue
+				}
+
+				select {
+				case <-ctx.Done():
+					return
+
+				case output <- &USNCarvedRecord{
+					USN_RECORD: record,
+					DiskOffset: j + i,
+				}:
+				}
+			}
+		}
+	}()
+
+	return output
+}
+
+var (
+	year2020 = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	year2040 = time.Date(2040, 1, 1, 0, 0, 0, 0, time.UTC)
+)
+
+func testUSNEntry(ntfs_ctx *NTFSContext,
+	reader io.ReaderAt, offset int64) (*USN_RECORD, bool) {
+
+	record := ntfs_ctx.Profile.USN_RECORD_V2(reader, offset)
+	record_length := record.RecordLength()
+	if record_length < 64 || record_length > 1024 {
+		return nil, false
+	}
+
+	if record.FileNameOffset() > 255 ||
+		record.FileNameLength() > 255 {
+		return nil, false
+	}
+
+	// Check the the time is reasonable
+	ts := record.TimeStamp()
+	if ts.Before(year2020) || ts.After(year2040) {
+		return nil, false
+	}
+
+	return &USN_RECORD{
+		USN_RECORD_V2: record,
+		context:       ntfs_ctx,
+	}, true
 }
