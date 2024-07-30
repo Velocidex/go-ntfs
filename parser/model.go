@@ -116,7 +116,8 @@ func ModelMFTEntry(ntfs *NTFSContext, mft_entry *MFT_ENTRY) (*NTFSFileInformatio
 		})
 	}
 
-	for _, l := range GetHardLinks(ntfs, uint64(mft_id), DefaultMaxLinks) {
+	for _, l := range ntfs.full_path_resolver.GetHardLinks(
+		uint64(mft_id), result.SequenceNumber, DefaultMaxLinks) {
 		result.Hardlinks = append(result.Hardlinks, strings.Join(l, "\\"))
 	}
 

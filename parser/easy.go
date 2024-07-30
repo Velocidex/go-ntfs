@@ -465,8 +465,12 @@ func findNextVCN(attributes []*attrInfo, selected_attribute *attrInfo) (*attrInf
 // all related attributes and wraps them in a RangeReader to appear as
 // a single stream. This function is what you need when you want to
 // read the full file.
-func OpenStream(ntfs *NTFSContext,
-	mft_entry *MFT_ENTRY, attr_type uint64, attr_id uint16, attr_name string) (RangeReaderAt, error) {
+func OpenStream(
+	ntfs *NTFSContext,
+	mft_entry *MFT_ENTRY,
+	attr_type uint64,
+	attr_id uint16,
+	attr_name string) (RangeReaderAt, error) {
 
 	result := &RangeReader{}
 

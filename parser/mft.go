@@ -371,7 +371,8 @@ func (self *MFTHighlight) FullPath() string {
 }
 
 func (self *MFTHighlight) Links() []string {
-	components := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber),
+	components := self.ntfs_ctx.full_path_resolver.GetHardLinks(
+		uint64(self.EntryNumber), self.SequenceNumber,
 		DefaultMaxLinks)
 	result := make([]string, 0, len(components))
 	for _, l := range components {
@@ -404,7 +405,8 @@ func (self *MFTHighlight) FileName() string {
 // so you should consult the Links() to get more info.
 func (self *MFTHighlight) Components() []string {
 	components := []string{}
-	links := GetHardLinks(self.ntfs_ctx, uint64(self.EntryNumber), 1)
+	links := self.ntfs_ctx.full_path_resolver.GetHardLinks(
+		uint64(self.EntryNumber), self.SequenceNumber, 1)
 	if len(links) > 0 {
 		components = links[0]
 	}
