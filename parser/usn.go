@@ -87,6 +87,10 @@ func (self *USN_RECORD) Links() []string {
 }
 
 func (self *USN_RECORD) _Links(depth int) []string {
+	if self.context.GetOptions().DisableFullPathResolution {
+		return []string{self.Filename()}
+	}
+
 	// Since this record could have meant a file deletion event
 	// then resolving the actual MFT entry to a full path is less
 	// reliable. It is more reliable to resolve the parent path,

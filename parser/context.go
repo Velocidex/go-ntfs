@@ -83,6 +83,13 @@ func (self *NTFSContext) SetOptions(options Options) {
 	self.options = options
 }
 
+func (self *NTFSContext) GetOptions() *Options {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	return &self.options
+}
+
 func (self *NTFSContext) Close() {
 	if debug {
 		fmt.Printf(STATS.DebugString())
