@@ -32,6 +32,12 @@ func (self LimitedReader) ReadAt(buff []byte, off int64) (int, error) {
 
 	if off+int64(n) > self.N {
 		n = int(self.N - off)
+		if n < 0 {
+			n = 0
+		}
+		if err == nil {
+			err = io.EOF
+		}
 	}
 
 	return n, err
