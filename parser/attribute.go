@@ -693,7 +693,7 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 			run_offset := int(file_offset - run_file_offset)
 
 			n, err := self.readFromARun(j, buf[buf_idx:], run_offset)
-			if err != nil {
+			if err != nil && err != io.EOF {
 				DebugPrint("Reading offset %v from run %v returned error %v\n",
 					run_offset, self.runs[j].DebugString(), err)
 				return buf_idx, err
