@@ -31,7 +31,7 @@ type FileInfo struct {
 	Ctime          time.Time `json:"Ctime,omitempty"`
 	Btime          time.Time `json:"Btime,omitempty"` // Birth time.
 	FNBtime        time.Time `json:"FNBtime,omitempty"`
-	FNMtime        time.Time `json:"FNBtime,omitempty"`
+	FNMtime        time.Time `json:"FNMtime,omitempty"`
 	Name           string    `json:"Name,omitempty"`
 	NameType       string    `json:"NameType,omitempty"`
 	ExtraNames     []string  `json:"ExtraNames,omitempty"`
