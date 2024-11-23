@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -326,6 +327,7 @@ type MFTHighlight struct {
 	LogFileSeqNum uint64
 
 	// Hold on to these for delayed lazy evaluation.
+	mu         sync.Mutex
 	ntfs_ctx   *NTFSContext
 	mft_entry  *MFT_ENTRY
 	ads_name   string
@@ -334,6 +336,9 @@ type MFTHighlight struct {
 
 // Copy the struct safely replacing the mutex
 func (self *MFTHighlight) Copy() *MFTHighlight {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	return &MFTHighlight{
 		EntryNumber:          self.EntryNumber,
 		SequenceNumber:       self.SequenceNumber,
@@ -371,6 +376,9 @@ func (self *MFTHighlight) FullPath() string {
 }
 
 func (self *MFTHighlight) Links() []string {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	components := self.ntfs_ctx.full_path_resolver.GetHardLinks(
 		uint64(self.EntryNumber), self.SequenceNumber,
 		DefaultMaxLinks)
@@ -382,10 +390,16 @@ func (self *MFTHighlight) Links() []string {
 }
 
 func (self *MFTHighlight) FileNameTypes() string {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	return strings.Join(self._FileNameTypes, ",")
 }
 
 func (self *MFTHighlight) FileName() string {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	short_name := ""
 	for idx, name := range self.FileNames {
 		name_type := self._FileNameTypes[idx]
@@ -404,11 +418,19 @@ func (self *MFTHighlight) FileName() string {
 // link of the mft entry. In NTFS MFT entries can have multiple paths
 // so you should consult the Links() to get more info.
 func (self *MFTHighlight) Components() []string {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	components := []string{}
+	if len(self.components) > 0 {
+		components = self.components
+	}
+
 	links := self.ntfs_ctx.full_path_resolver.GetHardLinks(
 		uint64(self.EntryNumber), self.SequenceNumber, 1)
 	if len(links) > 0 {
 		components = links[0]
+		self.components = components
 	}
 
 	if self.ads_name != "" {
