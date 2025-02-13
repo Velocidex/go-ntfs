@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/alecthomas/assert"
@@ -22,8 +23,8 @@ func TestReader(t *testing.T) {
 	// Read past end (3 byte buffer from offset 3).
 	buf = make([]byte, 3)
 	c, err = r.ReadAt(buf, 3)
-	assert.NoError(t, err)
-	assert.Equal(t, c, 3)
+	assert.Error(t, err, io.EOF.Error())
+	assert.Equal(t, c, 1)
 	assert.Equal(t, buf, []byte{0x64, 0x00, 0x00})
 }
 

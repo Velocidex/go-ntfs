@@ -48,6 +48,7 @@ type PagedReader struct {
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
+	eofPos   int64
 
 	freelist *FreeList
 
@@ -83,8 +84,17 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 			to_read = len(buf) - buf_idx
 		}
 
+		// If we hit EOF, cap the read to the number of bytes left
+		// in the file.
+		if self.eofPos != -1 && offset+int64(to_read) > self.eofPos {
+			to_read = int(self.eofPos - offset)
+		}
+
 		// Are we done?
 		if to_read == 0 {
+			if self.eofPos != -1 && offset >= self.eofPos {
+				return buf_idx, io.EOF
+			}
 			return buf_idx, nil
 		}
 
@@ -107,6 +117,14 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 			// Only cache full pages.
 			if n == int(self.pagesize) {
 				self.lru.Add(int(page), page_buf)
+			}
+			if err == io.EOF {
+				// We hit EOF, so remember where the EOF is and cap
+				// the read to the number of bytes read.
+				self.eofPos = offset + int64(n)
+				if to_read > n {
+					to_read = n
+				}
 			}
 		} else {
 			self.Hits += 1
@@ -145,6 +163,7 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 		freelist: &FreeList{
 			pagesize: pagesize,
 		},
+		eofPos: -1,
 	}
 
 	// By default 10mb cache.
