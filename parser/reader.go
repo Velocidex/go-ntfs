@@ -69,7 +69,7 @@ func (self *PagedReader) VtoP(offset int64) int64 {
 //
 // Readers generally need to find the exact size of the file some
 // other way - reading the file sequentially in blocks will result in
-// over-reading and the last block being padded.
+// over-reading and the last block being padded up to blocksize.
 //
 // For example, On windows the size of a block device can not be found
 // with os.Lstat but using WMI.
