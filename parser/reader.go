@@ -1,12 +1,7 @@
-// This reader is needed for reading raw windows devices, such as
-// \\.\c: On windows, such devices may only be read using sector
-// alignment in whole sector numbers. This reader implements page
-// aligned reading and adds pages to an LRU cache to make accessing
-// various field members faster.
-
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -17,31 +12,28 @@ type FreeList struct {
 	mu       sync.Mutex
 	pagesize int64
 
-	freelist [][]byte
+	freelist sync.Pool
 }
 
 func (self *FreeList) Get() []byte {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	if len(self.freelist) == 0 {
-		return make([]byte, self.pagesize)
-	}
-
-	// Take the page off the end of the list
-	result := self.freelist[len(self.freelist)-1]
-	self.freelist = self.freelist[:len(self.freelist)-1]
-
-	return result
+	return self.freelist.Get().([]byte)
 }
 
 func (self *FreeList) Put(in []byte) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	self.freelist = append(self.freelist, in)
+	self.freelist.Put(in)
 }
 
+// This reader is needed for reading raw windows devices, such as
+// \\.\c: On windows, such devices may only be read using sector
+// alignment in whole sector numbers. This reader implements page
+// aligned reading and adds pages to an LRU cache to make accessing
+// various field members faster.
 type PagedReader struct {
 	mu sync.Mutex
 
@@ -64,7 +56,24 @@ func (self *PagedReader) VtoP(offset int64) int64 {
 	return offset
 }
 
-func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
+// ReadAt reads a buffer from an offset in the backing file.
+//
+// The following semantics are used:
+//  1. Reading within the file will always fill the buffer completely
+//     with n = len(buf)
+//  2. Reading a buffer that starts within the file and ends past the
+//     file will also return a full buffer with n = len(buf) but will
+//     indicate the read went past the end of the buffer with err = EOF
+//  3. Reading outside the bounds of the file will return n = 0 and
+//     err = EOF
+//
+// Readers generally need to find the exact size of the file some
+// other way - reading the file sequentially in blocks will result in
+// over-reading and the last block being padded.
+//
+// For example, On windows the size of a block device can not be found
+// with os.Lstat but using WMI.
+func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err error) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
@@ -92,10 +101,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 
 		// Are we done?
 		if to_read == 0 {
-			if self.eofPos != -1 && offset >= self.eofPos {
-				return buf_idx, io.EOF
-			}
-			return buf_idx, nil
+			return buf_idx, ret_err
 		}
 
 		var page_buf []byte
@@ -111,21 +117,31 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (int, error) {
 			page_buf = self.freelist.Get()
 			n, err := self.reader.ReadAt(page_buf, page)
 			if err != nil && err != io.EOF {
+				// We wont be putting the page in the LRU, just return
+				// it to the freelist.
+				self.freelist.Put(page_buf)
 				return buf_idx, err
 			}
 
-			// Only cache full pages.
-			if n == int(self.pagesize) {
-				self.lru.Add(int(page), page_buf)
+			// Clear the rest of the page because it is going to the
+			// lru.
+			for i := n; i < int(self.pagesize); i++ {
+				page_buf[i] = 0
 			}
-			if err == io.EOF {
-				// We hit EOF, so remember where the EOF is and cap
-				// the read to the number of bytes read.
-				self.eofPos = offset + int64(n)
-				if to_read > n {
-					to_read = n
+
+			self.lru.Add(int(page), page_buf)
+
+			// The entire read range is outside the bounds of the
+			// file, just fail the read with EOF. For read ranges
+			// which are partially inside the file, they will be
+			// padded and EOF will be emitted.
+			if errors.Is(err, io.EOF) {
+				if n == 0 && buf_idx == 0 {
+					return 0, err
 				}
+				ret_err = err
 			}
+
 		} else {
 			self.Hits += 1
 			page_buf = cached_page_buf.([]byte)
@@ -162,6 +178,11 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 		pagesize: pagesize,
 		freelist: &FreeList{
 			pagesize: pagesize,
+			freelist: sync.Pool{
+				New: func() interface{} {
+					return make([]byte, pagesize)
+				},
+			},
 		},
 		eofPos: -1,
 	}
