@@ -2,6 +2,8 @@ package parser
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/alecthomas/assert"
@@ -12,19 +14,34 @@ func TestReader(t *testing.T) {
 		bytes.NewReader([]byte("abcd")),
 		3 /* pagesize */, 100 /* cache_size */)
 
-	// Read 1 byte from the end of the buffer.
+	// Read second byte
 	buf := make([]byte, 1)
-	c, err := r.ReadAt(buf, 3)
+	c, err := r.ReadAt(buf, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, c, 1)
-	assert.Equal(t, buf, []byte{0x64})
+	assert.Equal(t, buf, []byte{'b'})
 
-	// Read past end (3 byte buffer from offset 3).
+	// Read 1 byte from the end of the buffer. This is a partial page
+	// so we return the full read with the EOF
+	buf = make([]byte, 1)
+	c, err = r.ReadAt(buf, 3)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.Equal(t, c, 1)
+	assert.Equal(t, buf, []byte{'d'})
+
+	// Read past end (3 byte buffer from offset 3). Buffer will be
+	// padded to pagesize and return EOF.
 	buf = make([]byte, 3)
 	c, err = r.ReadAt(buf, 3)
-	assert.NoError(t, err)
+	assert.True(t, errors.Is(err, io.EOF))
 	assert.Equal(t, c, 3)
 	assert.Equal(t, buf, []byte{0x64, 0x00, 0x00})
+
+	// Read far outside the buffer. Return 0 bytes and EOF
+	buf = make([]byte, 3)
+	c, err = r.ReadAt(buf, 30)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.Equal(t, c, 0)
 }
 
 func TestRangeReader(t *testing.T) {
