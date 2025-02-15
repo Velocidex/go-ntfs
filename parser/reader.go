@@ -40,9 +40,9 @@ type PagedReader struct {
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
-	eofPos   int64
 
-	freelist *FreeList
+	last_page int64
+	freelist  *FreeList
 
 	Hits int64
 	Miss int64
@@ -93,12 +93,6 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 			to_read = len(buf) - buf_idx
 		}
 
-		// If we hit EOF, cap the read to the number of bytes left
-		// in the file.
-		if self.eofPos != -1 && offset+int64(to_read) > self.eofPos {
-			to_read = int(self.eofPos - offset)
-		}
-
 		// Are we done?
 		if to_read == 0 {
 			return buf_idx, ret_err
@@ -108,6 +102,8 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 
 		page := offset - offset%self.pagesize
 		cached_page_buf, pres := self.lru.Get(int(page))
+
+		// Cache miss
 		if !pres {
 			self.Miss += 1
 			DebugPrint("Cache miss for %x (%x) (%d)\n", page, self.pagesize,
@@ -140,11 +136,17 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 					return 0, err
 				}
 				ret_err = err
+				self.last_page = page
 			}
 
+			// Cache hit
 		} else {
 			self.Hits += 1
 			page_buf = cached_page_buf.([]byte)
+
+			if page == self.last_page {
+				ret_err = io.EOF
+			}
 		}
 
 		// Copy the relevant data from the page.
@@ -154,6 +156,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 
 		offset += int64(to_read)
 		buf_idx += to_read
+
 		if debug && (self.Hits+self.Miss)%10000 == 0 {
 			fmt.Printf("PageCache hit %v miss %v (%v)\n", self.Hits, self.Miss,
 				float64(self.Hits)/float64(self.Miss))
@@ -184,7 +187,7 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 				},
 			},
 		},
-		eofPos: -1,
+		last_page: -1,
 	}
 
 	// By default 10mb cache.
