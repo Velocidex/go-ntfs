@@ -72,6 +72,10 @@ func (self *PagedReader) VtoP(offset int64) int64 {
 // For example, On windows the size of a block device can not be found
 // with os.Lstat but using WMI.
 func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err error) {
+	if offset < 0 {
+		return 0, io.EOF
+	}
+
 	self.mu.Lock()
 	defer self.mu.Unlock()
 

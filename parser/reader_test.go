@@ -56,6 +56,10 @@ func TestReader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, c, 15)
 
+	// Read negative offset
+	c, err = r.ReadAt(buf, -1)
+	assert.True(t, errors.Is(err, io.EOF))
+	assert.Equal(t, c, 0)
 }
 
 func TestRangeReader(t *testing.T) {
