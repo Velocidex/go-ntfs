@@ -61,7 +61,7 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 		data := make([]byte, CapInt64(to_read, MAX_USN_RECORD_SCAN_SIZE))
 
 		n, err := self.Reader.ReadAt(data, offset)
-		if err != nil || n == 0 {
+		if n == 0 || (err != nil && !errors.Is(err, io.EOF)) {
 			return nil
 		}
 

@@ -11,7 +11,7 @@ import (
 
 func TestReader(t *testing.T) {
 	r, _ := NewPagedReader(
-		bytes.NewReader([]byte("abcd")),
+		bytes.NewReader([]byte("abcde")),
 		3 /* pagesize */, 100 /* cache_size */)
 
 	// Read second byte
@@ -25,7 +25,7 @@ func TestReader(t *testing.T) {
 	// so we return the full read with the EOF
 	buf = make([]byte, 1)
 	c, err = r.ReadAt(buf, 3)
-	assert.True(t, errors.Is(err, io.EOF))
+	assert.NoError(t, err)
 	assert.Equal(t, c, 1)
 	assert.Equal(t, buf, []byte{'d'})
 
@@ -33,15 +33,29 @@ func TestReader(t *testing.T) {
 	// padded to pagesize and return EOF.
 	buf = make([]byte, 3)
 	c, err = r.ReadAt(buf, 3)
-	assert.True(t, errors.Is(err, io.EOF))
+	assert.NoError(t, err)
 	assert.Equal(t, c, 3)
-	assert.Equal(t, buf, []byte{0x64, 0x00, 0x00})
+	assert.Equal(t, buf, []byte{'d', 'e', 0x00})
 
 	// Read far outside the buffer. Return 0 bytes and EOF
 	buf = make([]byte, 3)
 	c, err = r.ReadAt(buf, 30)
 	assert.True(t, errors.Is(err, io.EOF))
 	assert.Equal(t, c, 0)
+
+	// Do a big read (Larger than 10 pages will bypass the lru and
+	// read directly)
+	buf = make([]byte, 300)
+	c, err = r.ReadAt(buf, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, c, 300)
+
+	// Do a medium read (smaller than 10 pages)
+	buf = make([]byte, 3*5)
+	c, err = r.ReadAt(buf, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, c, 15)
+
 }
 
 func TestRangeReader(t *testing.T) {

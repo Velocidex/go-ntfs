@@ -51,7 +51,7 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 
 	buffer := make([]byte, allocated_len)
 	n, err := mft.Reader.ReadAt(buffer, mft.Offset)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 	if n < int(allocated_len) {
@@ -69,7 +69,7 @@ func FixUpDiskMFTEntry(mft *MFT_ENTRY) (io.ReaderAt, error) {
 	fixup_table_len := CapInt64(fixup_count*2, int64(allocated_len))
 	fixup_table := make([]byte, fixup_table_len)
 	n, err = mft.Reader.ReadAt(fixup_table, fixup_offset)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 	if n < int(fixup_table_len) {

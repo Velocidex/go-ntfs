@@ -40,9 +40,7 @@ type PagedReader struct {
 	reader   io.ReaderAt
 	pagesize int64
 	lru      *LRU
-
-	last_page int64
-	freelist  *FreeList
+	freelist *FreeList
 
 	Hits int64
 	Miss int64
@@ -60,10 +58,10 @@ func (self *PagedReader) VtoP(offset int64) int64 {
 //
 // The following semantics are used:
 //  1. Reading within the file will always fill the buffer completely
-//     with n = len(buf)
+//     with n = len(buf) and err = nil
 //  2. Reading a buffer that starts within the file and ends past the
-//     file will also return a full buffer with n = len(buf) but will
-//     indicate the read went past the end of the buffer with err = EOF
+//     file will also return a full buffer with n = len(buf) and with
+//     err = EOF
 //  3. Reading outside the bounds of the file will return n = 0 and
 //     err = EOF
 //
@@ -80,7 +78,23 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 	// If the read is very large and a multiple of pagesize, it is
 	// faster to just delegate reading to the underlying reader.
 	if len(buf) > 10*int(self.pagesize) && len(buf)%int(self.pagesize) == 0 {
-		return self.reader.ReadAt(buf, offset)
+		n, err := self.reader.ReadAt(buf, offset)
+
+		// Reader returned some data but also EOF - coerce back to the
+		// correct semantic.
+		if n > 0 && errors.Is(err, io.EOF) {
+			// Pad the rest of the buffer
+			for i := n; i < len(buf); i++ {
+				buf[i] = 0
+			}
+
+			// Return the entire padded buffer with no EOF.
+			return len(buf), nil
+		}
+
+		// Reader returned n = 0 and possible err = EOF this is the
+		// correct semantic so just pass it on.
+		return n, err
 	}
 
 	buf_idx := 0
@@ -95,7 +109,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 
 		// Are we done?
 		if to_read == 0 {
-			return buf_idx, ret_err
+			return buf_idx, nil
 		}
 
 		var page_buf []byte
@@ -112,9 +126,11 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 			// Read this page into memory - already holding the lock.
 			page_buf = self.freelist.Get()
 			n, err := self.reader.ReadAt(page_buf, page)
+
+			// A real read error
 			if err != nil && err != io.EOF {
-				// We wont be putting the page in the LRU, just return
-				// it to the freelist.
+				// We wont be putting the page in the LRU due to read
+				// errors, just return it to the freelist.
 				self.freelist.Put(page_buf)
 				return buf_idx, err
 			}
@@ -125,28 +141,35 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 				page_buf[i] = 0
 			}
 
-			self.lru.Add(int(page), page_buf)
+			// Only bother to cache pages with something in them.
+			if n > 0 {
+				self.lru.Add(int(page), page_buf)
+			}
 
 			// The entire read range is outside the bounds of the
 			// file, just fail the read with EOF. For read ranges
 			// which are partially inside the file, they will be
 			// padded and EOF will be emitted.
-			if errors.Is(err, io.EOF) {
-				if n == 0 && buf_idx == 0 {
+			if n == 0 && errors.Is(err, io.EOF) {
+				// This is the first page in the range and it is
+				// already EOF, return immediately.
+				if buf_idx == 0 {
 					return 0, err
 				}
-				ret_err = err
-				self.last_page = page
+
+				// We have some data already and we just hit a page
+				// outside the file so pad the rest of the buffer and
+				// return no error.
+				for i := buf_idx; i < len(buf); i++ {
+					buf[i] = 0
+				}
+				return len(buf), nil
 			}
 
 			// Cache hit
 		} else {
 			self.Hits += 1
 			page_buf = cached_page_buf.([]byte)
-
-			if page == self.last_page {
-				ret_err = io.EOF
-			}
 		}
 
 		// Copy the relevant data from the page.
@@ -187,7 +210,6 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 				},
 			},
 		},
-		last_page: -1,
 	}
 
 	// By default 10mb cache.
