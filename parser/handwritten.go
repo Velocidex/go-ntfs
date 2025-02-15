@@ -25,7 +25,7 @@ func NewNTFS_ATTRIBUTE(Reader io.ReaderAt,
 	}
 
 	_, err := Reader.ReadAt(result.b[:], Offset)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return result
 	}
 	return result
