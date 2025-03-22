@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/Velocidex/ordereddict"
 )
 
 // Keep pages in a free list to avoid allocations.
@@ -44,6 +46,10 @@ type PagedReader struct {
 
 	Hits int64
 	Miss int64
+}
+
+func (self *PagedReader) Stats() *ordereddict.Dict {
+	return self.lru.Stats()
 }
 
 func (self *PagedReader) IsFixed(offset int64) bool {
