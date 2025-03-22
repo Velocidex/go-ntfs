@@ -1,6 +1,7 @@
 module www.velocidex.com/golang/go-ntfs
 
 require (
+	github.com/Velocidex/ordereddict v0.0.0-20230909174157-2aa49cc5d11d
 	github.com/alecthomas/assert v1.0.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/olekukonko/tablewriter v0.0.5
@@ -11,6 +12,8 @@ require (
 )
 
 require (
+	github.com/Velocidex/json v0.0.0-20220224052537-92f3c0326e5a // indirect
+	github.com/Velocidex/yaml/v2 v2.2.8 // indirect
 	github.com/alecthomas/colour v0.1.0 // indirect
 	github.com/alecthomas/repr v0.1.1 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
