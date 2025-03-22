@@ -3,7 +3,11 @@
 
 package parser
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/Velocidex/ordereddict"
+)
 
 type FNSummary struct {
 	Name                 string
@@ -25,6 +29,13 @@ type MFTEntryCache struct {
 	lru *LRU
 
 	preloaded map[uint64]*MFTEntrySummary
+}
+
+func (self *MFTEntryCache) Stats() *ordereddict.Dict {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	return self.lru.Stats().Set("Preloaded", len(self.preloaded))
 }
 
 func NewMFTEntryCache(ntfs *NTFSContext) *MFTEntryCache {

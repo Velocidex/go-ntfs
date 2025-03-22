@@ -62,7 +62,7 @@ type FullPathResolver struct {
 	ntfs    *NTFSContext
 	options *Options
 
-	mft_cache *MFTEntryCache
+	mft_summary_cache *MFTEntryCache
 }
 
 // Walks the MFT entry to get all file names to this MFT entry.
@@ -79,7 +79,7 @@ func (self *FullPathResolver) GetHardLinks(
 		Prefix:            self.options.PrefixComponents,
 	}
 
-	mft_entry_summary, err := self.mft_cache.GetSummary(
+	mft_entry_summary, err := self.mft_summary_cache.GetSummary(
 		mft_id, seq_number)
 	if err != nil {
 		return nil
@@ -147,7 +147,7 @@ func (self *FullPathResolver) getNames(
 			continue
 		}
 
-		parent_entry, err := self.mft_cache.GetSummary(
+		parent_entry, err := self.mft_summary_cache.GetSummary(
 			fn.ParentEntryNumber, fn.ParentSequenceNumber)
 		if err != nil {
 			visitor.AddComponent(visitor_idx, err.Error())

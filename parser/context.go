@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/Velocidex/ordereddict"
 )
 
 type NTFSContext struct {
@@ -34,6 +36,12 @@ type NTFSContext struct {
 	full_path_resolver *FullPathResolver
 }
 
+func (self *NTFSContext) Stats() *ordereddict.Dict {
+	return ordereddict.NewDict().
+		Set("EntryLRU", self.mft_entry_lru.Stats()).
+		Set("SummaryCache", self.mft_summary_cache.Stats())
+}
+
 func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 	STATS.Inc_NTFSContext()
 	mft_cache, _ := NewLRU(1000, nil, name)
@@ -44,11 +52,12 @@ func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
 		mft_entry_lru: mft_cache,
 	}
 
+	// Only used for USN path reconstruction.
 	ntfs.mft_summary_cache = NewMFTEntryCache(ntfs)
 	ntfs.full_path_resolver = &FullPathResolver{
-		ntfs:      ntfs,
-		options:   &ntfs.options,
-		mft_cache: ntfs.mft_summary_cache,
+		ntfs:              ntfs,
+		options:           &ntfs.options,
+		mft_summary_cache: ntfs.mft_summary_cache,
 	}
 
 	return ntfs
