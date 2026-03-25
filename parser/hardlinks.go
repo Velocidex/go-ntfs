@@ -65,6 +65,10 @@ type FullPathResolver struct {
 	mft_summary_cache *MFTEntryCache
 }
 
+func (self *FullPathResolver) Purge() {
+	self.mft_summary_cache.Purge()
+}
+
 // Walks the MFT entry to get all file names to this MFT entry.
 func (self *FullPathResolver) GetHardLinks(
 	mft_id uint64, seq_number uint16, max int) [][]string {

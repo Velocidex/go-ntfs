@@ -38,6 +38,10 @@ func (self *MFTEntryCache) Stats() *ordereddict.Dict {
 	return self.lru.Stats().Set("Preloaded", len(self.preloaded))
 }
 
+func (self *MFTEntryCache) Purge() {
+	self.lru.Purge()
+}
+
 func NewMFTEntryCache(ntfs *NTFSContext) *MFTEntryCache {
 	lru, _ := NewLRU(10000, nil, "MFTEntryCache")
 	return &MFTEntryCache{

@@ -218,6 +218,10 @@ type MappedReader struct {
 	Reader           io.ReaderAt
 }
 
+func (self *MappedReader) Flush() {
+	Flush(self.Reader)
+}
+
 func (self *MappedReader) IsFixed(offset int64) bool {
 	return IsFixed(self.Reader, offset-
 		self.FileOffset*self.ClusterSize+
@@ -319,7 +323,7 @@ func (self *MappedReader) _Ranges() []Range {
 }
 
 func (self *MappedReader) Decompress(reader io.ReaderAt, cluster_size int64) ([]byte, error) {
-	DebugPrint("Decompress %v\n", self)
+	DebugPrint(DEBUG_NTFS, "Decompress %v\n", self)
 	compressed := make([]byte,
 		CapInt64(self.CompressedLength*cluster_size, MAX_DECOMPRESSED_FILE))
 	n, err := reader.ReadAt(compressed, self.TargetOffset*cluster_size)
@@ -339,6 +343,12 @@ func (self *MappedReader) Decompress(reader io.ReaderAt, cluster_size int64) ([]
 // the file address space.
 type RangeReader struct {
 	runs []*MappedReader
+}
+
+func (self *RangeReader) Flush() {
+	for _, r := range self.runs {
+		Flush(r)
+	}
 }
 
 // Combine the ranges from all the Mapped readers.
@@ -594,7 +604,7 @@ func (self *RangeReader) readFromARun(
 		if err != nil {
 			return 0, err
 		}
-		DebugPrint("Decompressed %d from %v\n", len(decompressed), run)
+		DebugPrint(DEBUG_NTFS, "Decompressed %d from %v\n", len(decompressed), run)
 
 		i := 0
 		for {
@@ -694,13 +704,13 @@ func (self *RangeReader) ReadAt(buf []byte, file_offset int64) (
 
 			n, err := self.readFromARun(j, buf[buf_idx:], run_offset)
 			if err != nil && err != io.EOF {
-				DebugPrint("Reading offset %v from run %v returned error %v\n",
+				DebugPrint(DEBUG_NTFS, "Reading offset %v from run %v returned error %v\n",
 					run_offset, self.runs[j].DebugString(), err)
 				return buf_idx, err
 			}
 
 			if n == 0 {
-				DebugPrint("Reading run %v returned no data\n", self.runs[j])
+				DebugPrint(DEBUG_NTFS, "Reading run %v returned no data\n", self.runs[j])
 				return buf_idx, io.EOF
 			}
 
@@ -759,7 +769,7 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		attr_list_entry := self.Profile.ATTRIBUTE_LIST_ENTRY(
 			self.Reader, self.Offset+offset)
 
-		DebugPrint("%v ATTRIBUTE_LIST_ENTRY %v\n", mft_entry.Record_number(),
+		DebugPrint(DEBUG_NTFS, "%v ATTRIBUTE_LIST_ENTRY %v\n", mft_entry.Record_number(),
 			DebugString(attr_list_entry, ""))
 
 		// The attribute_list_entry points to a different MFT
@@ -768,11 +778,11 @@ func (self *ATTRIBUTE_LIST_ENTRY) Attributes(
 		mft_ref := attr_list_entry.MftReference()
 		if mft_ref != uint64(mft_entry.Record_number()) {
 
-			DebugPrint("While working on %v - Fetching from MFT Entry %v\n",
+			DebugPrint(DEBUG_NTFS, "While working on %v - Fetching from MFT Entry %v\n",
 				mft_entry.Record_number(), mft_ref)
 			attr, err := attr_list_entry.GetAttribute(ntfs)
 			if err != nil {
-				DebugPrint("Error %v\n", err)
+				DebugPrint(DEBUG_NTFS, "Error %v\n", err)
 				break
 			}
 			result = append(result, attr)
@@ -804,9 +814,9 @@ func (self *ATTRIBUTE_LIST_ENTRY) GetAttribute(
 	}
 	res, err := mft.GetDirectAttribute(ntfs, mytype, uint16(myid))
 	if err != nil {
-		DebugPrint("MFT %v not found in target\n", mft.Record_number())
+		DebugPrint(DEBUG_NTFS, "MFT %v not found in target\n", mft.Record_number())
 	} else {
-		DebugPrint("Found %v\n", DebugString(res, "  "))
+		DebugPrint(DEBUG_NTFS, "Found %v\n", DebugString(res, "  "))
 	}
 	return res, err
 }

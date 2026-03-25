@@ -203,11 +203,11 @@ func ParseUSN(ctx context.Context,
 
 		count := 0
 		for _, rng := range usn_stream.Ranges() {
-			run_end := rng.Offset + rng.Length
 			if rng.IsSparse {
 				continue
 			}
 
+			run_end := rng.Offset + rng.Length
 			if starting_offset > run_end {
 				count++
 				continue
@@ -263,7 +263,7 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 	last_range := ranges[len(ranges)-1]
 	var result *USN_RECORD
 
-	DebugPrint("Staring to parse USN in offset for seek %v\n", last_range.Offset)
+	DebugPrint(DEBUG_USN, "Staring to parse USN in offset for seek %v\n", last_range.Offset)
 	count := 0
 	usn_stream, err := OpenUSNStream(ntfs_ctx)
 	if err != nil {
@@ -275,7 +275,7 @@ func getLastUSN(ctx context.Context, ntfs_ctx *NTFSContext) (record *USN_RECORD,
 		result = record
 		count++
 	}
-	DebugPrint("Parsed %v USN records\n", count)
+	DebugPrint(DEBUG_USN, "Parsed %v USN records\n", count)
 
 	if result == nil {
 		return nil, errors.New("No ranges found!")
@@ -297,6 +297,10 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 		start_offset := int64(0)
 
 		for {
+			// Purge the context on each iteration to make sure we
+			// have fresh data.
+			ntfs_ctx.Purge()
+
 			usn, err := getLastUSN(ctx, ntfs_ctx)
 			if err == nil && usn != nil {
 				start_offset = usn.Offset
@@ -313,7 +317,7 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 
 		for {
 			count := 0
-			DebugPrint("Checking usn from %#08x\n", start_offset)
+			DebugPrint(DEBUG_USN, "Checking usn from %#08x\n", start_offset)
 
 			// Purge all caching in the context before we read it so
 			// we always get fresh data.
@@ -338,7 +342,7 @@ func WatchUSN(ctx context.Context, ntfs_ctx *NTFSContext, period int) chan *USN_
 				}
 
 			}
-			DebugPrint("Emitted %v events\n", count)
+			DebugPrint(DEBUG_USN, "Emitted %v events\n", count)
 
 			select {
 			case <-ctx.Done():
@@ -385,7 +389,7 @@ func CarveUSN(ctx context.Context,
 			default:
 			}
 
-			DebugPrint("%v: Reading buffer length %v at %v in %v\n",
+			DebugPrint(DEBUG_USN, "%v: Reading buffer length %v at %v in %v\n",
 				time.Now(), len(buffer), i, time.Now().Sub(now))
 
 			now = time.Now()
