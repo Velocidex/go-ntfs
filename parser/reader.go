@@ -48,6 +48,11 @@ type PagedReader struct {
 	Miss int64
 }
 
+func (self *PagedReader) DebugString() string {
+	return fmt.Sprintf("PagedReader on %T %v",
+		self.reader, _DebugString(self.reader, "  "))
+}
+
 func (self *PagedReader) Stats() *ordereddict.Dict {
 	return self.lru.Stats()
 }
@@ -130,7 +135,7 @@ func (self *PagedReader) ReadAt(buf []byte, offset int64) (res int, ret_err erro
 		// Cache miss
 		if !pres {
 			self.Miss += 1
-			DebugPrint("Cache miss for %x (%x) (%d)\n", page, self.pagesize,
+			DebugPrint(DEBUG_NTFS, "Cache miss for %x (%x) (%d)\n", page, self.pagesize,
 				self.lru.Len())
 
 			// Read this page into memory - already holding the lock.
@@ -207,7 +212,7 @@ func (self *PagedReader) Flush() {
 }
 
 func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedReader, error) {
-	DebugPrint("Creating cache of size %v\n", cache_size)
+	DebugPrint(DEBUG_NTFS, "Creating cache of size %v\n", cache_size)
 
 	self := &PagedReader{
 		reader:   reader,
@@ -239,4 +244,13 @@ func NewPagedReader(reader io.ReaderAt, pagesize int64, cache_size int) (*PagedR
 // Invalidate the disk cache
 type Flusher interface {
 	Flush()
+}
+
+func Flush(reader interface{}) {
+	switch t := reader.(type) {
+	case Flusher:
+		t.Flush()
+	default:
+		fmt.Printf("Type %T Does not flush\n", reader)
+	}
 }

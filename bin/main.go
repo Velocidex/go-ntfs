@@ -25,7 +25,7 @@ func main() {
 	command := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	if *verbose_flag {
-		parser.SetDebug()
+		parser.SetDebug(0xFFFF)
 	}
 
 	for _, command_handler := range command_handlers {

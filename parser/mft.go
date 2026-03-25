@@ -262,7 +262,7 @@ type MapReader struct {
 }
 
 func (self *MapReader) partialRead(buf []byte, offset int64) (int, error) {
-	DebugPrint("MapReader.partialRead %v @ %v\n", len(buf), offset)
+	DebugPrint(DEBUG_NTFS, "MapReader.partialRead %v @ %v\n", len(buf), offset)
 
 	if len(buf) > 0 {
 		for _, run := range self.Runs {
@@ -386,6 +386,7 @@ func (self *MFTHighlight) Links() []string {
 	for _, l := range components {
 		result = append(result, strings.Join(l, "\\"))
 	}
+
 	return result
 }
 
@@ -424,13 +425,14 @@ func (self *MFTHighlight) Components() []string {
 	components := []string{}
 	if len(self.components) > 0 {
 		components = self.components
-	}
 
-	links := self.ntfs_ctx.full_path_resolver.GetHardLinks(
-		uint64(self.EntryNumber), self.SequenceNumber, 1)
-	if len(links) > 0 {
-		components = links[0]
-		self.components = components
+	} else {
+		links := self.ntfs_ctx.full_path_resolver.GetHardLinks(
+			uint64(self.EntryNumber), self.SequenceNumber, 1)
+		if len(links) > 0 {
+			components = links[0]
+			self.components = components
+		}
 	}
 
 	if self.ads_name != "" {

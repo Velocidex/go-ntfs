@@ -12,11 +12,19 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+const (
+	_         = iota
+	DEBUG_USN = 1 << iota
+	DEBUG_NTFS
+
+	DEBUG_ALL = 0xFFFF
+)
+
 var (
 	debug       = false
 	LZNT1_debug = false
 
-	NTFS_DEBUG *bool
+	NTFS_DEBUG int
 )
 
 func PrintStack() {
@@ -33,7 +41,7 @@ type Debugger interface {
 
 func DebugString(arg interface{}, indent string) string {
 	debugger, ok := arg.(Debugger)
-	if NTFS_DEBUG != nil && *NTFS_DEBUG && ok {
+	if ok && NTFS_DEBUG > 0 {
 		lines := strings.Split(debugger.DebugString(), "\n")
 		for idx, line := range lines {
 			lines[idx] = indent + line
@@ -57,8 +65,8 @@ func _DebugString(arg interface{}, indent string) string {
 	return ""
 }
 
-func Printf(fmt_str string, args ...interface{}) {
-	if NTFS_DEBUG != nil && *NTFS_DEBUG {
+func Printf(system int, fmt_str string, args ...interface{}) {
+	if NTFS_DEBUG&system > 0 {
 		fmt.Printf(fmt_str, args...)
 	}
 }
@@ -70,32 +78,25 @@ func LZNT1Printf(fmt_str string, args ...interface{}) {
 }
 
 // Turns on debugging programmatically
-func SetDebug() {
-	yes := true
-	NTFS_DEBUG = &yes
+func SetDebug(system int) {
+	NTFS_DEBUG |= system
 }
 
 func DlvBreak() {}
 
-func DebugPrint(fmt_str string, v ...interface{}) {
-	if NTFS_DEBUG == nil {
+func DebugPrint(system int, fmt_str string, v ...interface{}) {
+	if NTFS_DEBUG == 0 {
 		// os.Environ() seems very expensive in Go so we cache
 		// it.
 		for _, x := range os.Environ() {
 			if strings.HasPrefix(x, "NTFS_DEBUG=1") {
-				value := true
-				NTFS_DEBUG = &value
+				NTFS_DEBUG = 0xFFFF
 				break
 			}
 		}
 	}
 
-	if NTFS_DEBUG == nil {
-		value := false
-		NTFS_DEBUG = &value
-	}
-
-	if *NTFS_DEBUG {
+	if NTFS_DEBUG&system > 0 {
 		fmt.Printf(fmt_str, v...)
 	}
 }
