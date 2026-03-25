@@ -39,7 +39,8 @@ func getReader(reader io.ReaderAt) io.ReaderAt {
 	}
 
 	// Create a recorder
-	parser.Printf("Will record to dir %v\n", *record_directory)
+	parser.Printf(parser.DEBUG_ALL,
+		"Will record to dir %v\n", *record_directory)
 	return parser.NewRecorder(*record_directory, reader)
 }
 

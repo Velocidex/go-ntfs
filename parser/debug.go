@@ -16,6 +16,8 @@ const (
 	_         = iota
 	DEBUG_USN = 1 << iota
 	DEBUG_NTFS
+
+	DEBUG_ALL = 0xFFFF
 )
 
 var (
