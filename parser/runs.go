@@ -37,10 +37,11 @@ func (self RunInfo) String() string {
 }
 
 func DebugRawRuns(runs []*Run) {
-	fmt.Printf("Runs ....\n")
+	Printf(DEBUG_NTFS, "Runs ....\n")
 
 	for idx, r := range runs {
-		fmt.Printf("%d Disk Offset %d  RelativeUrnOffset %d (Length %d)\n",
+		Printf(DEBUG_NTFS,
+			"%d Disk Offset %d  RelativeUrnOffset %d (Length %d)\n",
 			idx, r.Offset, r.RelativeUrnOffset, r.Length)
 	}
 }

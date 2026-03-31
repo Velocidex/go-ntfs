@@ -251,6 +251,6 @@ func Flush(reader interface{}) {
 	case Flusher:
 		t.Flush()
 	default:
-		fmt.Printf("Type %T Does not flush\n", reader)
+		Printf(DEBUG_READER, "Type %T Does not flush\n", reader)
 	}
 }
