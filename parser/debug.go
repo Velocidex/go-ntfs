@@ -14,17 +14,18 @@ import (
 
 const (
 	_         = iota
-	DEBUG_USN = 1 << iota
+	DEBUG_USN = uint64(1) << iota
 	DEBUG_NTFS
+	DEBUG_LZNT1
+	DEBUG_READER
 
 	DEBUG_ALL = 0xFFFF
 )
 
 var (
-	debug       = false
-	LZNT1_debug = false
+	debug = false
 
-	NTFS_DEBUG int
+	NTFS_DEBUG uint64
 )
 
 func PrintStack() {
@@ -65,26 +66,20 @@ func _DebugString(arg interface{}, indent string) string {
 	return ""
 }
 
-func Printf(system int, fmt_str string, args ...interface{}) {
+func Printf(system uint64, fmt_str string, args ...interface{}) {
 	if NTFS_DEBUG&system > 0 {
 		fmt.Printf(fmt_str, args...)
 	}
 }
 
-func LZNT1Printf(fmt_str string, args ...interface{}) {
-	if LZNT1_debug {
-		fmt.Printf(fmt_str, args...)
-	}
-}
-
 // Turns on debugging programmatically
-func SetDebug(system int) {
+func SetDebug(system uint64) {
 	NTFS_DEBUG |= system
 }
 
 func DlvBreak() {}
 
-func DebugPrint(system int, fmt_str string, v ...interface{}) {
+func DebugPrint(system uint64, fmt_str string, v ...interface{}) {
 	if NTFS_DEBUG == 0 {
 		// os.Environ() seems very expensive in Go so we cache
 		// it.

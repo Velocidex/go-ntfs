@@ -128,7 +128,7 @@ func (self *NTFS_ATTRIBUTE) RunList() []*Run {
 	if !is_fixed {
 		DlvBreak()
 	}
-	fmt.Printf("RunList on fixed %v\n", IsFixed(self.Reader, runlist_offset))
+	Printf("RunList on fixed %v\n", IsFixed(self.Reader, runlist_offset))
 
 	*/
 

@@ -2,7 +2,6 @@ package parser
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"sync"
 
@@ -101,8 +100,8 @@ func (self *NTFSContext) GetOptions() *Options {
 
 func (self *NTFSContext) Close() {
 	if debug {
-		fmt.Printf(STATS.DebugString())
-		fmt.Println(self.mft_entry_lru.DebugString())
+		Printf(DEBUG_NTFS, "%v", STATS.DebugString())
+		Printf(DEBUG_NTFS, "%v", self.mft_entry_lru.DebugString())
 	}
 	self.Purge()
 }
