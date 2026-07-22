@@ -183,8 +183,7 @@ func (self *NTFS_ATTRIBUTE) RunList() []*Run {
 				value = buffer[offset]
 			}
 
-			if i == run_offset_size-1 &&
-				buffer[offset]&0x80 != 0 {
+			if i == run_offset_size-1 && value&0x80 != 0 {
 				sign = 0xFF
 			}
 
@@ -844,8 +843,9 @@ func DecodeSTANDARD_INDEX_HEADER(
 
 	fixup_offset := offset + int64(index.Fixup_offset())
 	fixup_count := index.Fixup_count()
-	if fixup_count > 0 {
-		fixup_table := make([]byte, fixup_count*2)
+	fixup_table_len := fixup_count * 2
+	if fixup_count > 0 && fixup_table_len >= 2 {
+		fixup_table := make([]byte, fixup_table_len)
 		_, err = reader.ReadAt(fixup_table, fixup_offset)
 		if err != nil && err != io.EOF {
 			return nil, err
@@ -853,7 +853,7 @@ func DecodeSTANDARD_INDEX_HEADER(
 
 		fixup_magic := []byte{fixup_table[0], fixup_table[1]}
 		sector_idx := 0
-		for idx := 2; idx < len(fixup_table); idx += 2 {
+		for idx := 2; idx < int(fixup_table_len); idx += 2 {
 			fixup_offset := (sector_idx+1)*512 - 2
 			if fixup_offset+1 >= len(buffer) ||
 				buffer[fixup_offset] != fixup_magic[0] ||

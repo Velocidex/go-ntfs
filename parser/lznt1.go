@@ -23,7 +23,9 @@ var (
 
 	shiftTooLargeError = errors.New(
 		"Decompression error - shift is too large")
-	blockTooSmallError = errors.New("Block too small!")
+	blockTooSmallError       = errors.New("Block too small!")
+	invalidState             = errors.New("invalid decompression state")
+	compressionRatioTooLarge = errors.New("Compression Ratio Too Large")
 )
 
 func get_displacement(offset uint16) byte {
@@ -43,7 +45,7 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 
 	// Index into the in buffer
 	i := 0
-	out := []byte{}
+	out := make([]byte, 0, len(in)*2)
 
 	for {
 		if len(in) < i+2 {
@@ -69,9 +71,17 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 
 		if block_header&COMPRESSED_MASK != 0 {
 			for i < block_end {
+				if i > len(in)-1 {
+					return nil, blockTooSmallError
+				}
+
 				header := uint8(in[i])
 				debugLZNT1Decompress("%d Header Tag %02x\n", len(out), header)
 				i++
+
+				if i > len(in)-1 {
+					return nil, blockTooSmallError
+				}
 
 				for mask_idx := uint8(0); mask_idx < 8 && i < block_end; mask_idx++ {
 					if (header & 1) == 0 {
@@ -83,8 +93,17 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 						pointer := binary.LittleEndian.Uint16(in[i:])
 						i += 2
 
+						if len(out) < uncompressed_chunk_offset+1 {
+							return nil, invalidState
+						}
+
 						displacement := get_displacement(
 							uint16(len(out) - uncompressed_chunk_offset - 1))
+
+						if len(out) < uncompressed_chunk_offset+1 {
+							return nil, invalidState
+						}
+
 						symbol_offset := int(pointer>>(12-displacement)) + 1
 						symbol_length := int(pointer&(0xFFF>>displacement)) + 2
 						start_offset := len(out) - symbol_offset
@@ -106,10 +125,17 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 
 			// Block is not compressed.
 		} else {
+			if len(in) < i+size+1 {
+				return nil, blockTooSmallError
+			}
+
 			out = append(out, in[i:i+size+1]...)
 			i += size + 1
 		}
 
+		if len(out) > MAX_DECOMPRESSED_FILE {
+			return nil, compressionRatioTooLarge
+		}
 	}
 
 	debugLZNT1Decompress("decompression out %v\n", len(out))
