@@ -531,6 +531,11 @@ func joinAllVCNs(ntfs *NTFSContext, vcns []*NTFS_ATTRIBUTE) []*MappedReader {
 				1 << uint64(vcn.Compression_unit_size()))
 		}
 
+		// Something went wrong here - this is an invalid unit size.
+		if compression_unit_size == 0 {
+			return nil
+		}
+
 		// Join all the runlists from all VCNs into the same runlist -
 		// compressed files often have their runs broken up into
 		// different vcns so it is just easier to combine them before
