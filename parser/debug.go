@@ -114,6 +114,17 @@ func debugHexDump(buf []byte) string {
 	return ""
 }
 
+// Debugging XPRESS decompression
+const (
+	debugXpress = false
+)
+
+func debugXpressDecompress(format string, args ...interface{}) {
+	if debugXpress {
+		fmt.Printf(format, args...)
+	}
+}
+
 // A reader may be able to tell us about the physical layer it is
 // reading from.
 type VtoPer interface {
