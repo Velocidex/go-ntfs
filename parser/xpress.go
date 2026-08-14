@@ -88,8 +88,7 @@ func XpressDecompress(in []byte) (out []byte, err error) {
 		}
 		flags_left--
 		if flags&(uint32(1)<<flags_left) == 0 {
-			// Literal clears the pending shared-nibble half.
-			pending_len = -1
+			// Literal; the pending shared-nibble half survives it.
 			if i >= len(in) {
 				return nil, endOfStreamError
 			}
@@ -143,13 +142,15 @@ func XpressDecompress(in []byte) (out []byte, err error) {
 						v = int64(binary.LittleEndian.Uint32(in[i:]))
 						i += 4
 					}
+					if v < 22 {
+						return nil, corruptStreamError
+					}
+					mlen = int(v) + 3
+				} else {
+					mlen = int(v) + 25
 				}
-				if v < 22 {
-					return nil, corruptStreamError
-				}
-				mlen = int(v) + 3
 			} else {
-				mlen = nib + 3
+				mlen = nib + 10
 			}
 		}
 
@@ -222,7 +223,7 @@ func XpressHuffmanDecompress(in []byte, decompressed_size int) (
 	}
 
 	out = make([]byte, 0, decompressed_size)
-	for len(out) < decompressed_size {
+	for {
 		for nbits < 15 {
 			if len(in)-i < 2 {
 				return nil, endOfStreamError
@@ -239,6 +240,9 @@ func XpressHuffmanDecompress(in []byte, decompressed_size int) (
 		if sym < 256 {
 			debugXpressDecompress("  %d: Symbol %d\n", len(out), sym)
 			out = append(out, byte(sym))
+			if len(out) > decompressed_size {
+				return nil, corruptStreamError
+			}
 			continue
 		}
 
@@ -310,6 +314,9 @@ func XpressHuffmanDecompress(in []byte, decompressed_size int) (
 		}
 		if len(out) > MAX_DECOMPRESSED_FILE-mlen {
 			return nil, compressionTooLarge
+		}
+		if len(out)+mlen > decompressed_size {
+			return nil, corruptStreamError
 		}
 
 		debugXpressDecompress("  %d: Match %d @ %d\n", len(out), mlen, moff)

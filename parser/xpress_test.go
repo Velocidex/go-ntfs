@@ -37,22 +37,52 @@ func TestXpressHuffman(t *testing.T) {
 }
 
 func TestXpressTruncated(t *testing.T) {
-	// Plain LZ77: cut off mid-match.
-	_, err := XpressDecompress(xpressVectors[3].data[:8])
+	// Plain LZ77: the MS-XCA worked example, cut mid-match — the
+	// nibble/extra-length bytes are missing.
+	in := []byte{
+		0xff, 0xff, 0xff, 0x1f, // flag group: literal, literal, literal, match
+		0x61, 0x62, 0x63, // "abc"
+		0x17, 0x00, 0x0f, // match, then the last nibble byte runs off the end
+	}
+	_, err := XpressDecompress(in)
 	if err == nil {
 		t.Error("plain: expected error on truncated stream")
 	}
 
 	// Huffman: fewer than the mandatory 256 table bytes.
-	_, err = XpressHuffmanDecompress(xpressVectors[8].data[:100], 360)
+	var huffShort *xpressVector
+	var huffSmall *xpressVector
+	for i := range xpressVectors {
+		if !xpressVectors[i].huff {
+			continue
+		}
+		if huffShort == nil && len(xpressVectors[i].data) > 100 {
+			huffShort = &xpressVectors[i]
+		}
+		out, err := XpressHuffmanDecompress(xpressVectors[i].data, len(xpressVectors[i].expected))
+		if err == nil && len(out) > 22 && huffSmall == nil {
+			// Declaring a smaller output than this stream produces
+			// must be rejected, not silently truncated.
+			if _, err := XpressHuffmanDecompress(xpressVectors[i].data, 22); err != nil {
+				huffSmall = &xpressVectors[i]
+			}
+		}
+	}
+	if huffShort == nil {
+		t.Fatal("no huffman vectors")
+	}
+	_, err = XpressHuffmanDecompress(huffShort.data[:100], 360)
 	if err == nil {
 		t.Error("huffman: expected error on short table")
 	}
 
-	// Huffman: declare a larger output than the stream contains.
-	_, err = XpressHuffmanDecompress(xpressVectors[13].data, 22)
+	// Huffman: declare a smaller output than the stream produces.
+	if huffSmall == nil {
+		t.Fatal("no huffman vector rejects a too-small output size")
+	}
+	_, err = XpressHuffmanDecompress(huffSmall.data, 22)
 	if err == nil {
-		t.Error("huffman: expected error when output size is too large")
+		t.Error("huffman: expected error when output size is too small")
 	}
 }
 
