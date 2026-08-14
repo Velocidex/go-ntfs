@@ -193,6 +193,11 @@ func XpressHuffmanDecompress(in []byte, decompressed_size int) (
 		for s := 0; s < xpressNumSymbols; s++ {
 			if lens[s] == uint16(l) {
 				for k := 1 << (xpressTableBits - l); k > 0; k-- {
+					if entry >= xpressTableSize {
+						// Oversubscribed codes: the table cannot hold
+						// this many entries.
+						return nil, invalidCodeError
+					}
 					table[entry] = uint16(s)
 					entry++
 				}
@@ -243,7 +248,7 @@ func XpressHuffmanDecompress(in []byte, decompressed_size int) (
 			if len(out) == decompressed_size {
 				break
 			}
-			if decompressed_size-len(out) < 3 {
+			if len(out) == 0 || decompressed_size-len(out) < 3 {
 				return nil, corruptStreamError
 			}
 			debugXpressDecompress("  %d: EOF match(3, 1)\n", len(out))
