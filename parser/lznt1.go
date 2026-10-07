@@ -54,7 +54,11 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 		uncompressed_chunk_offset := len(out)
 		block_offset := i
 
-		block_header := binary.LittleEndian.Uint16(in[i:])
+		if i+2 > len(in) {
+			return nil, blockTooSmallError
+		}
+
+		block_header := binary.LittleEndian.Uint16(in[i : i+2])
 		debugLZNT1Decompress("Header %#x @ %#x %d\n", block_header, i, i)
 		i += 2
 
@@ -85,12 +89,19 @@ func LZNT1Decompress(in []byte) ([]byte, error) {
 
 				for mask_idx := uint8(0); mask_idx < 8 && i < block_end; mask_idx++ {
 					if (header & 1) == 0 {
+						if i > len(in)-1 {
+							return nil, blockTooSmallError
+						}
 						debugLZNT1Decompress("  %d: Symbol %02x (%d)\n", i, in[i], len(out))
 						out = append(out, in[i])
 						i++
 
 					} else {
-						pointer := binary.LittleEndian.Uint16(in[i:])
+						if i+2 > len(in) {
+							return nil, blockTooSmallError
+						}
+
+						pointer := binary.LittleEndian.Uint16(in[i : i+2])
 						i += 2
 
 						if len(out) < uncompressed_chunk_offset+1 {
