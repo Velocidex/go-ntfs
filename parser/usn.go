@@ -42,8 +42,8 @@ func (self *USN_RECORD) Validate() bool {
 	// The Usn itself is not checked: the first record of a new
 	// journal has Usn 0.
 	return self.MajorVersion() == 2 && self.MinorVersion() == 0 &&
-		// Records are 64 bit aligned and at most a header plus a
-		// 255 character name.
+		// Records are 64-bit aligned and no longer than
+		// MAX_USN_RECORD_LENGTH.
 		length >= USN_RECORD_V2_MIN_LENGTH &&
 		length <= MAX_USN_RECORD_LENGTH && length%8 == 0 &&
 		// The name follows the fixed header and fits in the record.
@@ -65,7 +65,9 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 			return result
 		}
 	} else {
-		// Do not trust the length of a broken record: it may point
+		// Defensive: records from findUSNRecord() always have a
+		// sane length, but do not trust the length of a record
+		// built elsewhere: it may point
 		// far past the end of the run, which would drop every
 		// record that follows it.
 		length = 8
