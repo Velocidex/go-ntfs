@@ -30,15 +30,33 @@ func (self *USN_RECORD) Filename() string {
 		CapInt64(int64(self.FileNameLength()), MAX_FILENAME_LENGTH))
 }
 
+// Validate checks that the record looks like a USN_RECORD_V2. A
+// record read at the wrong offset (e.g. one byte into a real record)
+// usually has a non zero Usn and RecordLength, so those alone are not
+// enough to tell a real record from garbage.
 func (self *USN_RECORD) Validate() bool {
-	return self.Usn() > 0 && self.RecordLength() != 0
+	length := int64(self.RecordLength())
+	name_offset := int64(self.FileNameOffset())
+	name_length := int64(self.FileNameLength())
+
+	// The Usn itself is not checked: the first record of a new
+	// journal has Usn 0.
+	return self.MajorVersion() == 2 && self.MinorVersion() == 0 &&
+		// Records are 64 bit aligned and at most a header plus a
+		// 255 character name.
+		length >= USN_RECORD_V2_MIN_LENGTH &&
+		length <= MAX_USN_RECORD_LENGTH && length%8 == 0 &&
+		// The name follows the fixed header and fits in the record.
+		name_offset == USN_RECORD_V2_NAME_OFFSET &&
+		name_length%2 == 0 &&
+		name_offset+name_length <= length
 }
 
 func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 	length := int64(self.RecordLength())
 
 	// Record length should be reasonable and 64 bit aligned.
-	if length > 0 && length < 1024 &&
+	if length > 0 && length <= MAX_USN_RECORD_LENGTH &&
 		(self.Offset+length)%8 == 0 {
 
 		result := NewUSN_RECORD(self.context, self.Reader, self.Offset+length)
@@ -46,37 +64,52 @@ func (self *USN_RECORD) Next(max_offset int64) *USN_RECORD {
 		if result.Validate() {
 			return result
 		}
+	} else {
+		// Do not trust the length of a broken record: it may point
+		// far past the end of the run, which would drop every
+		// record that follows it.
+		length = 8
 	}
 
 	// Sometimes there is a sequence of null bytes after a record
-	// and before the next record. If the next record is not
-	// immediately after the previous record we scan ahead a bit
-	// to try to find it.
+	// and before the next record (e.g. padding to the end of a
+	// page). If the next record is not immediately after the
+	// previous record we scan ahead a bit to try to find it.
+	return findUSNRecord(self.context, self.Reader, self.Offset+length, max_offset)
+}
 
-	// Scan ahead trying to find the next record. We search for
-	// the first non-zero byte and try to instantiate a record
-	// over it. If the record is valid we return it.
-	for offset := self.Offset + length; offset <= max_offset; {
-		to_read := max_offset - offset
-		data := make([]byte, CapInt64(to_read, MAX_USN_RECORD_SCAN_SIZE))
+// findUSNRecord returns the first valid record at or after offset and
+// before max_offset. Records are 64 bit aligned, so only 8 byte
+// aligned offsets are tried: a record whose RecordLength is a multiple
+// of 256 starts with a zero byte, and trying the first non zero byte
+// would instead parse a record one byte into it.
+func findUSNRecord(ntfs_ctx *NTFSContext, reader io.ReaderAt,
+	offset, max_offset int64) *USN_RECORD {
+	offset = (offset + 7) &^ 7
 
-		n, err := self.Reader.ReadAt(data, offset)
-		if n == 0 || (err != nil && !errors.Is(err, io.EOF)) {
+	for offset < max_offset {
+		data := make([]byte, CapInt64(max_offset-offset, MAX_USN_RECORD_SCAN_SIZE))
+
+		n, err := reader.ReadAt(data, offset)
+		if n < 8 || (err != nil && !errors.Is(err, io.EOF)) {
 			return nil
 		}
 
-		// scan the buffer for the first non zero byte.
-		for i := 0; i < n; i++ {
-			if data[i] != 0 {
-				result := NewUSN_RECORD(
-					self.context, self.Reader, offset+int64(i))
-				if result.Validate() {
-					return result
-				}
+		for i := 0; i+8 <= n; i += 8 {
+			// Quick check for MajorVersion 2, MinorVersion 0 before
+			// parsing the record.
+			if data[i+4] != 2 || data[i+5] != 0 ||
+				data[i+6] != 0 || data[i+7] != 0 {
+				continue
+			}
+
+			result := NewUSN_RECORD(ntfs_ctx, reader, offset+int64(i))
+			if result.Validate() {
+				return result
 			}
 		}
 
-		offset += int64(len(data))
+		offset += int64(n) &^ 7
 	}
 
 	return nil
@@ -213,7 +246,7 @@ func ParseUSN(ctx context.Context,
 				continue
 			}
 
-			for record := NewUSN_RECORD(ntfs_ctx, usn_stream, rng.Offset); record != nil; record = record.Next(run_end) {
+			for record := findUSNRecord(ntfs_ctx, usn_stream, rng.Offset, run_end); record != nil; record = record.Next(run_end) {
 				if record.Offset < starting_offset {
 					continue
 				}
@@ -381,8 +414,14 @@ func CarveUSN(ctx context.Context,
 
 		now := time.Now()
 
-		// Overlap buffers in case an entry is split
-		for i := int64(0); i < size; i += buffer_size - cluster_size {
+		// Overlap buffers in case an entry is split. The overlap
+		// must hold the longest record.
+		overlap := cluster_size
+		if overlap < MAX_USN_RECORD_LENGTH {
+			overlap = MAX_USN_RECORD_LENGTH
+		}
+		step := buffer_size - overlap
+		for i := int64(0); i < size; i += step {
 			select {
 			case <-ctx.Done():
 				return
@@ -404,8 +443,18 @@ func CarveUSN(ctx context.Context,
 
 			buf_reader := bytes.NewReader(buffer[:n])
 
-			// We assume that entries are aligned to 0x10 at least.
-			for j := int64(0); j < int64(n)-0x10; j += 0x10 {
+			// A record that starts in the overlap is read again
+			// whole at the start of the next buffer, so leave it to
+			// that buffer to avoid reporting it twice. Any record
+			// that starts before the overlap is fully inside this
+			// buffer.
+			limit := int64(n) - 0x10
+			if i+step < size && int64(n) == buffer_size {
+				limit = step
+			}
+
+			// USN_RECORD_V2 entries are 64 bit aligned.
+			for j := int64(0); j < limit; j += 8 {
 
 				// MajorVersion must be 2 and MinorVersion 0. This is
 				// a quick check that should eliminate most of the
@@ -448,12 +497,18 @@ func testUSNEntry(ntfs_ctx *NTFSContext,
 
 	record := ntfs_ctx.Profile.USN_RECORD_V2(reader, offset)
 	record_length := record.RecordLength()
-	if record_length < 64 || record_length > 1024 {
+	if record_length < USN_RECORD_V2_MIN_LENGTH ||
+		record_length > MAX_USN_RECORD_LENGTH || record_length%8 != 0 {
 		return nil, false
 	}
 
-	if record.FileNameOffset() > 255 ||
-		record.FileNameLength() > 255 {
+	// FileNameLength is in bytes: a name of up to 255 UTF-16
+	// characters follows the fixed header.
+	name_offset := uint32(record.FileNameOffset())
+	name_length := uint32(record.FileNameLength())
+	if name_offset != USN_RECORD_V2_NAME_OFFSET ||
+		name_length > 2*255 ||
+		name_offset+name_length > record_length {
 		return nil, false
 	}
 

@@ -9,6 +9,12 @@ const (
 	MAX_ATTR_NAME_LENGTH     = 1024
 	MAX_FILENAME_LENGTH      = 32 * 1024
 
+	// USN_RECORD_V2: a 60 byte header followed by the name, padded
+	// to 8 bytes. The longest name is 255 UTF-16 characters.
+	USN_RECORD_V2_NAME_OFFSET = 60
+	USN_RECORD_V2_MIN_LENGTH  = 64
+	MAX_USN_RECORD_LENGTH     = 1024
+
 	ATTR_TYPE_DATA                 = 128
 	ATTR_TYPE_ATTRIBUTE_LIST       = 32
 	ATTR_TYPE_STANDARD_INFORMATION = 16
