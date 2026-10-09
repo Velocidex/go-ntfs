@@ -404,15 +404,9 @@ func CarveUSN(ctx context.Context,
 		defer close(output)
 
 		cluster_size := ntfs_ctx.ClusterSize
-		if cluster_size == 0 {
+		if cluster_size <= 0 {
 			cluster_size = 0x1000
 		}
-
-		buffer_size := 1024 * cluster_size
-
-		buffer := make([]byte, buffer_size)
-
-		now := time.Now()
 
 		// Overlap buffers in case an entry is split. The overlap
 		// must hold the longest record.
@@ -420,7 +414,14 @@ func CarveUSN(ctx context.Context,
 		if overlap < MAX_USN_RECORD_LENGTH {
 			overlap = MAX_USN_RECORD_LENGTH
 		}
+
+		buffer_size := 1024 * overlap
 		step := buffer_size - overlap
+
+		buffer := make([]byte, buffer_size)
+
+		now := time.Now()
+
 		for i := int64(0); i < size; i += step {
 			select {
 			case <-ctx.Done():
@@ -449,7 +450,7 @@ func CarveUSN(ctx context.Context,
 			// that starts before the overlap is fully inside this
 			// buffer.
 			limit := int64(n) - 0x10
-			if i+step < size && int64(n) == buffer_size {
+			if i+step < size && step < limit {
 				limit = step
 			}
 

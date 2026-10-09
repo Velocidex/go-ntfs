@@ -171,3 +171,59 @@ func TestCarveUSNReadsLongRecordsAcrossBuffers(t *testing.T) {
 		t.Errorf("record at %#x carved %d times, want 1", long_offset, found)
 	}
 }
+
+// When the stream ends inside the overlap, the last two buffers both
+// read the end of the stream: records there must be reported once.
+func TestCarveUSNReportsRecordsNearTheEndOnce(t *testing.T) {
+	const cluster_size = 0x400
+	buffer_size := int64(1024 * cluster_size)
+	step := buffer_size - cluster_size
+
+	// The stream ends a little after the start of the second buffer.
+	data := make([]byte, step+0x200)
+	offset := step + 0x40 // in the overlap, read by both buffers
+	putUSNRecordV2(data, offset, 500, "end.txt")
+
+	ntfs_ctx := newTestContext(cluster_size)
+	found := 0
+	for item := range CarveUSN(context.Background(), ntfs_ctx,
+		bytes.NewReader(data), int64(len(data))) {
+		if item.DiskOffset == offset {
+			found++
+		}
+	}
+	if found != 1 {
+		t.Errorf("record at %#x carved %d times, want 1", offset, found)
+	}
+}
+
+// A corrupt boot sector can report a tiny cluster size: carving must
+// still terminate.
+func TestCarveUSNWithTinyClusterSizeTerminates(t *testing.T) {
+	data := make([]byte, 0x3000)
+	putUSNRecordV2(data, 0x1008, 600, "tiny.txt")
+
+	for _, cluster_size := range []int64{-1, 0, 1, 8} {
+		ntfs_ctx := newTestContext(0x1000)
+		ntfs_ctx.ClusterSize = cluster_size
+
+		done := make(chan int)
+		go func() {
+			count := 0
+			for range CarveUSN(context.Background(), ntfs_ctx,
+				bytes.NewReader(data), int64(len(data))) {
+				count++
+			}
+			done <- count
+		}()
+
+		select {
+		case count := <-done:
+			if count != 1 {
+				t.Errorf("cluster size %d: carved %d records, want 1", cluster_size, count)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("cluster size %d: carving did not terminate", cluster_size)
+		}
+	}
+}
