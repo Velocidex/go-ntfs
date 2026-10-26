@@ -130,7 +130,7 @@ func TestFixupOverflow(t *testing.T) {
 	img[a+66] = 0x04
 	img[a+67] = 0x00
 
-	ntfs, err := parser.GetNTFSContext(bytes.NewReader(img), 0)
+	ntfs, err := parser.GetNTFSContext(bytes.NewReader(img), 0, parser.GetDefaultOptions())
 	if err != nil {
 		fmt.Printf("setup failed: %v\n", err)
 		return

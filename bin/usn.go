@@ -39,7 +39,7 @@ func doWatchUSN() {
 	reader, _ := parser.NewPagedReader(
 		getReader(*usn_command_file_arg), 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	for record := range parser.WatchUSN(context.Background(), ntfs_ctx, 1) {
@@ -62,7 +62,7 @@ func doUSN() {
 	reader, _ := parser.NewPagedReader(
 		getReader(*usn_command_file_arg), 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	filename_filter, err := regexp.Compile(*usn_command_filename_filter)

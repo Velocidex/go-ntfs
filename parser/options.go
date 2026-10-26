@@ -21,6 +21,8 @@ type Options struct {
 	// Disable resolution of USN paths through the MFT. This is useful
 	// when there is no MFT to look at.
 	DisableFullPathResolution bool
+
+	Logger func(msg string, args ...interface{})
 }
 
 func GetDefaultOptions() Options {

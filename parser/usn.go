@@ -399,6 +399,7 @@ type USNCarvedRecord struct {
 func CarveUSN(ctx context.Context,
 	ntfs_ctx *NTFSContext,
 	stream io.ReaderAt,
+	start int64,
 	size int64) chan *USNCarvedRecord {
 	output := make(chan *USNCarvedRecord)
 
@@ -423,6 +424,7 @@ func CarveUSN(ctx context.Context,
 		buffer := make([]byte, buffer_size)
 
 		now := time.Now()
+		reporting_size := int64(512 * 1024 * 1024)
 
 		for i := int64(0); i < size; i += step {
 			select {
@@ -431,10 +433,6 @@ func CarveUSN(ctx context.Context,
 			default:
 			}
 
-			DebugPrint(DEBUG_USN, "%v: Reading buffer length %v at %v in %v\n",
-				time.Now(), len(buffer), i, time.Now().Sub(now))
-
-			now = time.Now()
 			n, err := stream.ReadAt(buffer, i)
 			if err != nil && err != io.EOF {
 				return
@@ -458,6 +456,11 @@ func CarveUSN(ctx context.Context,
 
 			// USN_RECORD_V2 entries are 64 bit aligned.
 			for j := int64(0); j < limit; j += 8 {
+
+				if (i+j)%reporting_size == 0 {
+					ntfs_ctx.Log("Scanned %vMb in %v\n",
+						int(i+j)/1024/1024, time.Now().Sub(now))
+				}
 
 				// MajorVersion must be 2 and MinorVersion 0. This is
 				// a quick check that should eliminate most of the
@@ -521,8 +524,17 @@ func testUSNEntry(ntfs_ctx *NTFSContext,
 		return nil, false
 	}
 
+	// Make a copy of the record to send to our caller.
+	buf := make([]byte, record_length)
+	n, err := record.Reader.ReadAt(buf, offset)
+	if err != nil {
+		return nil, false
+	}
+
+	buf_reader := bytes.NewReader(buf[:n])
+
 	return &USN_RECORD{
-		USN_RECORD_V2: record,
+		USN_RECORD_V2: record.Profile.USN_RECORD_V2(buf_reader, 0),
 		context:       ntfs_ctx,
 	}, true
 }

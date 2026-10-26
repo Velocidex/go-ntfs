@@ -20,7 +20,7 @@ var (
 func doVSS() {
 	reader, _ := parser.NewPagedReader(*vss_command_file_arg, 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	vss_header := ntfs_ctx.Profile.VSS_VOLUME_HEADER(reader, 0x1e00)

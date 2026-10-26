@@ -37,16 +37,15 @@ func doSTAT() {
 		Reader: getReader(*stat_command_file_arg),
 	}, 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
-	kingpin.FatalIfError(err, "Can not open filesystem")
-
+	opts := GetOptions()
 	if *stat_command_verbose {
-		ntfs_ctx.SetOptions(parser.Options{
-			IncludeShortNames: true,
-			MaxLinks:          1000,
-			MaxDirectoryDepth: 100,
-		})
+		opts.IncludeShortNames = true
+		opts.MaxLinks = 1000
+		opts.MaxDirectoryDepth = 100
 	}
+
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, opts)
+	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	mft_entry, err := GetMFTEntry(ntfs_ctx, *stat_command_arg)
 	kingpin.FatalIfError(err, "Can not open path")

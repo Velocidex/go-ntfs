@@ -32,14 +32,14 @@ func doCarve() {
 	reader, _ := parser.NewPagedReader(
 		getReader(*carve_command_file_arg), 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	size := ntfs_ctx.Boot.VolumeSize() * int64(ntfs_ctx.Boot.Sector_size())
 	fmt.Printf("VolumeSize %v\n", size)
 
 	for record := range parser.CarveUSN(
-		context.Background(), ntfs_ctx, reader, size) {
+		context.Background(), ntfs_ctx, reader, 0, size) {
 
 		filename := record.Filename()
 

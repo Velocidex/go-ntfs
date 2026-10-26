@@ -34,3 +34,9 @@ func main() {
 		}
 	}
 }
+
+func GetOptions() parser.Options {
+	res := parser.GetDefaultOptions()
+	res.Logger = Log
+	return res
+}

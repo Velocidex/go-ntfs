@@ -54,9 +54,11 @@ func putUSNRecordV2(buf []byte, offset int64, mft_id uint64, name string) int64 
 }
 
 func newTestContext(cluster_size int64) *NTFSContext {
-	ntfs_ctx := GetNTFSContextFromRawMFT(bytes.NewReader(nil), cluster_size, 0x400)
 	options := GetDefaultOptions()
 	options.DisableFullPathResolution = true
+
+	ntfs_ctx := GetNTFSContextFromRawMFT(
+		bytes.NewReader(nil), cluster_size, 0x400, options)
 	ntfs_ctx.SetOptions(options)
 	return ntfs_ctx
 }
@@ -127,7 +129,7 @@ func TestCarveUSNFindsEightByteAlignedRecordsOnce(t *testing.T) {
 	ntfs_ctx := newTestContext(cluster_size)
 	seen := map[int64]int{}
 	for item := range CarveUSN(context.Background(), ntfs_ctx,
-		bytes.NewReader(data), int64(len(data))) {
+		bytes.NewReader(data), 0, int64(len(data))) {
 		seen[item.DiskOffset]++
 	}
 
@@ -156,7 +158,7 @@ func TestCarveUSNReadsLongRecordsAcrossBuffers(t *testing.T) {
 	ntfs_ctx := newTestContext(cluster_size)
 	found := 0
 	for item := range CarveUSN(context.Background(), ntfs_ctx,
-		bytes.NewReader(data), int64(len(data))) {
+		bytes.NewReader(data), 0, int64(len(data))) {
 		if item.DiskOffset != long_offset {
 			t.Errorf("unexpected record at %#x", item.DiskOffset)
 			continue
@@ -187,7 +189,7 @@ func TestCarveUSNReportsRecordsNearTheEndOnce(t *testing.T) {
 	ntfs_ctx := newTestContext(cluster_size)
 	found := 0
 	for item := range CarveUSN(context.Background(), ntfs_ctx,
-		bytes.NewReader(data), int64(len(data))) {
+		bytes.NewReader(data), 0, int64(len(data))) {
 		if item.DiskOffset == offset {
 			found++
 		}
@@ -211,7 +213,7 @@ func TestCarveUSNWithTinyClusterSizeTerminates(t *testing.T) {
 		go func() {
 			count := 0
 			for range CarveUSN(context.Background(), ntfs_ctx,
-				bytes.NewReader(data), int64(len(data))) {
+				bytes.NewReader(data), 0, int64(len(data))) {
 				count++
 			}
 			done <- count

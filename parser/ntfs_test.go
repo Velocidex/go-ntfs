@@ -31,7 +31,7 @@ func TestNTFS(t *testing.T) {
 	fd, err := os.Open("test_data/test.ntfs.dd")
 	assert.NoError(err, "Unable to open file")
 
-	ntfs_ctx, err := parser.GetNTFSContext(fd, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(fd, 0, parser.GetDefaultOptions())
 	assert.NoError(err, "Unable to open file")
 
 	// Open directory by path.
@@ -98,7 +98,7 @@ func TestNTFSOpenStream(t *testing.T) {
 	fd, err := os.Open("test_data/test.ntfs.dd")
 	assert.NoError(err, "Unable to open file")
 
-	ntfs_ctx, err := parser.GetNTFSContext(fd, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(fd, 0, parser.GetDefaultOptions())
 	assert.NoError(err, "Unable to open file")
 
 	// Open directory by path.
