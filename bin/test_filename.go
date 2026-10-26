@@ -40,7 +40,7 @@ func doTestFn() {
 	reader, err := parser.NewPagedReader(*test_fn_command_file_arg, 1024, 10000)
 	kingpin.FatalIfError(err, "Can not open MFT file")
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	mft_stream, err := parser.GetDataForPath(ntfs_ctx, "$MFT")

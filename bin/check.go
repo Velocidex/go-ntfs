@@ -32,7 +32,7 @@ func doCheck() {
 		Reader: getReader(*check_command_file_arg),
 	}, 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	for i := *check_command_start_id; i < *check_command_end_id; i++ {

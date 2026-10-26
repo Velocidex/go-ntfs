@@ -36,7 +36,7 @@ func doLS() {
 		Reader: getReader(*ls_command_file_arg),
 	}, 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	dir, err := GetMFTEntry(ntfs_ctx, *ls_command_arg)

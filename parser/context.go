@@ -35,18 +35,25 @@ type NTFSContext struct {
 	full_path_resolver *FullPathResolver
 }
 
+func (self *NTFSContext) Log(msg string, args ...interface{}) {
+	if self.options.Logger != nil {
+		self.options.Logger(msg, args...)
+	}
+}
+
 func (self *NTFSContext) Stats() *ordereddict.Dict {
 	return ordereddict.NewDict().
 		Set("EntryLRU", self.mft_entry_lru.Stats()).
 		Set("SummaryCache", self.mft_summary_cache.Stats())
 }
 
-func newNTFSContext(image io.ReaderAt, name string) *NTFSContext {
+func newNTFSContext(image io.ReaderAt,
+	name string, options Options) *NTFSContext {
 	STATS.Inc_NTFSContext()
 	mft_cache, _ := NewLRU(1000, nil, name)
 	ntfs := &NTFSContext{
 		DiskReader:    image,
-		options:       GetDefaultOptions(),
+		options:       options,
 		Profile:       NewNTFSProfile(),
 		mft_entry_lru: mft_cache,
 	}

@@ -64,7 +64,7 @@ func doMFTFromImage() {
 	}, 0x400, 10000)
 	kingpin.FatalIfError(err, "Can not open image")
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	// Get the MFT ID 0

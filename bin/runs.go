@@ -50,7 +50,7 @@ func doRuns() {
 		Reader: getReader(*runs_command_file_arg),
 	}, 1024, 10000)
 
-	ntfs_ctx, err := parser.GetNTFSContext(reader, 0)
+	ntfs_ctx, err := parser.GetNTFSContext(reader, 0, GetOptions())
 	kingpin.FatalIfError(err, "Can not open filesystem")
 
 	mft_entry, err := GetMFTEntry(ntfs_ctx, *runs_command_arg)

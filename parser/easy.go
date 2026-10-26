@@ -54,9 +54,11 @@ type FileInfo struct {
 // specified in the boot sector) so callers will have to guess those.
 func GetNTFSContextFromRawMFT(reader io.ReaderAt,
 	cluster_size int64,
-	record_size int64) *NTFSContext {
+	record_size int64,
+	options Options,
+) *NTFSContext {
 
-	ntfs := newNTFSContext(&NullReader{}, "NullReader")
+	ntfs := newNTFSContext(&NullReader{}, "NullReader", options)
 
 	ntfs.MFTReader = reader
 	ntfs.ClusterSize = cluster_size
@@ -65,8 +67,9 @@ func GetNTFSContextFromRawMFT(reader io.ReaderAt,
 	return ntfs
 }
 
-func GetNTFSContext(image io.ReaderAt, offset int64) (*NTFSContext, error) {
-	ntfs := newNTFSContext(image, "GetNTFSContext")
+func GetNTFSContext(image io.ReaderAt,
+	offset int64, options Options) (*NTFSContext, error) {
+	ntfs := newNTFSContext(image, "GetNTFSContext", options)
 
 	// NTFS Parsing starts with the boot record.
 	ntfs.Boot = &NTFS_BOOT_SECTOR{Reader: image,

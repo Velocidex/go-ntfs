@@ -470,11 +470,8 @@ func ParseMFTFileWithOptions(
 	go func() {
 		defer close(output)
 
-		ntfs := GetNTFSContextFromRawMFT(
-			reader, cluster_size, record_size)
+		ntfs := GetNTFSContextFromRawMFT(reader, cluster_size, record_size, options)
 		defer ntfs.Close()
-
-		ntfs.SetOptions(options)
 
 		for id := start_entry; id < size/record_size+1; id++ {
 			mft_entry, err := ntfs.GetMFT(id)
