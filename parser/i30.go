@@ -9,10 +9,10 @@ func new_file_info(record *INDEX_RECORD_ENTRY) *FileInfo {
 	filename := record.File()
 	return &FileInfo{
 		MFTId:         fmt.Sprintf("%d", record.MftReference()),
-		Mtime:         filename.Mft_modified().Time,
+		Mtime:         filename.File_modified().Time,
 		Atime:         filename.File_accessed().Time,
-		Ctime:         filename.Created().Time,
-		Btime:         filename.File_modified().Time,
+		Ctime:         filename.Mft_modified().Time,
+		Btime:         filename.Created().Time,
 		Size:          int64(filename.FilenameSize()),
 		AllocatedSize: int64(filename.Allocated_size()),
 		Name:          filename.Name(),
